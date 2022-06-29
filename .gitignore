@@ -125,6 +125,3 @@ dmypy.json
 
 # Pycharm project settings
 .idea/
-
-# Model specification files
-src/vivarium_nih_us_cvd/model_specifications/*.yaml
