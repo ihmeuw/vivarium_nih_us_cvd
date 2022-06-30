@@ -12,5 +12,5 @@ __version__ = "1.0.0"
 __author__ = "The vivarium developers"
 __email__ = "vivarium.dev@gmail.com"
 
-__license__ = "GNU GPLv3"
-__copyright__ = f"Copyright 2016-2019 {__author__}"
+__license__ = "BSD 3-Clause"
+__copyright__ = f"Copyright 2022 {__author__}"
