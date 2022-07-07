@@ -1,10 +1,14 @@
 from typing import NamedTuple
 
+# TODO [MIC-3230]: template - import pandas
+import pandas as pd
+
 ####################
 # Project metadata #
 ####################
 
 PROJECT_NAME = 'vivarium_nih_us_cvd'
+# TODO [MIC-3230]: template - change project to 'proj_simscience'
 CLUSTER_PROJECT = 'proj_cost_effect'
 # # TODO use proj_csu if a csu project
 # CLUSTER_PROJECT = 'proj_csu'
@@ -16,7 +20,7 @@ MAKE_ARTIFACT_RUNTIME = '3:00:00'
 MAKE_ARTIFACT_SLEEP = 10
 
 LOCATIONS = [
-    # TODO - project locations here
+    'Alabama',
 ]
 
 ARTIFACT_INDEX_COLUMNS = [

@@ -3,9 +3,6 @@ components:
         population:
             - BasePopulation()
             - Mortality()
-        metrics:
-            - DisabilityObserver()
-            - MortalityObserver()
 
     # Causes an error if left empty. Uncomment when you have components. 
     # vivarium_nih_us_cvd.components:
@@ -13,34 +10,26 @@ components:
 configuration:
     input_data:
         input_draw_number: 0
+        location: 'Alabama'
+        artifact_path: '/ihme/costeffectiveness/artifacts/vivarium_nih_us_cvd/alabama.hdf'
     interpolation:
         order: 0
-        extrapolate: False
+        extrapolate: True
     randomness:
         map_size: 1_000_000
         key_columns: ['entrance_time', 'age']
         random_seed: 0
     time:
         start:
-            year: 2005
-            month: 7
-            day: 2
+            year: 2021
+            month: 1
+            day: 1
         end:
-            year: 2010
-            month: 7
-            day: 2
-        step_size: 1 # Days
+            year: 2021
+            month: 12
+            day: 31
+        step_size: 28 # Days
     population:
-        population_size: 100
-        age_start: 0
-        age_end: 100
-
-    metrics:
-        disability:
-            by_age: False
-            by_sex: False
-            by_year: False
-        mortality:
-            by_age: False
-            by_sex: False
-            by_year: False
+        population_size: 50_000
+        age_start: 25
+        age_end: 125
