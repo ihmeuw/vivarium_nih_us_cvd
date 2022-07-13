@@ -21,6 +21,7 @@ if __name__ == "__main__":
         'vivarium_public_health==0.10.19',
 
         'click',
+        # TODO [MIC-3230] Template - request gbd_mapping pin like we did vivarium pins
         'gbd_mapping>=3.0.0, <4.0.0',
         'jinja2',
         'loguru',

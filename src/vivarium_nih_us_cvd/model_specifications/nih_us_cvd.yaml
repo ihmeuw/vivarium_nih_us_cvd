@@ -3,6 +3,9 @@ components:
         population:
             - BasePopulation()
             - Mortality()
+        metrics:
+            # - DisabilityObserver()
+            - MortalityObserver()
 
     # Causes an error if left empty. Uncomment when you have components. 
     # vivarium_nih_us_cvd.components:
@@ -33,3 +36,8 @@ configuration:
         population_size: 50_000
         age_start: 25
         age_end: 125
+    metrics:
+        mortality:
+            by_age: True
+            by_sex: True
+            by_year: True
