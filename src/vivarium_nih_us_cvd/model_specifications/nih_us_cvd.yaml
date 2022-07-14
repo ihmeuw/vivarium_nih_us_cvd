@@ -4,6 +4,7 @@ components:
             - BasePopulation()
             - Mortality()
         metrics:
+            - DisabilityObserver()
             - MortalityObserver()
 
     vivarium_nih_us_cvd:
@@ -39,11 +40,17 @@ configuration:
         # SDB: how do I model 3+ but only observe 25+? They seem to match w/ gbd age bins but how to override?
         age_start: 25
         age_end: 125
+    # FIXME [MIC-3230]: update template
     observers:
-        mortality:
-            include:
-                # SDB: where are these specified? Like, 'age' means stratify by age but where are age bins specified?
-                # e.g. even though I only include 'male' in results.SEXES, the output.hdf has female
-                - 'age'
-                - 'sex'
-                - 'year'
+    #     # SDB: where are these specified? Like, 'age' means stratify by age but where are age bins specified?
+    #     # e.g. even though I only include 'male' in results.SEXES, the output.hdf has female
+        default:
+            - 'age'
+            - 'sex'
+            - 'year'
+        # mortality:
+        #     include:
+        #     exclude:
+        # disability:
+        #     include:
+        #     exclude:
