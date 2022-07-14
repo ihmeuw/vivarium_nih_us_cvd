@@ -1,6 +1,5 @@
 from typing import NamedTuple
 
-# TODO [MIC-3230]: template - import pandas
 import pandas as pd
 
 ####################
@@ -8,10 +7,8 @@ import pandas as pd
 ####################
 
 PROJECT_NAME = 'vivarium_nih_us_cvd'
-# TODO [MIC-3230]: template - change project to 'proj_simscience'
-CLUSTER_PROJECT = 'proj_cost_effect'
-# # TODO use proj_csu if a csu project
-# CLUSTER_PROJECT = 'proj_csu'
+# use proj_csu if a csu project
+CLUSTER_PROJECT = 'proj_simscience'
 
 CLUSTER_QUEUE = 'all.q'
 MAKE_ARTIFACT_MEM = '10G'
