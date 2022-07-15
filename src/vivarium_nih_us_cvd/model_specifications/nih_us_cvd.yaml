@@ -6,10 +6,11 @@ components:
         metrics:
             - DisabilityObserver()
             - MortalityObserver()
-
-    vivarium_nih_us_cvd:
-        components:
             - ResultsStratifier()
+
+    # vivarium_nih_us_cvd:
+    #     components:
+    #         - ResultsStratifier()
         
 
 configuration:
