@@ -1,1 +1,0 @@
-from vivarium_nih_us_cvd.components.observers import ResultsStratifier
