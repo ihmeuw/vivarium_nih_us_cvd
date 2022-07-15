@@ -28,15 +28,13 @@ STANDARD_COLUMNS = {
 
 THROWAWAY_COLUMNS = [f'{state}_event_count' for state in models.STATES]
 
-# SDB: these don't match the data column names. Why arent the templates centralized?
-# FIXME [MIC-3230]: Update to match template
 TOTAL_POPULATION_COLUMN_TEMPLATE = 'total_population_{POP_STATE}'
-PERSON_TIME_COLUMN_TEMPLATE = 'person_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}'
-DEATH_COLUMN_TEMPLATE = 'death_due_to_{CAUSE_OF_DEATH}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}'
-YLLS_COLUMN_TEMPLATE = 'ylls_due_to_{CAUSE_OF_DEATH}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}'
-YLDS_COLUMN_TEMPLATE = 'ylds_due_to_{CAUSE_OF_DISABILITY}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}'
-STATE_PERSON_TIME_COLUMN_TEMPLATE = '{STATE}_person_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}'
-TRANSITION_COUNT_COLUMN_TEMPLATE = '{TRANSITION}_event_count_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}'
+PERSON_TIME_COLUMN_TEMPLATE = 'person_time_in_{YEAR}_among_{SEX}_in_age_group_{AGE_GROUP}'
+DEATH_COLUMN_TEMPLATE = 'death_due_to_{CAUSE_OF_DEATH}_in_{YEAR}_among_{SEX}_in_age_group_{AGE_GROUP}'
+YLLS_COLUMN_TEMPLATE = 'ylls_due_to_{CAUSE_OF_DEATH}_in_{YEAR}_among_{SEX}_in_age_group_{AGE_GROUP}'
+YLDS_COLUMN_TEMPLATE = 'ylds_due_to_{CAUSE_OF_DISABILITY}_in_{YEAR}_among_{SEX}_in_age_group_{AGE_GROUP}'
+STATE_PERSON_TIME_COLUMN_TEMPLATE = '{STATE}_person_time_in_{YEAR}_among_{SEX}_in_age_group_{AGE_GROUP}'
+TRANSITION_COUNT_COLUMN_TEMPLATE = '{TRANSITION}_event_count_in_{YEAR}_among_{SEX}_in_age_group_{AGE_GROUP}'
 
 COLUMN_TEMPLATES = {
     'population': TOTAL_POPULATION_COLUMN_TEMPLATE,
@@ -53,25 +51,10 @@ NON_COUNT_TEMPLATES = [
 
 POP_STATES = ('living', 'dead', 'tracked', 'untracked')
 SEXES = ('male', 'female')
-YEARS = tuple(range(2021, 2023))
-# SDB: output.hdf does not have early neonatal to 1-4. Why?
-AGE_GROUPS = (
-    '25_to_29',
-    '30_to_34',
-    '35_to_39',
-    '40_to_44',
-    '45_to_49',
-    '50_to_54',
-    '55_to_59',
-    '60_to_64',
-    '65_to_69',
-    '70_to_74',
-    '75_to_79',
-    '80_to_84',
-    '85_to_89',
-    '90_to_94',
-    '95_plus',
- )
+# TODO - add literals for years in the model
+YEARS = ()
+# TODO - add literals for ages in the model
+AGE_GROUPS = ()
 # TODO - add causes of death
 CAUSES_OF_DEATH = (
     'other_causes',
