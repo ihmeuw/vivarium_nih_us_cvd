@@ -18,7 +18,6 @@ from gbd_mapping import causes, covariates, risk_factors
 from vivarium.framework.artifact import EntityKey
 from vivarium_gbd_access import gbd
 from vivarium_inputs import globals as vi_globals, interface, utilities as vi_utils, utility_data
-# TODO [MIC-3230]: template - should be alternative_risk_factor (plural)
 from vivarium_inputs.mapping_extension import alternative_risk_factors
 
 from vivarium_nih_us_cvd.constants import data_keys
@@ -49,14 +48,13 @@ def get_data(lookup_key: str, location: str) -> pd.DataFrame:
         data_keys.POPULATION.ACMR: load_standard_data,
 
         # TODO - add appropriate mappings
-        # TODO [MIC-3230]: Template - change _ to . (like above)
-        # data_keys.DIARRHEA_PREVALENCE: load_standard_data,
-        # data_keys.DIARRHEA_INCIDENCE_RATE: load_standard_data,
-        # data_keys.DIARRHEA_REMISSION_RATE: load_standard_data,
-        # data_keys.DIARRHEA_CAUSE_SPECIFIC_MORTALITY_RATE: load_standard_data,
-        # data_keys.DIARRHEA_EXCESS_MORTALITY_RATE: load_standard_data,
-        # data_keys.DIARRHEA_DISABILITY_WEIGHT: load_standard_data,
-        # data_keys.DIARRHEA_RESTRICTIONS: load_metadata,
+        # data_keys.DIARRHEA.PREVALENCE: load_standard_data,
+        # data_keys.DIARRHEA.INCIDENCE_RATE: load_standard_data,
+        # data_keys.DIARRHEA.REMISSION_RATE: load_standard_data,
+        # data_keys.DIARRHEA.CAUSE_SPECIFIC_MORTALITY_RATE: load_standard_data,
+        # data_keys.DIARRHEA.EXCESS_MORTALITY_RATE: load_standard_data,
+        # data_keys.DIARRHEA.DISABILITY_WEIGHT: load_standard_data,
+        # data_keys.DIARRHEA.RESTRICTIONS: load_metadata,
     }
     return mapping[lookup_key](lookup_key, location)
 

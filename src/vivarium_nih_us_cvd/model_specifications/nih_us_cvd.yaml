@@ -3,9 +3,15 @@ components:
         population:
             - BasePopulation()
             - Mortality()
+        metrics:
+            - DisabilityObserver()
+            - MortalityObserver()
+            - ResultsStratifier()
 
-    # Causes an error if left empty. Uncomment when you have components. 
-    # vivarium_nih_us_cvd.components:
+    # vivarium_nih_us_cvd:
+    #     components:
+    #         - ResultsStratifier()
+        
 
 configuration:
     input_data:
@@ -21,15 +27,31 @@ configuration:
         random_seed: 0
     time:
         start:
-            year: 2021
+            year: 2019
             month: 1
             day: 1
         end:
-            year: 2021
+            year: 2040
             month: 12
             day: 31
         step_size: 28 # Days
     population:
-        population_size: 50_000
+        population_size: 100_000
+        # SDB: how would I model only one sex?
+        # SDB: how do I model 3+ but only observe 25+? They seem to match w/ gbd age bins but how to override?
         age_start: 25
         age_end: 125
+    # FIXME [MIC-3230]: update template
+    observers:
+    #     # SDB: where are these specified? Like, 'age' means stratify by age but where are age bins specified?
+    #     # e.g. even though I only include 'male' in results.SEXES, the output.hdf has female
+        default:
+            - 'age'
+            - 'sex'
+            - 'year'
+        # mortality:
+        #     include:
+        #     exclude:
+        # disability:
+        #     include:
+        #     exclude:
