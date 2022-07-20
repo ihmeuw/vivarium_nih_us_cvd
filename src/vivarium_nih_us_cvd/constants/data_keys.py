@@ -39,7 +39,7 @@ class __IschemicStroke(NamedTuple):
     EMR_ACUTE: TargetString = TargetString('sequela.acute_ischemic_stroke.excess_mortality_rate')
     EMR_CHRONIC: TargetString = TargetString('sequela.chronic_ischemic_stroke.excess_mortality_rate')
     CSMR: TargetString = TargetString('cause.ischemic_stroke.cause_specific_mortality_rate')
-    # RESTRICTIONS: TargetString = TargetString('cause.ischemic_stroke.restrictions')
+    RESTRICTIONS: TargetString = TargetString('cause.ischemic_stroke.restrictions')
 
     @property
     def name(self):

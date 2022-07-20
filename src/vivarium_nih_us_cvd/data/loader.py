@@ -51,14 +51,13 @@ def get_data(lookup_key: str, location: str) -> pd.DataFrame:
 
         data_keys.ISCHEMIC_STROKE.PREVALENCE_ACUTE: load_prevalence_ischemic_stroke,
         data_keys.ISCHEMIC_STROKE.PREVALENCE_CHRONIC: load_prevalence_ischemic_stroke,
-        # TODO: Confirm whether we need true incidence rate (get_raw_incidence_rate) or incidence among susceptibles (get_incidence_rate)
         data_keys.ISCHEMIC_STROKE.INCIDENCE_RATE: load_standard_data,
         data_keys.ISCHEMIC_STROKE.DISABILITY_WEIGHT_ACUTE: load_disability_weight_ischemic_stroke,
         data_keys.ISCHEMIC_STROKE.DISABILITY_WEIGHT_CHRONIC: load_disability_weight_ischemic_stroke,
         data_keys.ISCHEMIC_STROKE.EMR_ACUTE: load_emr_ischemic_stroke,
         data_keys.ISCHEMIC_STROKE.EMR_CHRONIC: load_emr_ischemic_stroke,
         data_keys.ISCHEMIC_STROKE.CSMR: load_standard_data,
-        # data_keys.ISCHEMIC_STROKE.RESTRICTIONS: load_metadata,
+        data_keys.ISCHEMIC_STROKE.RESTRICTIONS: load_metadata,
     }
     return mapping[lookup_key](lookup_key, location)
 
