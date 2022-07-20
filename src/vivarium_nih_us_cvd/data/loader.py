@@ -12,17 +12,19 @@ for an example.
 
    No logging is done here. Logging is done in vivarium inputs itself and forwarded.
 """
-from __future__ import annotations
 import pandas as pd
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, TYPE_CHECKING
 
-from gbd_mapping import causes, covariates, risk_factors, sequelae
+from gbd_mapping import causes, covariates, risk_factors
 from vivarium.framework.artifact import EntityKey
 from vivarium_gbd_access import gbd
 from vivarium_inputs import globals as vi_globals, interface, utilities as vi_utils, utility_data
 from vivarium_inputs.mapping_extension import alternative_risk_factors
 
 from vivarium_nih_us_cvd.constants import data_keys
+
+if TYPE_CHECKING:
+    from gbd_mapping.base_template import ModelableEntity
 
 
 def get_data(lookup_key: str, location: str) -> pd.DataFrame:
@@ -85,7 +87,7 @@ def load_theoretical_minimum_risk_life_expectancy(key: str, location: str) -> pd
     return interface.get_theoretical_minimum_risk_life_expectancy()
 
 
-def _get_measure_wrapped(entity: "ModelableEntity", measure: Union[str, data_keys.SourceSink], location: str) -> pd.DataFrame:
+def _get_measure_wrapped(entity: ModelableEntity, measure: Union[str, data_keys.TargetString], location: str) -> pd.DataFrame:
     '''
     All calls to get_measure() need to have the location dropped. For the time being,
     simply use this function.
