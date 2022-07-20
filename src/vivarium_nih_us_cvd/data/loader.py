@@ -57,7 +57,7 @@ def get_data(lookup_key: str, location: str) -> pd.DataFrame:
         data_keys.ISCHEMIC_STROKE.DISABILITY_WEIGHT_CHRONIC: load_disability_weight_ischemic_stroke,
         data_keys.ISCHEMIC_STROKE.EMR_ACUTE: load_emr_ischemic_stroke,
         data_keys.ISCHEMIC_STROKE.EMR_CHRONIC: load_emr_ischemic_stroke,
-        # data_keys.ISCHEMIC_STROKE.CSMR: load_standard_data,
+        data_keys.ISCHEMIC_STROKE.CSMR: load_standard_data,
         # data_keys.ISCHEMIC_STROKE.RESTRICTIONS: load_metadata,
     }
     return mapping[lookup_key](lookup_key, location)
