@@ -53,7 +53,7 @@ NON_COUNT_TEMPLATES = [
 
 POP_STATES = ('living', 'dead', 'tracked', 'untracked')
 SEXES = ('male', 'female')
-YEARS = tuple(range(2021, 2023))
+YEARS = tuple(range(2021, 2041))
 # SDB: output.hdf does not have early neonatal to 1-4. Why?
 AGE_GROUPS = (
     '25_to_29',
@@ -72,16 +72,13 @@ AGE_GROUPS = (
     '90_to_94',
     '95_plus',
  )
-# TODO - add causes of death
-CAUSES_OF_DEATH = (
-    'other_causes',
-    # models.FIRST_STATE_NAME,
-)
-# TODO - add causes of disability
+
 CAUSES_OF_DISABILITY = (
-    # models.FIRST_STATE_NAME,
-    # models.SECOND_STATE_NAME,
+    models.ACUTE_ISCHEMIC_STROKE_STATE_NAME,
+    models.CHRONIC_ISCHEMIC_STROKE_STATE_NAME,
 )
+
+CAUSES_OF_DEATH = CAUSES_OF_DISABILITY + ('other_causes',)
 
 TEMPLATE_FIELD_MAP = {
     'POP_STATE': POP_STATES,

@@ -30,37 +30,30 @@ class __Population(NamedTuple):
 POPULATION = __Population()
 
 
-# TODO - sample key group used to identify keys in model
-# For more information see the tutorial:
-# https://vivarium-inputs.readthedocs.io/en/latest/tutorials/pulling_data.html#entity-measure-data
-class __SomeDisease(NamedTuple):
-
-    # Keys that will be loaded into the artifact. must have a colon type declaration
-    SOME_DISEASE_PREVALENCE: TargetString = TargetString('cause.some_disease.prevalence')
-    SOME_DISEASE_INCIDENCE_RATE: TargetString = TargetString('cause.some_disease.incidence_rate')
-    SOME_DISEASE_REMISSION_RATE: TargetString = TargetString('cause.some_disease.remission_rate')
-    DISABILITY_WEIGHT: TargetString = TargetString('cause.some_disease.disability_weight')
-    EMR: TargetString = TargetString('cause.some_disease.excess_mortality_rate')
-    CSMR: TargetString = TargetString('cause.some_disease.cause_specific_mortality_rate')
-    RESTRICTIONS: TargetString = TargetString('cause.some_disease.restrictions')
-
-    # Useful keys not for the artifact - distinguished by not using the colon type declaration
-    RAW_DISEASE_PREVALENCE = TargetString('sequela.raw_disease.prevalence')
-    RAW_DISEASE_INCIDENCE_RATE = TargetString('sequela.raw_disease.incidence_rate')
+class __IschemicStroke(NamedTuple):
+    PREVALENCE_ACUTE: TargetString = TargetString('sequela.acute_ischemic_stroke.prevalence')
+    PREVALENCE_CHRONIC: TargetString = TargetString('sequela.chronic_ischemic_stroke.prevalence')
+    # INCIDENCE_RATE: TargetString = TargetString('cause.ischemic_stroke.incidence_rate')
+    # DISABILITY_WEIGHT_ACUTE: TargetString = TargetString('sequela.acute_ischemic_stroke.disability_weight')
+    # DISABILITY_WEIGHT_CHRONIC: TargetString = TargetString('sequela.chronic_ischemic_stroke.disability_weight')
+    # EMR_ACUTE: TargetString = TargetString('sequela.acute_ischemic_stroke.excess_mortality_rate')
+    # EMR_CHRONIC: TargetString = TargetString('sequela.chronic_ischemic_stroke.excess_mortality_rate')
+    # CSMR: TargetString = TargetString('cause.ischemic_stroke.cause_specific_mortality_rate')
+    # RESTRICTIONS: TargetString = TargetString('cause.ischemic_stroke.restrictions')
 
     @property
     def name(self):
-        return 'some_disease'
-
+        return 'ischemic_stroke'
+    
     @property
     def log_name(self):
-        return 'some disease'
+        return self.name.replace('_', ' ')
 
 
-SOME_DISEASE = __SomeDisease()
+ISCHEMIC_STROKE = __IschemicStroke()
+
 
 MAKE_ARTIFACT_KEY_GROUPS = [
     POPULATION,
-    # TODO: list all key groups here
-    # SOME_DISEASE
+    ISCHEMIC_STROKE,
 ]

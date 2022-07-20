@@ -4,13 +4,14 @@ components:
             - BasePopulation()
             - Mortality()
         metrics:
+            # SDB - DisabilityObserver vs DiseaseObserver?
             - DisabilityObserver()
             - MortalityObserver()
             - ResultsStratifier()
 
-    # vivarium_nih_us_cvd:
-    #     components:
-    #         - ResultsStratifier()
+    vivarium_nih_us_cvd:
+        components:
+            - IschemicStroke()
         
 
 configuration:
@@ -49,9 +50,3 @@ configuration:
             - 'age'
             - 'sex'
             - 'year'
-        # mortality:
-        #     include:
-        #     exclude:
-        # disability:
-        #     include:
-        #     exclude:
