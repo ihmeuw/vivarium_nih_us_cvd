@@ -36,8 +36,8 @@ class __IschemicStroke(NamedTuple):
     INCIDENCE_RATE: TargetString = TargetString('cause.ischemic_stroke.incidence_rate')
     DISABILITY_WEIGHT_ACUTE: TargetString = TargetString('sequela.acute_ischemic_stroke.disability_weight')
     DISABILITY_WEIGHT_CHRONIC: TargetString = TargetString('sequela.chronic_ischemic_stroke.disability_weight')
-    # EMR_ACUTE: TargetString = TargetString('sequela.acute_ischemic_stroke.excess_mortality_rate')
-    # EMR_CHRONIC: TargetString = TargetString('sequela.chronic_ischemic_stroke.excess_mortality_rate')
+    EMR_ACUTE: TargetString = TargetString('sequela.acute_ischemic_stroke.excess_mortality_rate')
+    EMR_CHRONIC: TargetString = TargetString('sequela.chronic_ischemic_stroke.excess_mortality_rate')
     # CSMR: TargetString = TargetString('cause.ischemic_stroke.cause_specific_mortality_rate')
     # RESTRICTIONS: TargetString = TargetString('cause.ischemic_stroke.restrictions')
 

@@ -51,13 +51,13 @@ def get_data(lookup_key: str, location: str) -> pd.DataFrame:
 
         data_keys.ISCHEMIC_STROKE.PREVALENCE_ACUTE: load_prevalence_ischemic_stroke,
         data_keys.ISCHEMIC_STROKE.PREVALENCE_CHRONIC: load_prevalence_ischemic_stroke,
-        # TODO: Confirm whether we need true incidence rate or incidence among susceptibles
+        # TODO: Confirm whether we need true incidence rate (get_raw_incidence_rate) or incidence among susceptibles (get_incidence_rate)
         data_keys.ISCHEMIC_STROKE.INCIDENCE_RATE: load_standard_data,
         data_keys.ISCHEMIC_STROKE.DISABILITY_WEIGHT_ACUTE: load_disability_weight_ischemic_stroke,
         data_keys.ISCHEMIC_STROKE.DISABILITY_WEIGHT_CHRONIC: load_disability_weight_ischemic_stroke,
+        data_keys.ISCHEMIC_STROKE.EMR_ACUTE: load_emr_ischemic_stroke,
+        data_keys.ISCHEMIC_STROKE.EMR_CHRONIC: load_emr_ischemic_stroke,
         # data_keys.ISCHEMIC_STROKE.CSMR: load_standard_data,
-        # data_keys.ISCHEMIC_STROKE.EMR_ACUTE: load_emr_ischemic_stroke,
-        # data_keys.ISCHEMIC_STROKE.EMR_CHRONIC: load_emr_ischemic_stroke,
         # data_keys.ISCHEMIC_STROKE.RESTRICTIONS: load_metadata,
     }
     return mapping[lookup_key](lookup_key, location)
@@ -170,12 +170,12 @@ def load_prevalence_ischemic_stroke(key: str, location: str) -> pd.DataFrame:
     return prevalence
 
 
-# def load_emr_ischemic_stroke(key: str, location: str) -> pd.DataFrame:
-#     map = {
-#         data_keys.ISCHEMIC_STROKE.EMR_ACUTE: 24714,
-#         data_keys.ISCHEMIC_STROKE.EMR_CHRONIC: 10837,
-#     }
-#     return _load_em_from_meid(map[key], 'Excess mortality rate', location)
+def load_emr_ischemic_stroke(key: str, location: str) -> pd.DataFrame:
+    map = {
+        data_keys.ISCHEMIC_STROKE.EMR_ACUTE: 24714,
+        data_keys.ISCHEMIC_STROKE.EMR_CHRONIC: 10837,
+    }
+    return _load_em_from_meid(location, map[key], 'Excess mortality rate')
 
 
 def _get_prevalence_weighted_disability_weight(seq: List['Sequela'], location: str) -> List[pd.DataFrame]:
