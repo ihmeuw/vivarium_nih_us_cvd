@@ -33,7 +33,7 @@ POPULATION = __Population()
 class __IschemicStroke(NamedTuple):
     PREVALENCE_ACUTE: TargetString = TargetString('sequela.acute_ischemic_stroke.prevalence')
     PREVALENCE_CHRONIC: TargetString = TargetString('sequela.chronic_ischemic_stroke.prevalence')
-    # INCIDENCE_RATE: TargetString = TargetString('cause.ischemic_stroke.incidence_rate')
+    INCIDENCE_RATE: TargetString = TargetString('cause.ischemic_stroke.incidence_rate')
     # DISABILITY_WEIGHT_ACUTE: TargetString = TargetString('sequela.acute_ischemic_stroke.disability_weight')
     # DISABILITY_WEIGHT_CHRONIC: TargetString = TargetString('sequela.chronic_ischemic_stroke.disability_weight')
     # EMR_ACUTE: TargetString = TargetString('sequela.acute_ischemic_stroke.excess_mortality_rate')
