@@ -13,7 +13,7 @@ for an example.
    No logging is done here. Logging is done in vivarium inputs itself and forwarded.
 """
 import pandas as pd
-from typing import List, Tuple, Union, TYPE_CHECKING
+from typing import List, Tuple, Union
 
 from gbd_mapping import causes, covariates, risk_factors
 from vivarium.framework.artifact import EntityKey
@@ -22,9 +22,6 @@ from vivarium_inputs import globals as vi_globals, interface, utilities as vi_ut
 from vivarium_inputs.mapping_extension import alternative_risk_factors
 
 from vivarium_nih_us_cvd.constants import data_keys
-
-if TYPE_CHECKING:
-    from gbd_mapping.base_template import ModelableEntity
 
 
 def get_data(lookup_key: str, location: str) -> pd.DataFrame:
@@ -87,7 +84,7 @@ def load_theoretical_minimum_risk_life_expectancy(key: str, location: str) -> pd
     return interface.get_theoretical_minimum_risk_life_expectancy()
 
 
-def _get_measure_wrapped(entity: ModelableEntity, measure: Union[str, data_keys.TargetString], location: str) -> pd.DataFrame:
+def _get_measure_wrapped(entity: "ModelableEntity", measure: Union[str, data_keys.TargetString], location: str) -> pd.DataFrame:
     '''
     All calls to get_measure() need to have the location dropped. For the time being,
     simply use this function.
@@ -151,7 +148,7 @@ def _load_em_from_meid(location, meid, measure):
     data = vi_utils.scrub_gbd_conventions(data, location)
     data = vi_utils.split_interval(data, interval_column='age', split_column_prefix='age')
     data = vi_utils.split_interval(data, interval_column='year', split_column_prefix='year')
-    return vi_utils.sort_hierarchical_data(data)
+    return vi_utils.sort_hierarchical_data(data).droplevel('location')
 
 
 # Project-specific data functions
