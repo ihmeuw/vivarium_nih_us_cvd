@@ -17,11 +17,11 @@ if __name__ == "__main__":
         long_description = f.read()
 
     install_requirements = [
+        'gbd_mapping==3.0.6',
         'vivarium==0.10.17',
         'vivarium_public_health==0.10.20',
 
         'click',
-        'gbd_mapping>=3.0.0, <4.0.0',
         'jinja2',
         'loguru',
         'numpy',
