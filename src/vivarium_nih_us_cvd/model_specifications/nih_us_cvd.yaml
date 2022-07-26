@@ -8,9 +8,9 @@ components:
             - MortalityObserver()
             - ResultsStratifier()
 
-    # vivarium_nih_us_cvd:
-    #     components:
-    #         - ResultsStratifier()
+    vivarium_nih_us_cvd:
+        components:
+            - IschemicStroke()
         
 
 configuration:
@@ -34,6 +34,7 @@ configuration:
             year: 2040
             month: 12
             day: 31
+        # SDB: What happens when the `step_size` is the same as the definition of some state (eg acute IS == first 28 days of stroke event)
         step_size: 28 # Days
     population:
         population_size: 100_000
@@ -41,7 +42,6 @@ configuration:
         # SDB: how do I model 3+ but only observe 25+? They seem to match w/ gbd age bins but how to override?
         age_start: 25
         age_end: 125
-    # FIXME [MIC-3230]: update template
     observers:
     #     # SDB: where are these specified? Like, 'age' means stratify by age but where are age bins specified?
     #     # e.g. even though I only include 'male' in results.SEXES, the output.hdf has female
@@ -49,9 +49,3 @@ configuration:
             - 'age'
             - 'sex'
             - 'year'
-        # mortality:
-        #     include:
-        #     exclude:
-        # disability:
-        #     include:
-        #     exclude:

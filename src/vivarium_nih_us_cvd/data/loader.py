@@ -13,6 +13,7 @@ for an example.
    No logging is done here. Logging is done in vivarium inputs itself and forwarded.
 """
 import pandas as pd
+from typing import List, Tuple, Union
 
 from gbd_mapping import causes, covariates, risk_factors
 from vivarium.framework.artifact import EntityKey
@@ -47,14 +48,15 @@ def get_data(lookup_key: str, location: str) -> pd.DataFrame:
         data_keys.POPULATION.TMRLE: load_theoretical_minimum_risk_life_expectancy,
         data_keys.POPULATION.ACMR: load_standard_data,
 
-        # TODO - add appropriate mappings
-        # data_keys.DIARRHEA.PREVALENCE: load_standard_data,
-        # data_keys.DIARRHEA.INCIDENCE_RATE: load_standard_data,
-        # data_keys.DIARRHEA.REMISSION_RATE: load_standard_data,
-        # data_keys.DIARRHEA.CAUSE_SPECIFIC_MORTALITY_RATE: load_standard_data,
-        # data_keys.DIARRHEA.EXCESS_MORTALITY_RATE: load_standard_data,
-        # data_keys.DIARRHEA.DISABILITY_WEIGHT: load_standard_data,
-        # data_keys.DIARRHEA.RESTRICTIONS: load_metadata,
+        data_keys.ISCHEMIC_STROKE.PREVALENCE_ACUTE: load_prevalence_ischemic_stroke,
+        data_keys.ISCHEMIC_STROKE.PREVALENCE_CHRONIC: load_prevalence_ischemic_stroke,
+        data_keys.ISCHEMIC_STROKE.INCIDENCE_RATE: load_standard_data,
+        data_keys.ISCHEMIC_STROKE.DISABILITY_WEIGHT_ACUTE: load_disability_weight_ischemic_stroke,
+        data_keys.ISCHEMIC_STROKE.DISABILITY_WEIGHT_CHRONIC: load_disability_weight_ischemic_stroke,
+        data_keys.ISCHEMIC_STROKE.EMR_ACUTE: load_emr_ischemic_stroke,
+        data_keys.ISCHEMIC_STROKE.EMR_CHRONIC: load_emr_ischemic_stroke,
+        data_keys.ISCHEMIC_STROKE.CSMR: load_standard_data,
+        data_keys.ISCHEMIC_STROKE.RESTRICTIONS: load_metadata,
     }
     return mapping[lookup_key](lookup_key, location)
 
@@ -80,6 +82,14 @@ def load_demographic_dimensions(key: str, location: str) -> pd.DataFrame:
 
 def load_theoretical_minimum_risk_life_expectancy(key: str, location: str) -> pd.DataFrame:
     return interface.get_theoretical_minimum_risk_life_expectancy()
+
+
+def _get_measure_wrapped(entity: "ModelableEntity", measure: Union[str, data_keys.TargetString], location: str) -> pd.DataFrame:
+    '''
+    All calls to get_measure() need to have the location dropped. For the time being,
+    simply use this function.
+    '''
+    return interface.get_measure(entity, measure, location).droplevel('location')
 
 
 def load_standard_data(key: str, location: str) -> pd.DataFrame:
@@ -138,19 +148,64 @@ def _load_em_from_meid(location, meid, measure):
     data = vi_utils.scrub_gbd_conventions(data, location)
     data = vi_utils.split_interval(data, interval_column='age', split_column_prefix='age')
     data = vi_utils.split_interval(data, interval_column='year', split_column_prefix='year')
-    return vi_utils.sort_hierarchical_data(data)
+    return vi_utils.sort_hierarchical_data(data).droplevel('location')
 
 
-# TODO - add project-specific data functions here
+# Project-specific data functions
+def _get_ischemic_stroke_sequelae() ->  Tuple[pd.DataFrame, pd.DataFrame]:
+    acute_sequelae = [s for s in causes.ischemic_stroke.sequelae if 'acute' in s.name]
+    chronic_sequelae = [s for s in causes.ischemic_stroke.sequelae if 'chronic' in s.name]
+    return acute_sequelae, chronic_sequelae
 
 
-def get_entity(key: str):
+def load_prevalence_ischemic_stroke(key: str, location: str) -> pd.DataFrame:
+    acute_sequelae, chronic_sequelae = _get_ischemic_stroke_sequelae()
+    map = {
+        data_keys.ISCHEMIC_STROKE.PREVALENCE_ACUTE: acute_sequelae,
+        data_keys.ISCHEMIC_STROKE.PREVALENCE_CHRONIC: chronic_sequelae
+    }
+    prevalence = sum(_get_measure_wrapped(s, 'prevalence', location) for s in map[key])
+    return prevalence
+
+
+def load_emr_ischemic_stroke(key: str, location: str) -> pd.DataFrame:
+    map = {
+        data_keys.ISCHEMIC_STROKE.EMR_ACUTE: 24714,
+        data_keys.ISCHEMIC_STROKE.EMR_CHRONIC: 10837,
+    }
+    return _load_em_from_meid(location, map[key], 'Excess mortality rate')
+
+
+def _get_prevalence_weighted_disability_weight(seq: List['Sequela'], location: str) -> List[pd.DataFrame]:
+    assert len(seq), "Empty List - get_prevalence_weighted_disability_weight()"
+    prevalence_disability_weights = []
+    for s in seq:
+        prevalence = _get_measure_wrapped(s, 'prevalence', location)
+        disability_weight = _get_measure_wrapped(s, 'disability_weight', location)
+        prevalence_disability_weights.append(prevalence * disability_weight)
+    return prevalence_disability_weights
+
+
+def load_disability_weight_ischemic_stroke(key: str, location: str) -> pd.DataFrame:
+    acute_sequelae, chronic_sequelae = _get_ischemic_stroke_sequelae()
+    map = {
+        data_keys.ISCHEMIC_STROKE.DISABILITY_WEIGHT_ACUTE: acute_sequelae,
+        data_keys.ISCHEMIC_STROKE.DISABILITY_WEIGHT_CHRONIC: chronic_sequelae
+    }
+    prevalence_disability_weights = _get_prevalence_weighted_disability_weight(map[key], location)
+    ischemic_stroke_prevalence = _get_measure_wrapped(causes.ischemic_stroke, 'prevalence', location)
+    # TODO: There are not any missingness, but if there were (ie no eschemic stroke prevalence for some reason) would we want to fill with 0?
+    ischemic_stroke_disability_weight = (sum(prevalence_disability_weights) / ischemic_stroke_prevalence).fillna(0)
+    return ischemic_stroke_disability_weight
+
+
+def get_entity(key: Union[str, EntityKey]):
     # Map of entity types to their gbd mappings.
     type_map = {
         'cause': causes,
         'covariate': covariates,
         'risk_factor': risk_factors,
-        'alternative_risk_factor': alternative_risk_factors
+        'alternative_risk_factor': alternative_risk_factors,
     }
     key = EntityKey(key)
     return type_map[key.type][key.name]
