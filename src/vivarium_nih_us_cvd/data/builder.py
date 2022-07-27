@@ -11,8 +11,8 @@ Some degree of verbosity/boilerplate is fine in the interest of transparency.
 """
 from pathlib import Path
 
-from loguru import logger
 import pandas as pd
+from loguru import logger
 from vivarium.framework.artifact import Artifact, EntityKey
 
 from vivarium_nih_us_cvd.constants import data_keys
