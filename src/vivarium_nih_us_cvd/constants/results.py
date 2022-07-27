@@ -29,18 +29,16 @@ STANDARD_COLUMNS = {
 THROWAWAY_COLUMNS = [f'{state}_event_count' for state in models.STATES]
 
 # SDB: these don't match the data column names. Why arent the templates centralized?
-# FIXME [MIC-3230]: Update to match template
+# FIXME [MIC-3230]: Update to match template. consider adding {DISEASE} approach?
 TOTAL_POPULATION_COLUMN_TEMPLATE = 'total_population_{POP_STATE}'
-PERSON_TIME_COLUMN_TEMPLATE = 'person_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}'
 DEATH_COLUMN_TEMPLATE = 'death_due_to_{CAUSE_OF_DEATH}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}'
 YLLS_COLUMN_TEMPLATE = 'ylls_due_to_{CAUSE_OF_DEATH}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}'
 YLDS_COLUMN_TEMPLATE = 'ylds_due_to_{CAUSE_OF_DISABILITY}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}'
-STATE_PERSON_TIME_COLUMN_TEMPLATE = '{STATE}_person_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}'
-TRANSITION_COUNT_COLUMN_TEMPLATE = '{TRANSITION}_event_count_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}'
+STATE_PERSON_TIME_COLUMN_TEMPLATE = '{DISEASE}_{STATE}_person_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}'
+TRANSITION_COUNT_COLUMN_TEMPLATE = '{DISEASE}_{TRANSITION}_event_count_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}'
 
 COLUMN_TEMPLATES = {
     'population': TOTAL_POPULATION_COLUMN_TEMPLATE,
-    'person_time': PERSON_TIME_COLUMN_TEMPLATE,
     'deaths': DEATH_COLUMN_TEMPLATE,
     'ylls': YLLS_COLUMN_TEMPLATE,
     'ylds': YLDS_COLUMN_TEMPLATE,
@@ -72,13 +70,14 @@ AGE_GROUPS = (
     '90_to_94',
     '95_plus',
  )
-
 CAUSES_OF_DISABILITY = (
     models.ACUTE_ISCHEMIC_STROKE_STATE_NAME,
     models.CHRONIC_ISCHEMIC_STROKE_STATE_NAME,
 )
-
 CAUSES_OF_DEATH = CAUSES_OF_DISABILITY + ('other_causes',)
+DISEASES = (
+    models.ISCHEMIC_STROKE_MODEL_NAME,
+)
 
 TEMPLATE_FIELD_MAP = {
     'POP_STATE': POP_STATES,
@@ -89,6 +88,7 @@ TEMPLATE_FIELD_MAP = {
     'CAUSE_OF_DISABILITY': CAUSES_OF_DISABILITY,
     'STATE': models.STATES,
     'TRANSITION': models.TRANSITIONS,
+    'DISEASE': DISEASES,
 }
 
 

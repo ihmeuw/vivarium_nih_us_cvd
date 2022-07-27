@@ -28,14 +28,15 @@ RENAME_COLUMNS = {
 }
 
 
+# TODO [MIC-3219]: - update template
 def make_measure_data(data):
     measure_data = MeasureData(
         population=get_population_data(data),
         ylls=get_by_cause_measure_data(data, 'ylls'),
         ylds=get_by_cause_measure_data(data, 'ylds'),
         deaths=get_by_cause_measure_data(data, 'deaths'),
-        state_person_time=get_state_person_time_measure_data(data, 'disease_state_person_time'),
-        transition_count=get_transition_count_measure_data(data, 'disease_transition_count'),
+        state_person_time=get_state_person_time_measure_data(data, 'state_person_time'),
+        transition_count=get_transition_count_measure_data(data, 'transition_count'),
     )
     return measure_data
 
@@ -168,6 +169,7 @@ def get_state_person_time_measure_data(data: pd.DataFrame, measure: str) -> pd.D
 
 def get_transition_count_measure_data(data: pd.DataFrame, measure: str) -> pd.DataFrame:
     # Oops, edge case.
+    # SDB - why drop 2041?
     data = data.drop(columns=[c for c in data.columns if 'event_count' in c and '2041' in c])
     data = get_measure_data(data, measure)
     return sort_data(data)

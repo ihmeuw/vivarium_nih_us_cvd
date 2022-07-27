@@ -5,6 +5,7 @@ components:
             - Mortality()
         metrics:
             - DisabilityObserver()
+            - DiseaseObserver("ischemic_stroke")
             - MortalityObserver()
             - ResultsStratifier()
 
