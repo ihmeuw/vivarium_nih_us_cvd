@@ -7,11 +7,11 @@ components:
             - DisabilityObserver()
             - DiseaseObserver("ischemic_stroke")
             - MortalityObserver()
-            - ResultsStratifier()
 
     vivarium_nih_us_cvd:
         components:
             - IschemicStroke()
+            - ResultsStratifier()
         
 
 configuration:
