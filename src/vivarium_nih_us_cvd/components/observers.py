@@ -1,5 +1,3 @@
-import pandas as pd
-
 from vivarium.framework.engine import Builder
 from vivarium_public_health.metrics.stratification import ResultsStratifier as ResultsStratifier_
 
@@ -18,7 +16,3 @@ class ResultsStratifier(ResultsStratifier_):
         age_bins.loc[len(age_bins.index)] = [7.0, 25.0, '7_to_24']
         self.age_bins = age_bins.sort_values(['age_start']).reset_index(drop=True)
         self.register_stratifications(builder)
-
-    # def register_stratifications(self, builder: Builder) -> None:
-    #     """Register each desired stratification with calls to _setup_stratification"""
-    #     super().register_stratifications(builder)
