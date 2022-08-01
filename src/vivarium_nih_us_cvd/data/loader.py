@@ -65,8 +65,8 @@ def get_data(lookup_key: str, location: str) -> pd.DataFrame:
         data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_POST: load_prevalence_ihd,
         data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_ACUTE: load_incidence_ihd,
         data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_POST: load_incidence_ihd,
-        # data_keys.ISCHEMIC_STROKE.DISABILITY_WEIGHT_ACUTE: load_disability_weight_ischemic_stroke,
-        # data_keys.ISCHEMIC_STROKE.DISABILITY_WEIGHT_CHRONIC: load_disability_weight_ischemic_stroke,
+        data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_ACUTE: load_disability_weight_ihd,
+        data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_POST: load_disability_weight_ihd,
         # data_keys.ISCHEMIC_STROKE.EMR_ACUTE: load_emr_ischemic_stroke,
         # data_keys.ISCHEMIC_STROKE.EMR_CHRONIC: load_emr_ischemic_stroke,
         # data_keys.ISCHEMIC_STROKE.CSMR: load_standard_data,
@@ -233,7 +233,6 @@ def load_disability_weight_ischemic_stroke(key: str, location: str) -> pd.DataFr
     ischemic_stroke_prevalence = _get_measure_wrapped(
         causes.ischemic_stroke, "prevalence", location
     )
-    # TODO: There are not any missingness, but if there were (ie no eschemic stroke prevalence for some reason) would we want to fill with 0?
     ischemic_stroke_disability_weight = (
         sum(prevalence_disability_weights) / ischemic_stroke_prevalence
     ).fillna(0)
@@ -269,3 +268,16 @@ def load_incidence_ihd(key: str, location: str) -> pd.DataFrame:
     incidence = _load_em_from_meid(location, meid, "Incidence rate")
     prevalence = sum(_get_measure_wrapped(s, "prevalence", location) for s in sequela)
     return incidence / (1 - prevalence)
+
+
+def load_disability_weight_ihd(key: str, location: str) -> pd.DataFrame:
+    ihd_seq = _get_ihd_sequela()
+    map = {
+        data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_ACUTE: ihd_seq['acute_mi'],
+        data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_POST: ihd_seq['post_mi'],
+    }
+    prevalence_disability_weights = _get_prevalence_weighted_disability_weight(map[key], location)
+    prevalence = _load_and_sum_prevalence_from_sequelae(key, map, location)
+    # TODO: Is always filling NA w/ 0 the correct thing here?
+    ihd_disability_weight = (sum(prevalence_disability_weights) / prevalence).fillna(0)
+    return ihd_disability_weight
