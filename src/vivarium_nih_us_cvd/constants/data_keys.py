@@ -63,9 +63,12 @@ ISCHEMIC_STROKE = __IschemicStroke()
 
 
 class __MyocardialInfarction(NamedTuple):
-    PREVALENCE_ACUTE: TargetString = TargetString("sequela.acute_myocardial_infarction_first_2_days.prevalence")
+    # SDB - do these names matter? specifically, Kjell called these "cause.acute_myocardial_infarction.prevalence"
+    # instead of "sequela...".
+    PREVALENCE_ACUTE: TargetString = TargetString("sequela.acute_myocardial_infarction.prevalence")
     PREVALENCE_POST: TargetString = TargetString("sequela.post_myocardial_infarction.prevalence")
-    # INCIDENCE_RATE: TargetString = TargetString("cause.ischemic_stroke.incidence_rate")
+    INCIDENCE_RATE_ACUTE: TargetString = TargetString("cause.acute_myocardial_infarction.incidence_rate")
+    INCIDENCE_RATE_POST: TargetString = TargetString("cause.post_myocardial_infarction.incidence_rate")
     # DISABILITY_WEIGHT_ACUTE: TargetString = TargetString(
     #     "sequela.acute_ischemic_stroke.disability_weight"
     # )

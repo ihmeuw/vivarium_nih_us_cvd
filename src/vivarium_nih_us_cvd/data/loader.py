@@ -63,7 +63,8 @@ def get_data(lookup_key: str, location: str) -> pd.DataFrame:
         
         data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_ACUTE: load_prevalence_ihd,
         data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_POST: load_prevalence_ihd,
-        # data_keys.ISCHEMIC_STROKE.INCIDENCE_RATE: load_standard_data,
+        data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_ACUTE: load_incidence_ihd,
+        data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_POST: load_incidence_ihd,
         # data_keys.ISCHEMIC_STROKE.DISABILITY_WEIGHT_ACUTE: load_disability_weight_ischemic_stroke,
         # data_keys.ISCHEMIC_STROKE.DISABILITY_WEIGHT_CHRONIC: load_disability_weight_ischemic_stroke,
         # data_keys.ISCHEMIC_STROKE.EMR_ACUTE: load_emr_ischemic_stroke,
@@ -257,40 +258,14 @@ def load_prevalence_ihd(key: str, location: str) -> pd.DataFrame:
     return prevalence
 
 
-# def load_emr_ischemic_stroke(key: str, location: str) -> pd.DataFrame:
-#     map = {
-#         data_keys.ISCHEMIC_STROKE.EMR_ACUTE: 24714,
-#         data_keys.ISCHEMIC_STROKE.EMR_CHRONIC: 10837,
-#     }
-#     return _load_em_from_meid(location, map[key], "Excess mortality rate")
-
-
-# def _get_prevalence_weighted_disability_weight(
-#     seq: List["Sequela"], location: str
-# ) -> List[pd.DataFrame]:
-#     assert len(seq), "Empty List - get_prevalence_weighted_disability_weight()"
-#     prevalence_disability_weights = []
-#     for s in seq:
-#         prevalence = _get_measure_wrapped(s, "prevalence", location)
-#         disability_weight = _get_measure_wrapped(s, "disability_weight", location)
-#         prevalence_disability_weights.append(prevalence * disability_weight)
-#     return prevalence_disability_weights
-
-
-# def load_disability_weight_ischemic_stroke(key: str, location: str) -> pd.DataFrame:
-#     acute_sequelae, chronic_sequelae = _get_ischemic_stroke_sequelae()
-#     map = {
-#         data_keys.ISCHEMIC_STROKE.DISABILITY_WEIGHT_ACUTE: acute_sequelae,
-#         data_keys.ISCHEMIC_STROKE.DISABILITY_WEIGHT_CHRONIC: chronic_sequelae,
-#     }
-#     prevalence_disability_weights = _get_prevalence_weighted_disability_weight(
-#         map[key], location
-#     )
-#     ischemic_stroke_prevalence = _get_measure_wrapped(
-#         causes.ischemic_stroke, "prevalence", location
-#     )
-#     # TODO: There are not any missingness, but if there were (ie no eschemic stroke prevalence for some reason) would we want to fill with 0?
-#     ischemic_stroke_disability_weight = (
-#         sum(prevalence_disability_weights) / ischemic_stroke_prevalence
-#     ).fillna(0)
-#     return ischemic_stroke_disability_weight
+def load_incidence_ihd(key: str, location: str) -> pd.DataFrame:
+    ihd_seq = _get_ihd_sequela()
+    map = {
+        data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_ACUTE: (ihd_seq['acute_mi'], 24694),
+        data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_POST: (ihd_seq['post_mi'], 24694),
+    }
+    # incidence = inc_24694 / 1 - (prev_378 + prev_379)
+    sequela, meid = map[key]
+    incidence = _load_em_from_meid(location, meid, "Incidence rate")
+    prevalence = sum(_get_measure_wrapped(s, "prevalence", location) for s in sequela)
+    return incidence / (1 - prevalence)
