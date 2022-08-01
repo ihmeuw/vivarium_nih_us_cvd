@@ -44,8 +44,6 @@ configuration:
         age_end: 125
         exit_age: 125
     observers:
-    #     # SDB: where are these specified? Like, 'age' means stratify by age but where are age bins specified?
-    #     # e.g. even though I only include 'male' in results.SEXES, the output.hdf has female
         default:
             - 'age'
             - 'sex'
