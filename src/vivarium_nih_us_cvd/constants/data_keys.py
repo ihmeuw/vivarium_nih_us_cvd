@@ -62,7 +62,39 @@ class __IschemicStroke(NamedTuple):
 ISCHEMIC_STROKE = __IschemicStroke()
 
 
+class __MyocardialInfarction(NamedTuple):
+    PREVALENCE_ACUTE: TargetString = TargetString("sequela.acute_myocardial_infarction_first_2_days.prevalence")
+    PREVALENCE_POST: TargetString = TargetString("sequela.post_myocardial_infarction.prevalence")
+    # INCIDENCE_RATE: TargetString = TargetString("cause.ischemic_stroke.incidence_rate")
+    # DISABILITY_WEIGHT_ACUTE: TargetString = TargetString(
+    #     "sequela.acute_ischemic_stroke.disability_weight"
+    # )
+    # DISABILITY_WEIGHT_CHRONIC: TargetString = TargetString(
+    #     "sequela.chronic_ischemic_stroke.disability_weight"
+    # )
+    # EMR_ACUTE: TargetString = TargetString(
+    #     "sequela.acute_ischemic_stroke.excess_mortality_rate"
+    # )
+    # EMR_CHRONIC: TargetString = TargetString(
+    #     "sequela.chronic_ischemic_stroke.excess_mortality_rate"
+    # )
+    # CSMR: TargetString = TargetString("cause.ischemic_stroke.cause_specific_mortality_rate")
+    # RESTRICTIONS: TargetString = TargetString("cause.ischemic_stroke.restrictions")
+
+    @property
+    def name(self):
+        return "myocardial_infarction"
+
+    @property
+    def log_name(self):
+        return self.name.replace("_", " ")
+
+
+MYOCARDIAL_INFARCTION = __MyocardialInfarction()
+
+
 MAKE_ARTIFACT_KEY_GROUPS = [
     POPULATION,
     ISCHEMIC_STROKE,
+    MYOCARDIAL_INFARCTION,
 ]
