@@ -71,12 +71,9 @@ class __MyocardialInfarction(NamedTuple):
     INCIDENCE_RATE_POST: TargetString = TargetString("cause.post_myocardial_infarction.incidence_rate")
     DISABILITY_WEIGHT_ACUTE: TargetString = TargetString("sequela.acute_myocardial_infarction.disability_weight")
     DISABILITY_WEIGHT_POST: TargetString = TargetString("sequela.post_myocardial_infarction.disability_weight")
-    # EMR_ACUTE: TargetString = TargetString(
-    #     "sequela.acute_ischemic_stroke.excess_mortality_rate"
-    # )
-    # EMR_CHRONIC: TargetString = TargetString(
-    #     "sequela.chronic_ischemic_stroke.excess_mortality_rate"
-    # )
+    # SDB - again, 'cause.' or 'sequela.'?
+    EMR_ACUTE: TargetString = TargetString("cause.acute_myocardial_infarction.excess_mortality_rate")
+    EMR_POST: TargetString = TargetString("cause.post_myocardial_infarction.excess_mortality_rate")
     # CSMR: TargetString = TargetString("cause.ischemic_stroke.cause_specific_mortality_rate")
     # RESTRICTIONS: TargetString = TargetString("cause.ischemic_stroke.restrictions")
 

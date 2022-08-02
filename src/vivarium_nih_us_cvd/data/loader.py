@@ -67,8 +67,8 @@ def get_data(lookup_key: str, location: str) -> pd.DataFrame:
         data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_POST: load_incidence_ihd,
         data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_ACUTE: load_disability_weight_ihd,
         data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_POST: load_disability_weight_ihd,
-        # data_keys.ISCHEMIC_STROKE.EMR_ACUTE: load_emr_ischemic_stroke,
-        # data_keys.ISCHEMIC_STROKE.EMR_CHRONIC: load_emr_ischemic_stroke,
+        data_keys.MYOCARDIAL_INFARCTION.EMR_ACUTE: load_emr_ihd,
+        data_keys.MYOCARDIAL_INFARCTION.EMR_POST: load_emr_ihd,
         # data_keys.ISCHEMIC_STROKE.CSMR: load_standard_data,
         # data_keys.ISCHEMIC_STROKE.RESTRICTIONS: load_metadata,
     }
@@ -263,7 +263,6 @@ def load_incidence_ihd(key: str, location: str) -> pd.DataFrame:
         data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_ACUTE: (ihd_seq['acute_mi'], 24694),
         data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_POST: (ihd_seq['post_mi'], 24694),
     }
-    # incidence = inc_24694 / 1 - (prev_378 + prev_379)
     sequela, meid = map[key]
     incidence = _load_em_from_meid(location, meid, "Incidence rate")
     prevalence = sum(_get_measure_wrapped(s, "prevalence", location) for s in sequela)
@@ -281,3 +280,11 @@ def load_disability_weight_ihd(key: str, location: str) -> pd.DataFrame:
     # TODO: Is always filling NA w/ 0 the correct thing here?
     ihd_disability_weight = (sum(prevalence_disability_weights) / prevalence).fillna(0)
     return ihd_disability_weight
+
+
+def load_emr_ihd(key: str, location: str) -> pd.DataFrame:
+    map = {
+        data_keys.MYOCARDIAL_INFARCTION.EMR_ACUTE: 24694,
+        data_keys.MYOCARDIAL_INFARCTION.EMR_POST: 15755,
+    }
+    return _load_em_from_meid(location, map[key], "Excess mortality rate")
