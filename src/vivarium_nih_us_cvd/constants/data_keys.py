@@ -74,8 +74,8 @@ class __MyocardialInfarction(NamedTuple):
     # SDB - again, 'cause.' or 'sequela.'?
     EMR_ACUTE: TargetString = TargetString("cause.acute_myocardial_infarction.excess_mortality_rate")
     EMR_POST: TargetString = TargetString("cause.post_myocardial_infarction.excess_mortality_rate")
-    # CSMR: TargetString = TargetString("cause.ischemic_stroke.cause_specific_mortality_rate")
-    # RESTRICTIONS: TargetString = TargetString("cause.ischemic_stroke.restrictions")
+    CSMR: TargetString = TargetString("cause.ischemic_heart_disease.cause_specific_mortality_rate")
+    RESTRICTIONS: TargetString = TargetString("cause.ischemic_heart_disease.restrictions")
 
     @property
     def name(self):

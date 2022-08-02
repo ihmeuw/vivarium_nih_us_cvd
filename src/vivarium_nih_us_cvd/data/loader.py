@@ -69,8 +69,9 @@ def get_data(lookup_key: str, location: str) -> pd.DataFrame:
         data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_POST: load_disability_weight_ihd,
         data_keys.MYOCARDIAL_INFARCTION.EMR_ACUTE: load_emr_ihd,
         data_keys.MYOCARDIAL_INFARCTION.EMR_POST: load_emr_ihd,
-        # data_keys.ISCHEMIC_STROKE.CSMR: load_standard_data,
-        # data_keys.ISCHEMIC_STROKE.RESTRICTIONS: load_metadata,
+        # SDB - Should this go in a higher level data_keys.ISCHEMIC_HEART_DISEASE object
+        data_keys.MYOCARDIAL_INFARCTION.CSMR: load_standard_data,
+        data_keys.MYOCARDIAL_INFARCTION.RESTRICTIONS: load_metadata,
     }
     return mapping[lookup_key](lookup_key, location)
 
