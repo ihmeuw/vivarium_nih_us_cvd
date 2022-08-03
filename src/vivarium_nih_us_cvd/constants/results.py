@@ -56,7 +56,7 @@ NON_COUNT_TEMPLATES = []
 
 POP_STATES = ("living", "dead", "tracked", "untracked")
 SEXES = ("male", "female")
-YEARS = tuple(range(2021, 2041))
+YEARS = tuple(range(2023, 2041))
 # SDB: output.hdf does not have early neonatal to 1-4. Why?
 AGE_GROUPS = (
     "25_to_29",
