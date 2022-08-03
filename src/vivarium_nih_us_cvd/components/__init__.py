@@ -1,2 +1,2 @@
-from .disease import IschemicStroke
+from .disease import IschemicStroke, MyocardialInfarction
 from .observers import ResultsStratifier

@@ -9,6 +9,11 @@ from vivarium_public_health.utilities import TargetString
 METADATA_LOCATIONS = "metadata.locations"
 
 
+class SourceTarget(NamedTuple):
+    source: str
+    target: str
+
+
 class __Population(NamedTuple):
     LOCATION: str = "population.location"
     STRUCTURE: str = "population.structure"
@@ -65,17 +70,16 @@ ISCHEMIC_STROKE = __IschemicStroke()
 class __MyocardialInfarction(NamedTuple):
     # SDB - do these names matter? specifically, Kjell called these "cause.acute_myocardial_infarction.prevalence"
     # instead of "sequela...".
-    PREVALENCE_ACUTE: TargetString = TargetString("sequela.acute_myocardial_infarction.prevalence")
-    PREVALENCE_POST: TargetString = TargetString("sequela.post_myocardial_infarction.prevalence")
+    PREVALENCE_ACUTE: TargetString = TargetString("cause.acute_myocardial_infarction.prevalence")
+    PREVALENCE_POST: TargetString = TargetString("cause.post_myocardial_infarction.prevalence")
     INCIDENCE_RATE_ACUTE: TargetString = TargetString("cause.acute_myocardial_infarction.incidence_rate")
     INCIDENCE_RATE_POST: TargetString = TargetString("cause.post_myocardial_infarction.incidence_rate")
-    DISABILITY_WEIGHT_ACUTE: TargetString = TargetString("sequela.acute_myocardial_infarction.disability_weight")
-    DISABILITY_WEIGHT_POST: TargetString = TargetString("sequela.post_myocardial_infarction.disability_weight")
-    # SDB - again, 'cause.' or 'sequela.'?
+    DISABILITY_WEIGHT_ACUTE: TargetString = TargetString("cause.acute_myocardial_infarction.disability_weight")
+    DISABILITY_WEIGHT_POST: TargetString = TargetString("cause.post_myocardial_infarction.disability_weight")
     EMR_ACUTE: TargetString = TargetString("cause.acute_myocardial_infarction.excess_mortality_rate")
     EMR_POST: TargetString = TargetString("cause.post_myocardial_infarction.excess_mortality_rate")
-    CSMR: TargetString = TargetString("cause.ischemic_heart_disease.cause_specific_mortality_rate")
-    RESTRICTIONS: TargetString = TargetString("cause.ischemic_heart_disease.restrictions")
+    CSMR: SourceTarget = SourceTarget("cause.ischemic_heart_disease.cause_specific_mortality_rate", "cause.myocardial_infarction.cause_specific_mortality_rate")
+    RESTRICTIONS: SourceTarget = SourceTarget("cause.ischemic_heart_disease.restrictions", "cause.myocardial_infarction.restrictions")
 
     @property
     def name(self):

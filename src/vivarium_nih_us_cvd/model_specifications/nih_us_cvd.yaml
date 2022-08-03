@@ -5,12 +5,14 @@ components:
             - Mortality()
         metrics:
             - DisabilityObserver()
+            # SDB - why did original CVD build its own DiseaseObserver
             - DiseaseObserver("ischemic_stroke")
             - MortalityObserver()
 
     vivarium_nih_us_cvd:
         components:
             - IschemicStroke()
+            - MyocardialInfarction()
             - ResultsStratifier()
         
 

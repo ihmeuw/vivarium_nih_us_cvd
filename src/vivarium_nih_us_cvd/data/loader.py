@@ -27,7 +27,12 @@ from vivarium_inputs.mapping_extension import alternative_risk_factors
 from vivarium_nih_us_cvd.constants import data_keys
 
 
-def get_data(lookup_key: str, location: str) -> pd.DataFrame:
+def _get_source_key(val: Union[str, data_keys.SourceTarget]) -> str:
+    """Retrieves target key for a non-standard output"""
+    return val.source if isinstance(val, data_keys.SourceTarget) else val
+
+
+def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> pd.DataFrame:
     """Retrieves data from an appropriate source.
 
     Parameters
@@ -69,11 +74,11 @@ def get_data(lookup_key: str, location: str) -> pd.DataFrame:
         data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_POST: load_disability_weight_ihd,
         data_keys.MYOCARDIAL_INFARCTION.EMR_ACUTE: load_emr_ihd,
         data_keys.MYOCARDIAL_INFARCTION.EMR_POST: load_emr_ihd,
-        # SDB - Should this go in a higher level data_keys.ISCHEMIC_HEART_DISEASE object
         data_keys.MYOCARDIAL_INFARCTION.CSMR: load_standard_data,
         data_keys.MYOCARDIAL_INFARCTION.RESTRICTIONS: load_metadata,
     }
-    return mapping[lookup_key](lookup_key, location)
+    source_key = _get_source_key(lookup_key)
+    return mapping[lookup_key](source_key, location)
 
 
 def load_population_location(key: str, location: str) -> str:
