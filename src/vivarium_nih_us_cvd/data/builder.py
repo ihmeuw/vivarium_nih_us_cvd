@@ -49,7 +49,9 @@ def open_artifact(output_path: Path, location: str) -> Artifact:
     return artifact
 
 
-def load_and_write_data(artifact: Artifact, key: Union[str, data_keys.SourceTarget], location: str, replace: bool):
+def load_and_write_data(
+    artifact: Artifact, key: Union[str, data_keys.SourceTarget], location: str, replace: bool
+):
     """Loads data and writes it to the artifact if not already present.
 
     Parameters

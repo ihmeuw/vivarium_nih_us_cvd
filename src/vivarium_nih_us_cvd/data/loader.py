@@ -55,7 +55,6 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.POPULATION.DEMOGRAPHY: load_demographic_dimensions,
         data_keys.POPULATION.TMRLE: load_theoretical_minimum_risk_life_expectancy,
         data_keys.POPULATION.ACMR: load_standard_data,
-
         data_keys.ISCHEMIC_STROKE.PREVALENCE_ACUTE: load_prevalence_ischemic_stroke,
         data_keys.ISCHEMIC_STROKE.PREVALENCE_CHRONIC: load_prevalence_ischemic_stroke,
         data_keys.ISCHEMIC_STROKE.INCIDENCE_RATE: load_standard_data,
@@ -65,7 +64,6 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.ISCHEMIC_STROKE.EMR_CHRONIC: load_emr_ischemic_stroke,
         data_keys.ISCHEMIC_STROKE.CSMR: load_standard_data,
         data_keys.ISCHEMIC_STROKE.RESTRICTIONS: load_metadata,
-        
         data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_ACUTE: load_prevalence_ihd,
         data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_POST: load_prevalence_ihd,
         data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_ACUTE: load_incidence_ihd,
@@ -187,7 +185,9 @@ def get_entity(key: Union[str, EntityKey]):
 
 
 # Project-specific data functions
-def _load_and_sum_prevalence_from_sequelae(key: str, map: Dict[str, List["Sequela"]], location: str) -> pd.DataFrame:
+def _load_and_sum_prevalence_from_sequelae(
+    key: str, map: Dict[str, List["Sequela"]], location: str
+) -> pd.DataFrame:
     return sum(_get_measure_wrapped(s, "prevalence", location) for s in map[key])
 
 
@@ -247,8 +247,16 @@ def load_disability_weight_ischemic_stroke(key: str, location: str) -> pd.DataFr
 
 def _get_ihd_sequela() -> Dict[str, List["Sequela"]]:
     seq_by_cause = {
-        'acute_mi': [s for s in causes.ischemic_heart_disease.sequelae if "acute_myocardial_infarction" in s.name],
-        'post_mi': [s for s in causes.ischemic_heart_disease.sequelae if s.name == "asymptomatic_ischemic_heart_disease_following_myocardial_infarction"],
+        "acute_mi": [
+            s
+            for s in causes.ischemic_heart_disease.sequelae
+            if "acute_myocardial_infarction" in s.name
+        ],
+        "post_mi": [
+            s
+            for s in causes.ischemic_heart_disease.sequelae
+            if s.name == "asymptomatic_ischemic_heart_disease_following_myocardial_infarction"
+        ],
     }
     return seq_by_cause
 
@@ -256,8 +264,8 @@ def _get_ihd_sequela() -> Dict[str, List["Sequela"]]:
 def load_prevalence_ihd(key: str, location: str) -> pd.DataFrame:
     ihd_seq = _get_ihd_sequela()
     map = {
-        data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_ACUTE: ihd_seq['acute_mi'],
-        data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_POST: ihd_seq['post_mi'],
+        data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_ACUTE: ihd_seq["acute_mi"],
+        data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_POST: ihd_seq["post_mi"],
     }
     prevalence = _load_and_sum_prevalence_from_sequelae(key, map, location)
     return prevalence
@@ -266,8 +274,8 @@ def load_prevalence_ihd(key: str, location: str) -> pd.DataFrame:
 def load_incidence_ihd(key: str, location: str) -> pd.DataFrame:
     ihd_seq = _get_ihd_sequela()
     map = {
-        data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_ACUTE: (ihd_seq['acute_mi'], 24694),
-        data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_POST: (ihd_seq['post_mi'], 24694),
+        data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_ACUTE: (ihd_seq["acute_mi"], 24694),
+        data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_POST: (ihd_seq["post_mi"], 24694),
     }
     sequela, meid = map[key]
     incidence = _load_em_from_meid(location, meid, "Incidence rate")
@@ -278,10 +286,12 @@ def load_incidence_ihd(key: str, location: str) -> pd.DataFrame:
 def load_disability_weight_ihd(key: str, location: str) -> pd.DataFrame:
     ihd_seq = _get_ihd_sequela()
     map = {
-        data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_ACUTE: ihd_seq['acute_mi'],
-        data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_POST: ihd_seq['post_mi'],
+        data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_ACUTE: ihd_seq["acute_mi"],
+        data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_POST: ihd_seq["post_mi"],
     }
-    prevalence_disability_weights = _get_prevalence_weighted_disability_weight(map[key], location)
+    prevalence_disability_weights = _get_prevalence_weighted_disability_weight(
+        map[key], location
+    )
     prevalence = _load_and_sum_prevalence_from_sequelae(key, map, location)
     # TODO: Is always filling NA w/ 0 the correct thing here?
     ihd_disability_weight = (sum(prevalence_disability_weights) / prevalence).fillna(0)

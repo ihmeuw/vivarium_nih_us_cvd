@@ -58,16 +58,27 @@ def MyocardialInfarction():
     )
 
     susceptible.allow_self_transitions()
-    data_funcs = {"incidence_rate": lambda _, builder: builder.data.load(data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_ACUTE)}
-    susceptible.add_transition(acute_myocardial_infarction, source_data_type="rate", get_data_functions=data_funcs)
+    data_funcs = {
+        "incidence_rate": lambda _, builder: builder.data.load(
+            data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_ACUTE
+        )
+    }
+    susceptible.add_transition(
+        acute_myocardial_infarction, source_data_type="rate", get_data_functions=data_funcs
+    )
     acute_myocardial_infarction.allow_self_transitions()
     acute_myocardial_infarction.add_transition(post_myocardial_infarction)
     post_myocardial_infarction.allow_self_transitions()
-    data_funcs = {"transition_rate": lambda builder, *_: builder.data.load(data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_POST)}
+    data_funcs = {
+        "transition_rate": lambda builder, *_: builder.data.load(
+            data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_POST
+        )
+    }
     post_myocardial_infarction.add_transition(
         acute_myocardial_infarction, source_data_type="rate", get_data_functions=data_funcs
     )
 
     return DiseaseModel(
-        models.MYOCARDIAL_INFARCTION_MODEL_NAME, states=[susceptible, acute_myocardial_infarction, post_myocardial_infarction]
+        models.MYOCARDIAL_INFARCTION_MODEL_NAME,
+        states=[susceptible, acute_myocardial_infarction, post_myocardial_infarction],
     )
