@@ -11,6 +11,7 @@ components:
     vivarium_nih_us_cvd:
         components:
             - IschemicStroke()
+            - MyocardialInfarction()
             - ResultsStratifier()
         
 
