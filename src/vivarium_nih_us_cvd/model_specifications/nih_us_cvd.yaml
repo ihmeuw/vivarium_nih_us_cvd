@@ -6,6 +6,7 @@ components:
         metrics:
             - DisabilityObserver()
             - DiseaseObserver("ischemic_stroke")
+            - DiseaseObserver("myocardial_infarction")
             - MortalityObserver()
 
     vivarium_nih_us_cvd:
