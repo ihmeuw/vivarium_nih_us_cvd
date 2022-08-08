@@ -11,6 +11,7 @@ components:
     vivarium_nih_us_cvd:
         components:
             - IschemicStroke()
+            - MyocardialInfarction()
             - ResultsStratifier()
         
 
@@ -35,11 +36,9 @@ configuration:
             year: 2040
             month: 12
             day: 31
-        # SDB: What happens when the `step_size` is the same as the definition of some state (eg acute IS == first 28 days of stroke event)
         step_size: 28 # Days
     population:
         population_size: 50_000
-        # SDB: how would I model only one sex?
         age_start: 7
         age_end: 125
         exit_age: 125

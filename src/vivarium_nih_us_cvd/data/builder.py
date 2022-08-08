@@ -10,6 +10,7 @@ Some degree of verbosity/boilerplate is fine in the interest of transparency.
 
 """
 from pathlib import Path
+from typing import Union
 
 import pandas as pd
 from loguru import logger
@@ -48,7 +49,9 @@ def open_artifact(output_path: Path, location: str) -> Artifact:
     return artifact
 
 
-def load_and_write_data(artifact: Artifact, key: str, location: str, replace: bool):
+def load_and_write_data(
+    artifact: Artifact, key: Union[str, data_keys.SourceTarget], location: str, replace: bool
+):
     """Loads data and writes it to the artifact if not already present.
 
     Parameters
@@ -64,18 +67,24 @@ def load_and_write_data(artifact: Artifact, key: str, location: str, replace: bo
         Flag which determines whether to overwrite existing data
 
     """
-    if key in artifact and not replace:
-        logger.debug(f"Data for {key} already in artifact.  Skipping...")
+    if isinstance(key, data_keys.SourceTarget):
+        source = key.source
+        target = key.target
     else:
-        logger.debug(f"Loading data for {key} for location {location}.")
+        source = target = key
+
+    if target in artifact and not replace:
+        logger.debug(f"Data for {target} already in artifact.  Skipping...")
+    else:
+        logger.debug(f"Loading data for {source} for location {location}.")
         data = loader.get_data(key, location)
-        if key not in artifact:
-            logger.debug(f"Writing data for {key} to artifact.")
-            artifact.write(key, data)
-        else:  # key is in artifact, but should be replaced
-            logger.debug(f"Replacing data for {key} in artifact.")
-            artifact.replace(key, data)
-    return artifact.load(key)
+        if target not in artifact:
+            logger.debug(f"Writing data for {source} to artifact at {target}.")
+            artifact.write(target, data)
+        else:  # target is in artifact, but should be replaced
+            logger.debug(f"Replacing data for {target} in artifact.")
+            artifact.replace(target, data)
+    return artifact.load(target)
 
 
 def write_data(artifact: Artifact, key: str, data: pd.DataFrame):

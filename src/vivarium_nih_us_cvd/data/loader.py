@@ -12,7 +12,7 @@ for an example.
 
    No logging is done here. Logging is done in vivarium inputs itself and forwarded.
 """
-from typing import List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 import pandas as pd
 from gbd_mapping import causes, covariates, risk_factors
@@ -27,7 +27,12 @@ from vivarium_inputs.mapping_extension import alternative_risk_factors
 from vivarium_nih_us_cvd.constants import data_keys
 
 
-def get_data(lookup_key: str, location: str) -> pd.DataFrame:
+def _get_source_key(val: Union[str, data_keys.SourceTarget]) -> str:
+    """Retrieves target key for a non-standard output"""
+    return val.source if isinstance(val, data_keys.SourceTarget) else val
+
+
+def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> pd.DataFrame:
     """Retrieves data from an appropriate source.
 
     Parameters
@@ -59,8 +64,19 @@ def get_data(lookup_key: str, location: str) -> pd.DataFrame:
         data_keys.ISCHEMIC_STROKE.EMR_CHRONIC: load_emr_ischemic_stroke,
         data_keys.ISCHEMIC_STROKE.CSMR: load_standard_data,
         data_keys.ISCHEMIC_STROKE.RESTRICTIONS: load_metadata,
+        data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_ACUTE: load_prevalence_ihd,
+        data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_POST: load_prevalence_ihd,
+        data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_ACUTE: load_incidence_ihd,
+        data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_POST: load_incidence_ihd,
+        data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_ACUTE: load_disability_weight_ihd,
+        data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_POST: load_disability_weight_ihd,
+        data_keys.MYOCARDIAL_INFARCTION.EMR_ACUTE: load_emr_ihd,
+        data_keys.MYOCARDIAL_INFARCTION.EMR_POST: load_emr_ihd,
+        data_keys.MYOCARDIAL_INFARCTION.CSMR: load_standard_data,
+        data_keys.MYOCARDIAL_INFARCTION.RESTRICTIONS: load_metadata,
     }
-    return mapping[lookup_key](lookup_key, location)
+    source_key = _get_source_key(lookup_key)
+    return mapping[lookup_key](source_key, location)
 
 
 def load_population_location(key: str, location: str) -> str:
@@ -156,7 +172,25 @@ def _load_em_from_meid(location, meid, measure):
     return vi_utils.sort_hierarchical_data(data).droplevel("location")
 
 
+def get_entity(key: Union[str, EntityKey]):
+    # Map of entity types to their gbd mappings.
+    type_map = {
+        "cause": causes,
+        "covariate": covariates,
+        "risk_factor": risk_factors,
+        "alternative_risk_factor": alternative_risk_factors,
+    }
+    key = EntityKey(key)
+    return type_map[key.type][key.name]
+
+
 # Project-specific data functions
+def _load_and_sum_prevalence_from_sequelae(
+    key: str, map: Dict[str, List["Sequela"]], location: str
+) -> pd.DataFrame:
+    return sum(_get_measure_wrapped(s, "prevalence", location) for s in map[key])
+
+
 def _get_ischemic_stroke_sequelae() -> Tuple[pd.DataFrame, pd.DataFrame]:
     acute_sequelae = [s for s in causes.ischemic_stroke.sequelae if "acute" in s.name]
     chronic_sequelae = [s for s in causes.ischemic_stroke.sequelae if "chronic" in s.name]
@@ -169,7 +203,7 @@ def load_prevalence_ischemic_stroke(key: str, location: str) -> pd.DataFrame:
         data_keys.ISCHEMIC_STROKE.PREVALENCE_ACUTE: acute_sequelae,
         data_keys.ISCHEMIC_STROKE.PREVALENCE_CHRONIC: chronic_sequelae,
     }
-    prevalence = sum(_get_measure_wrapped(s, "prevalence", location) for s in map[key])
+    prevalence = _load_and_sum_prevalence_from_sequelae(key, map, location)
     return prevalence
 
 
@@ -205,20 +239,68 @@ def load_disability_weight_ischemic_stroke(key: str, location: str) -> pd.DataFr
     ischemic_stroke_prevalence = _get_measure_wrapped(
         causes.ischemic_stroke, "prevalence", location
     )
-    # TODO: There are not any missingness, but if there were (ie no eschemic stroke prevalence for some reason) would we want to fill with 0?
     ischemic_stroke_disability_weight = (
         sum(prevalence_disability_weights) / ischemic_stroke_prevalence
     ).fillna(0)
     return ischemic_stroke_disability_weight
 
 
-def get_entity(key: Union[str, EntityKey]):
-    # Map of entity types to their gbd mappings.
-    type_map = {
-        "cause": causes,
-        "covariate": covariates,
-        "risk_factor": risk_factors,
-        "alternative_risk_factor": alternative_risk_factors,
+def _get_ihd_sequela() -> Dict[str, List["Sequela"]]:
+    seq_by_cause = {
+        "acute_mi": [
+            s
+            for s in causes.ischemic_heart_disease.sequelae
+            if "acute_myocardial_infarction" in s.name
+        ],
+        "post_mi": [
+            s
+            for s in causes.ischemic_heart_disease.sequelae
+            if s.name == "asymptomatic_ischemic_heart_disease_following_myocardial_infarction"
+        ],
     }
-    key = EntityKey(key)
-    return type_map[key.type][key.name]
+    return seq_by_cause
+
+
+def load_prevalence_ihd(key: str, location: str) -> pd.DataFrame:
+    ihd_seq = _get_ihd_sequela()
+    map = {
+        data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_ACUTE: ihd_seq["acute_mi"],
+        data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_POST: ihd_seq["post_mi"],
+    }
+    prevalence = _load_and_sum_prevalence_from_sequelae(key, map, location)
+    return prevalence
+
+
+def load_incidence_ihd(key: str, location: str) -> pd.DataFrame:
+    ihd_seq = _get_ihd_sequela()
+    map = {
+        data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_ACUTE: (ihd_seq["acute_mi"], 24694),
+        data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_POST: (ihd_seq["post_mi"], 24694),
+    }
+    sequela, meid = map[key]
+    incidence = _load_em_from_meid(location, meid, "Incidence rate")
+    prevalence = sum(_get_measure_wrapped(s, "prevalence", location) for s in sequela)
+    return incidence / (1 - prevalence)
+
+
+def load_disability_weight_ihd(key: str, location: str) -> pd.DataFrame:
+    ihd_seq = _get_ihd_sequela()
+    map = {
+        data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_ACUTE: ihd_seq["acute_mi"],
+        data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_POST: ihd_seq["post_mi"],
+    }
+    prevalence_disability_weights = _get_prevalence_weighted_disability_weight(
+        map[key], location
+    )
+    prevalence = _load_and_sum_prevalence_from_sequelae(key, map, location)
+    # TODO: Is always filling NA w/ 0 the correct thing here?
+    ihd_disability_weight = (sum(prevalence_disability_weights) / prevalence).fillna(0)
+    return ihd_disability_weight
+
+
+def load_emr_ihd(key: str, location: str) -> pd.DataFrame:
+    map = {
+        data_keys.MYOCARDIAL_INFARCTION.EMR_ACUTE: 24694,
+        data_keys.MYOCARDIAL_INFARCTION.EMR_POST: 15755,
+    }
+    return _load_em_from_meid(location, map[key], "Excess mortality rate")
