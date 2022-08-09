@@ -28,8 +28,7 @@ STANDARD_COLUMNS = {
 
 THROWAWAY_COLUMNS = [f"{state}_event_count" for state in models.STATES]
 
-# SDB: these don't match the data column names. Why arent the templates centralized?
-# FIXME [MIC-3230]: Update to match template. consider adding {DISEASE} approach?
+# FIXME [MIC-3230]: Update to match template. Should we add model_name as prefix to all STATEs and TRANSITIONs?
 TOTAL_POPULATION_COLUMN_TEMPLATE = "total_population_{POP_STATE}"
 DEATH_COLUMN_TEMPLATE = "death_due_to_{CAUSE_OF_DEATH}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
 YLLS_COLUMN_TEMPLATE = "ylls_due_to_{CAUSE_OF_DEATH}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
@@ -37,10 +36,10 @@ YLDS_COLUMN_TEMPLATE = (
     "ylds_due_to_{CAUSE_OF_DISABILITY}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
 )
 STATE_PERSON_TIME_COLUMN_TEMPLATE = (
-    "{DISEASE}_{STATE}_person_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
+    "{STATE}_person_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
 )
 TRANSITION_COUNT_COLUMN_TEMPLATE = (
-    "{DISEASE}_{TRANSITION}_event_count_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
+    "{TRANSITION}_event_count_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
 )
 
 COLUMN_TEMPLATES = {
@@ -57,7 +56,6 @@ NON_COUNT_TEMPLATES = []
 POP_STATES = ("living", "dead", "tracked", "untracked")
 SEXES = ("male", "female")
 YEARS = tuple(range(2023, 2041))
-# SDB: output.hdf does not have early neonatal to 1-4. Why?
 AGE_GROUPS = (
     "25_to_29",
     "30_to_34",
@@ -78,9 +76,12 @@ AGE_GROUPS = (
 CAUSES_OF_DISABILITY = (
     models.ACUTE_ISCHEMIC_STROKE_STATE_NAME,
     models.CHRONIC_ISCHEMIC_STROKE_STATE_NAME,
+    models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME,
 )
-CAUSES_OF_DEATH = CAUSES_OF_DISABILITY + ("other_causes",)
-DISEASES = (models.ISCHEMIC_STROKE_MODEL_NAME,)
+CAUSES_OF_DEATH = CAUSES_OF_DISABILITY + (
+    "other_causes",
+    models.POST_MYOCARDIAL_INFARCTION_STATE_NAME,
+)
 
 TEMPLATE_FIELD_MAP = {
     "POP_STATE": POP_STATES,
@@ -91,7 +92,6 @@ TEMPLATE_FIELD_MAP = {
     "CAUSE_OF_DISABILITY": CAUSES_OF_DISABILITY,
     "STATE": models.STATES,
     "TRANSITION": models.TRANSITIONS,
-    "DISEASE": DISEASES,
 }
 
 
