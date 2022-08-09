@@ -74,6 +74,14 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.MYOCARDIAL_INFARCTION.EMR_POST: load_emr_ihd,
         data_keys.MYOCARDIAL_INFARCTION.CSMR: load_standard_data,
         data_keys.MYOCARDIAL_INFARCTION.RESTRICTIONS: load_metadata,
+        data_keys.LDL_C.DISTRIBUTION: load_metadata,
+        data_keys.LDL_C.EXPOSURE_MEAN: load_standard_data,
+        data_keys.LDL_C.EXPOSURE_SD: load_standard_data,
+        data_keys.LDL_C.EXPOSURE_WEIGHTS: load_standard_data,
+        data_keys.LDL_C.RELATIVE_RISK: load_standard_data,
+        data_keys.LDL_C.PAF: load_standard_data,
+        data_keys.LDL_C.TMRED: load_metadata,
+        data_keys.LDL_C.RELATIVE_RISK_SCALAR: load_metadata,
     }
     source_key = _get_source_key(lookup_key)
     return mapping[lookup_key](source_key, location)
