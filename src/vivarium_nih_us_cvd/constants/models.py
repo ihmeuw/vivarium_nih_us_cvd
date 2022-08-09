@@ -69,7 +69,13 @@ STATE_MACHINE_MAP = {
 }
 
 
-STATES = tuple(f"{model}_{state}" for model, state in STATE_MACHINE_MAP.items() for state in STATE_MACHINE_MAP[model]["states"])
+STATES = tuple(
+    f"{model}_{state}"
+    for model, state in STATE_MACHINE_MAP.items()
+    for state in STATE_MACHINE_MAP[model]["states"]
+)
 TRANSITIONS = tuple(
-    f"{model}_{state}" for model, state in STATE_MACHINE_MAP.items() for state in STATE_MACHINE_MAP[model]["transitions"]
+    f"{model}_{state}"
+    for model, state in STATE_MACHINE_MAP.items()
+    for state in STATE_MACHINE_MAP[model]["transitions"]
 )
