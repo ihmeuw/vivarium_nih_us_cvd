@@ -115,8 +115,31 @@ class __MyocardialInfarction(NamedTuple):
 MYOCARDIAL_INFARCTION = __MyocardialInfarction()
 
 
+class __HighLDLCholesterol(NamedTuple):
+    DISTRIBUTION: str = 'risk_factor.high_ldl_cholesterol.distribution'
+    EXPOSURE_MEAN: str = 'risk_factor.high_ldl_cholesterol.exposure'
+    EXPOSURE_SD: str = 'risk_factor.high_ldl_cholesterol.exposure_standard_deviation'
+    EXPOSURE_WEIGHTS: str = 'risk_factor.high_ldl_cholesterol.exposure_distribution_weights'
+    RELATIVE_RISK: str = 'risk_factor.high_ldl_cholesterol.relative_risk'
+    PAF: str = 'risk_factor.high_ldl_cholesterol.population_attributable_fraction'
+    TMRED: str = 'risk_factor.high_ldl_cholesterol.tmred'
+    RELATIVE_RISK_SCALAR: str = 'risk_factor.high_ldl_cholesterol.relative_risk_scalar'
+
+    @property
+    def name(self):
+        return 'high_ldl_cholesterol'
+
+    @property
+    def log_name(self):
+        return self.name.replace('_', ' ')
+
+
+LDL_C = __HighLDLCholesterol()
+
+
 MAKE_ARTIFACT_KEY_GROUPS = [
     POPULATION,
     ISCHEMIC_STROKE,
     MYOCARDIAL_INFARCTION,
+    LDL_C,
 ]
