@@ -4,6 +4,9 @@ from datetime import datetime
 # Disease Model Parameters #
 ############################
 
+REMISSION_RATE = 0.1
+MEAN_SOJOURN_TIME = 10
+
 
 ##############################
 # Screening Model Parameters #
