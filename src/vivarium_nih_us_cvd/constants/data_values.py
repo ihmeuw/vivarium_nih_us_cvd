@@ -3,7 +3,6 @@ from datetime import datetime
 ############################
 # Disease Model Parameters #
 ############################
-# THRESHOLD_HIGH_LDLC = 5
 
 
 ##############################
@@ -30,33 +29,3 @@ SCREENING_SCALE_UP_GOAL_COVERAGE = 0.50
 SCREENING_SCALE_UP_DIFFERENCE = (
     SCREENING_SCALE_UP_GOAL_COVERAGE - PROBABILITY_ATTENDING_SCREENING_START_MEAN
 )
-
-
-# ############################
-# # Stratification Constants #
-# ############################
-
-# # Risk Categories
-# HIGH_RISK = 'high'
-# LOW_RISK = 'low'
-
-# RISK_CATEGORIES = [HIGH_RISK, LOW_RISK]
-
-# # ACS Categories
-# POST_CVE = 'post'
-# NO_CVE = 'none'
-
-# class __RiskGroups(NamedTuple):
-#     SBP_high_LDL_high_ACS_post: str = 'SBP_high_LDL_high_ACS_post'
-#     SBP_high_LDL_high_ACS_none: str = 'SBP_high_LDL_high_ACS_none'
-
-#     SBP_low_LDL_high_ACS_post: str = 'SBP_low_LDL_high_ACS_post'
-#     SBP_low_LDL_high_ACS_none: str = 'SBP_low_LDL_high_ACS_none'
-
-#     SBP_high_LDL_low_ACS_post: str = 'SBP_high_LDL_low_ACS_post'
-#     SBP_high_LDL_low_ACS_none: str = 'SBP_high_LDL_low_ACS_none'
-
-#     SBP_low_LDL_low_ACS_post: str = 'SBP_low_LDL_low_ACS_post'
-#     SBP_low_LDL_low_ACS_none: str = 'SBP_low_LDL_low_ACS_none'
-
-# RISK_GROUPS = __RiskGroups()
