@@ -20,7 +20,7 @@ def IschemicStroke():
     susceptible.allow_self_transitions()
     data_funcs = {
         "incidence_rate": lambda _, builder: builder.data.load(
-            data_keys.ISCHEMIC_STROKE.INCIDENCE_RATE
+            data_keys.ISCHEMIC_STROKE.INCIDENCE_RATE_ACUTE
         )
     }
     susceptible.add_transition(
@@ -31,7 +31,7 @@ def IschemicStroke():
     chronic_stroke.allow_self_transitions()
     data_funcs = {
         "transition_rate": lambda builder, *_: builder.data.load(
-            data_keys.ISCHEMIC_STROKE.INCIDENCE_RATE
+            data_keys.ISCHEMIC_STROKE.INCIDENCE_RATE_ACUTE
         )
     }
     chronic_stroke.add_transition(
@@ -48,7 +48,6 @@ def MyocardialInfarction():
     data_funcs = {"dwell_time": lambda *args: pd.Timedelta(days=28)}
     acute_myocardial_infarction = DiseaseState(
         models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME,
-        # SDB - how do I know if the cause type is 'cause' or 'sequela'?
         cause_type="cause",
         get_data_functions=data_funcs,
     )
@@ -71,7 +70,7 @@ def MyocardialInfarction():
     post_myocardial_infarction.allow_self_transitions()
     data_funcs = {
         "transition_rate": lambda builder, *_: builder.data.load(
-            data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_POST
+            data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_ACUTE
         )
     }
     post_myocardial_infarction.add_transition(
