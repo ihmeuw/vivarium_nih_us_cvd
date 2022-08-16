@@ -39,7 +39,7 @@ class __IschemicStroke(NamedTuple):
     PREVALENCE_CHRONIC: TargetString = TargetString(
         "sequela.chronic_ischemic_stroke.prevalence"
     )
-    INCIDENCE_RATE: TargetString = TargetString("cause.ischemic_stroke.incidence_rate")
+    INCIDENCE_RATE_ACUTE: TargetString = TargetString("cause.ischemic_stroke.incidence_rate")
     DISABILITY_WEIGHT_ACUTE: TargetString = TargetString(
         "sequela.acute_ischemic_stroke.disability_weight"
     )
@@ -77,10 +77,7 @@ class __MyocardialInfarction(NamedTuple):
         "cause.post_myocardial_infarction.prevalence"
     )
     INCIDENCE_RATE_ACUTE: TargetString = TargetString(
-        "cause.acute_myocardial_infarction.incidence_rate"
-    )
-    INCIDENCE_RATE_POST: TargetString = TargetString(
-        "cause.post_myocardial_infarction.incidence_rate"
+        "cause.myocardial_infarction.incidence_rate"
     )
     DISABILITY_WEIGHT_ACUTE: TargetString = TargetString(
         "cause.acute_myocardial_infarction.disability_weight"

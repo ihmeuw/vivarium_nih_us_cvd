@@ -57,7 +57,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.POPULATION.ACMR: load_standard_data,
         data_keys.ISCHEMIC_STROKE.PREVALENCE_ACUTE: load_prevalence_ischemic_stroke,
         data_keys.ISCHEMIC_STROKE.PREVALENCE_CHRONIC: load_prevalence_ischemic_stroke,
-        data_keys.ISCHEMIC_STROKE.INCIDENCE_RATE: load_standard_data,
+        data_keys.ISCHEMIC_STROKE.INCIDENCE_RATE_ACUTE: load_standard_data,
         data_keys.ISCHEMIC_STROKE.DISABILITY_WEIGHT_ACUTE: load_disability_weight_ischemic_stroke,
         data_keys.ISCHEMIC_STROKE.DISABILITY_WEIGHT_CHRONIC: load_disability_weight_ischemic_stroke,
         data_keys.ISCHEMIC_STROKE.EMR_ACUTE: load_emr_ischemic_stroke,
@@ -67,7 +67,6 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_ACUTE: load_prevalence_ihd,
         data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_POST: load_prevalence_ihd,
         data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_ACUTE: load_incidence_ihd,
-        data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_POST: load_incidence_ihd,
         data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_ACUTE: load_disability_weight_ihd,
         data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_POST: load_disability_weight_ihd,
         data_keys.MYOCARDIAL_INFARCTION.EMR_ACUTE: load_emr_ihd,
@@ -292,7 +291,6 @@ def load_incidence_ihd(key: str, location: str) -> pd.DataFrame:
     ihd_seq = _get_ihd_sequela()
     map = {
         data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_ACUTE: (ihd_seq["acute_mi"], 24694),
-        data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_POST: (ihd_seq["post_mi"], 24694),
     }
     sequela, meid = map[key]
     incidence = _load_em_from_meid(location, meid, "Incidence rate")
