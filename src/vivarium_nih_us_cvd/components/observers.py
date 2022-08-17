@@ -67,13 +67,13 @@ class LdlcObserver():
         pop = self.population_view.get(event.index, query='alive == "alive"')
         ldlc_exposure = self.ldlc(pop.index)
 
-        new_exposures = {}
+        new_observations = {}
         groups = self.stratifier.group(pop.index, self.config.include, self.config.exclude)
         for label, group_mask in groups:
             key = f"total_ldl_c_exposure_time_{label}"
-            new_exposures[key] = ldlc_exposure[group_mask].sum() * step_size_in_years
+            new_observations[key] = ldlc_exposure[group_mask].sum() * step_size_in_years
 
-        self.exposure.update(new_exposures)
+        self.counter.update(new_observations)
 
     def metrics(self, index: "pd.Index", metrics: Dict[str, float]) -> Dict[str, float]:
         metrics.update(self.counter)
