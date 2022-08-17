@@ -25,8 +25,8 @@ class ResultsStratifier(ResultsStratifier_):
         self.register_stratifications(builder)
 
 
-class LdlcObserver():
-    """ Observes (continuous) LDL-Cholesterol exposure-time per group. """
+class LdlcObserver:
+    """Observes (continuous) LDL-Cholesterol exposure-time per group."""
 
     configuration_defaults = {
         "observers": {
