@@ -5,6 +5,7 @@ from vivarium.framework.engine import Builder
 from vivarium_public_health.metrics.stratification import (
     ResultsStratifier as ResultsStratifier_,
 )
+from vivarium_public_health.utilities import to_years
 
 
 class ResultsStratifier(ResultsStratifier_):
@@ -62,6 +63,7 @@ class LdlcObserver():
         builder.value.register_value_modifier("metrics", self.metrics)
 
     def on_collect_metrics(self, event: "Event"):
+        step_size_in_years = to_years(event.step_size)
         pop = self.population_view.get(event.index, query='alive == "alive"')
         pop['ldlc'] = self.ldlc(pop.index)
 
@@ -71,11 +73,7 @@ class LdlcObserver():
             key = f"ldl_c_exposure_time_{label}"
             group = pop[group_mask]
             # SDB - do we multiply by group_mask.sum() (# of people) or not?
-            # new_exposures[key] = group.ldlc.sum() * group_mask.sum() * event.step_size.days / 365.25
-            new_exposures[key] = group.ldlc.sum() * event.step_size.days / 365.25
-            # (25+25+50 mmol/L)  * 1 year =  100 mmol/L-year
-            # Later, we'd have a 3 person-year column for this group
-            # so then 100 mmol/L-year / 3 person-year = 100 mmol/L/person
+            new_exposures[key] = group.ldlc.sum() * group_mask.sum() * step_size_in_years
 
         self.exposure.update(new_exposures)
 
