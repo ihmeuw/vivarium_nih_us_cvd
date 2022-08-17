@@ -1,3 +1,6 @@
+from collections import Counter
+from typing import Dict
+
 from vivarium.framework.engine import Builder
 from vivarium_public_health.metrics.stratification import (
     ResultsStratifier as ResultsStratifier_,
@@ -19,3 +22,58 @@ class ResultsStratifier(ResultsStratifier_):
         age_bins.loc[len(age_bins.index)] = [7.0, 25.0, "7_to_24"]
         self.age_bins = age_bins.sort_values(["age_start"]).reset_index(drop=True)
         self.register_stratifications(builder)
+
+
+class LdlcObserver():
+    """ Observes (continuous) LDL-Cholesterol exposure-time per group. """
+
+    configuration_defaults = {
+        "observers": {
+            "ldl_c": {
+                "exclude": [],
+                "include": [],
+            }
+        }
+    }
+
+    def __repr__(self):
+        return "LdlcObserver()"
+
+    @property
+    def name(self):
+        return "ldl_c_observer"
+
+    #################
+    # Setup methods #
+    #################
+
+    def setup(self, builder: Builder) -> None:
+        self.config = builder.configuration.observers.ldl_c
+        self.stratifier = builder.components.get_component(ResultsStratifier.name)
+
+        self.exposure = Counter()
+
+        self.ldlc = builder.value.get_value("high_ldl_cholesterol.exposure")
+
+        columns_required = ["alive"]
+        self.population_view = builder.population.get_view(columns_required)
+
+        builder.event.register_listener("collect_metrics", self.on_collect_metrics)
+        builder.value.register_value_modifier("metrics", self.metrics)
+
+    def on_collect_metrics(self, event: "Event"):
+        pop = self.population_view.get(event.index, query='alive == "alive"')
+        pop['ldlc'] = self.ldlc(pop.index)
+
+        new_exposures = {}
+        groups = self.stratifier.group(pop.index, self.config.include, self.config.exclude)
+        for label, group_mask in groups:
+            key = f"ldl_c_exposure_time_{label}"
+            group = pop[group_mask]
+            new_exposures[key] = group.ldlc.sum() * group_mask.sum() * event.step_size.days
+
+        self.exposure.update(new_exposures)
+
+    def metrics(self, index: "pd.Index", metrics: Dict[str, float]) -> Dict[str, float]:
+        metrics.update(self.exposure)
+        return metrics

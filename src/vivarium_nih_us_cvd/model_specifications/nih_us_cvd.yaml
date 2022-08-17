@@ -21,6 +21,7 @@ components:
             - IschemicStroke()
             - MyocardialInfarction()
             - ResultsStratifier()
+            - LdlcObserver()
         
 
 configuration:
