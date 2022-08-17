@@ -70,7 +70,7 @@ class LdlcObserver():
         for label, group_mask in groups:
             key = f"ldl_c_exposure_time_{label}"
             group = pop[group_mask]
-            new_exposures[key] = group.ldlc.sum() * group_mask.sum() * event.step_size.days
+            new_exposures[key] = group.ldlc.sum() * group_mask.sum() * event.step_size.days / 365.25
 
         self.exposure.update(new_exposures)
 
