@@ -181,7 +181,11 @@ def _load_em_from_meid(location, meid, measure):
     return vi_utils.sort_hierarchical_data(data).droplevel("location")
 
 
-def handle_special_cases(data: Union[str, pd.DataFrame], source_key: Union[str, data_keys.TargetString], location: str) -> None:
+def handle_special_cases(
+    data: Union[str, pd.DataFrame],
+    source_key: Union[str, data_keys.TargetString],
+    location: str,
+) -> None:
     data = match_rr_to_cause_name(data, source_key)
     # use_correct_fpg_name(artifact)
     # modify_hd_incidence(artifact, location)
@@ -321,14 +325,16 @@ def load_emr_ihd(key: str, location: str) -> pd.DataFrame:
     return _load_em_from_meid(location, map[key], "Excess mortality rate")
 
 
-def modify_rr_affected_entity(data: pd.DataFrame, risk_key: str, mod_map: Dict[str, List[str]]) -> None:
-    """ Modify relative_risk data so that the affected_entity and affected_measure
-        columns correspond to what is used in the disease model
+def modify_rr_affected_entity(
+    data: pd.DataFrame, risk_key: str, mod_map: Dict[str, List[str]]
+) -> None:
+    """Modify relative_risk data so that the affected_entity and affected_measure
+    columns correspond to what is used in the disease model
     """
+
     def is_transition_rate(name: str) -> bool:
-        """ affected_measure needs to change to "transition_rate" in some cases
-        """
-        return '_to_' in name
+        """affected_measure needs to change to "transition_rate" in some cases"""
+        return "_to_" in name
 
     idx_orig = list(data.index.names)
     data = data.reset_index()
@@ -346,12 +352,19 @@ def modify_rr_affected_entity(data: pd.DataFrame, risk_key: str, mod_map: Dict[s
     return new_data.set_index(idx_orig)
 
 
-
-def match_rr_to_cause_name(data: Union[str, pd.DataFrame], source_key: Union[str, data_keys.TargetString]):
+def match_rr_to_cause_name(
+    data: Union[str, pd.DataFrame], source_key: Union[str, data_keys.TargetString]
+):
     # Need to make relative risk data match causes in the model
     map = {
-        'ischemic_heart_disease': ['acute_myocardial_infarction', 'post_myocardial_infarction_to_acute_myocardial_infarction',],
-        'ischemic_stroke': ['acute_ischemic_stroke', 'chronic_ischemic_stroke_to_acute_ischemic_stroke'],
+        "ischemic_heart_disease": [
+            "acute_myocardial_infarction",
+            "post_myocardial_infarction_to_acute_myocardial_infarction",
+        ],
+        "ischemic_stroke": [
+            "acute_ischemic_stroke",
+            "chronic_ischemic_stroke_to_acute_ischemic_stroke",
+        ],
     }
     affected_keys = [
         data_keys.LDL_C.RELATIVE_RISK,

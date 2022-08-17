@@ -115,20 +115,30 @@ MYOCARDIAL_INFARCTION = __MyocardialInfarction()
 class __HighLDLCholesterol(NamedTuple):
     DISTRIBUTION: TargetString = TargetString("risk_factor.high_ldl_cholesterol.distribution")
     EXPOSURE_MEAN: TargetString = TargetString("risk_factor.high_ldl_cholesterol.exposure")
-    EXPOSURE_SD: TargetString = TargetString("risk_factor.high_ldl_cholesterol.exposure_standard_deviation")
-    EXPOSURE_WEIGHTS: TargetString = TargetString("risk_factor.high_ldl_cholesterol.exposure_distribution_weights")
-    RELATIVE_RISK: TargetString = TargetString("risk_factor.high_ldl_cholesterol.relative_risk")
-    PAF: TargetString = TargetString("risk_factor.high_ldl_cholesterol.population_attributable_fraction")
+    EXPOSURE_SD: TargetString = TargetString(
+        "risk_factor.high_ldl_cholesterol.exposure_standard_deviation"
+    )
+    EXPOSURE_WEIGHTS: TargetString = TargetString(
+        "risk_factor.high_ldl_cholesterol.exposure_distribution_weights"
+    )
+    RELATIVE_RISK: TargetString = TargetString(
+        "risk_factor.high_ldl_cholesterol.relative_risk"
+    )
+    PAF: TargetString = TargetString(
+        "risk_factor.high_ldl_cholesterol.population_attributable_fraction"
+    )
     TMRED: TargetString = TargetString("risk_factor.high_ldl_cholesterol.tmred")
-    RELATIVE_RISK_SCALAR: TargetString = TargetString("risk_factor.high_ldl_cholesterol.relative_risk_scalar")
+    RELATIVE_RISK_SCALAR: TargetString = TargetString(
+        "risk_factor.high_ldl_cholesterol.relative_risk_scalar"
+    )
 
     @property
     def name(self):
-        return 'high_ldl_cholesterol'
+        return "high_ldl_cholesterol"
 
     @property
     def log_name(self):
-        return self.name.replace('_', ' ')
+        return self.name.replace("_", " ")
 
 
 LDL_C = __HighLDLCholesterol()
