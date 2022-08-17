@@ -52,7 +52,7 @@ class LdlcObserver():
         self.config = builder.configuration.observers.ldl_c
         self.stratifier = builder.components.get_component(ResultsStratifier.name)
 
-        self.exposure = Counter()
+        self.counter = Counter()
 
         self.ldlc = builder.value.get_value("high_ldl_cholesterol.exposure")
 
@@ -65,18 +65,16 @@ class LdlcObserver():
     def on_collect_metrics(self, event: "Event"):
         step_size_in_years = to_years(event.step_size)
         pop = self.population_view.get(event.index, query='alive == "alive"')
-        pop['ldlc'] = self.ldlc(pop.index)
+        ldlc_exposure = self.ldlc(pop.index)
 
         new_exposures = {}
         groups = self.stratifier.group(pop.index, self.config.include, self.config.exclude)
         for label, group_mask in groups:
-            key = f"ldl_c_exposure_time_{label}"
-            group = pop[group_mask]
-            # SDB - do we multiply by group_mask.sum() (# of people) or not?
-            new_exposures[key] = group.ldlc.sum() * group_mask.sum() * step_size_in_years
+            key = f"total_ldl_c_exposure_time_{label}"
+            new_exposures[key] = ldlc_exposure[group_mask].sum() * step_size_in_years
 
         self.exposure.update(new_exposures)
 
     def metrics(self, index: "pd.Index", metrics: Dict[str, float]) -> Dict[str, float]:
-        metrics.update(self.exposure)
+        metrics.update(self.counter)
         return metrics
