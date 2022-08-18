@@ -9,8 +9,6 @@ components:
             - DiseaseObserver("myocardial_infarction")
             - MortalityObserver()
         risks:
-            # FIXME: EnsembleDistribution is returning some negative ldl-c exposures. Replace appropriately
-            - Risk("risk_factor.high_ldl_cholesterol")
             # - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.heart_failure_from_ihd.incidence_rate")
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
@@ -22,6 +20,7 @@ components:
             - IschemicStroke()
             - MyocardialInfarction()
             - ResultsStratifier()
+            - LdlcExposure("risk_factor.high_ldl_cholesterol")
             - LdlcObserver()
         
 
@@ -43,12 +42,12 @@ configuration:
             month: 1
             day: 1
         end:
-            year: 2040
+            year: 2023
             month: 12
             day: 31
         step_size: 28 # Days
     population:
-        population_size: 50_000
+        population_size: 10_000
         age_start: 7
         age_end: 125
         exit_age: 125

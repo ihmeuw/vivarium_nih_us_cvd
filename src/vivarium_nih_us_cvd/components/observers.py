@@ -7,6 +7,8 @@ from vivarium_public_health.metrics.stratification import (
 )
 from vivarium_public_health.utilities import to_years
 
+from vivarium_nih_us_cvd.constants.data_values import LDL_C_EXPOSURE_MAXIMUM, LDL_C_EXPOSURE_MINIMUM
+
 
 class ResultsStratifier(ResultsStratifier_):
     """Centralized component for handling results stratification.
@@ -66,6 +68,9 @@ class LdlcObserver:
         step_size_in_years = to_years(event.step_size)
         pop = self.population_view.get(event.index, query='alive == "alive"')
         ldlc_exposure = self.ldlc(pop.index)
+        # FIXME: Hacky; this should be a proper test
+        assert ldlc_exposure.min() >= LDL_C_EXPOSURE_MINIMUM
+        assert ldlc_exposure.max() <= LDL_C_EXPOSURE_MAXIMUM
 
         new_observations = {}
         groups = self.stratifier.group(pop.index, self.config.include, self.config.exclude)
