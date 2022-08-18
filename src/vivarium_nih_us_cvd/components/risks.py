@@ -13,6 +13,7 @@ class LdlcExposure(Risk_):
     """Use the standard vivarium_public_health Risk class for LDL-C
     exposure except limit to lower and upper bounds.
     """
+
     def _get_current_exposure(self, index: pd.Index) -> pd.Series:
         exposures = super()._get_current_exposure(index)
         exposures[exposures < LDL_C_EXPOSURE_MINIMUM] = LDL_C_EXPOSURE_MINIMUM

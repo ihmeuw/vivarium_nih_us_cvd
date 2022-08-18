@@ -7,7 +7,10 @@ from vivarium_public_health.metrics.stratification import (
 )
 from vivarium_public_health.utilities import to_years
 
-from vivarium_nih_us_cvd.constants.data_values import LDL_C_EXPOSURE_MAXIMUM, LDL_C_EXPOSURE_MINIMUM
+from vivarium_nih_us_cvd.constants.data_values import (
+    LDL_C_EXPOSURE_MAXIMUM,
+    LDL_C_EXPOSURE_MINIMUM,
+)
 
 
 class ResultsStratifier(ResultsStratifier_):
