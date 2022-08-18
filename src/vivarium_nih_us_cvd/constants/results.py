@@ -41,6 +41,7 @@ STATE_PERSON_TIME_COLUMN_TEMPLATE = (
 TRANSITION_COUNT_COLUMN_TEMPLATE = (
     "{TRANSITION}_event_count_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
 )
+LDLC_EXPOSURE_TIME_TEMPLATE = "total_ldl_c_exposure_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
 
 COLUMN_TEMPLATES = {
     "population": TOTAL_POPULATION_COLUMN_TEMPLATE,
@@ -49,6 +50,7 @@ COLUMN_TEMPLATES = {
     "ylds": YLDS_COLUMN_TEMPLATE,
     "state_person_time": STATE_PERSON_TIME_COLUMN_TEMPLATE,
     "transition_count": TRANSITION_COUNT_COLUMN_TEMPLATE,
+    "ldlc_exposure_time": LDLC_EXPOSURE_TIME_TEMPLATE,
 }
 
 NON_COUNT_TEMPLATES = []
