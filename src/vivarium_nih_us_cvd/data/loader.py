@@ -83,7 +83,9 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.LDL_C.RELATIVE_RISK_SCALAR: load_metadata,
     }
     source_key = _get_source_key(lookup_key)
-    return mapping[lookup_key](source_key, location)
+    data = mapping[lookup_key](source_key, location)
+    data = handle_special_cases(data, source_key, location)
+    return data
 
 
 def load_population_location(key: str, location: str) -> str:
@@ -177,6 +179,17 @@ def _load_em_from_meid(location, meid, measure):
     data = vi_utils.split_interval(data, interval_column="age", split_column_prefix="age")
     data = vi_utils.split_interval(data, interval_column="year", split_column_prefix="year")
     return vi_utils.sort_hierarchical_data(data).droplevel("location")
+
+
+def handle_special_cases(
+    data: Union[str, pd.DataFrame],
+    source_key: Union[str, data_keys.TargetString],
+    location: str,
+) -> None:
+    data = match_rr_to_cause_name(data, source_key)
+    # use_correct_fpg_name(artifact)
+    # modify_hd_incidence(artifact, location)
+    return data
 
 
 def get_entity(key: Union[str, EntityKey]):
@@ -310,3 +323,53 @@ def load_emr_ihd(key: str, location: str) -> pd.DataFrame:
         data_keys.MYOCARDIAL_INFARCTION.EMR_POST: 15755,
     }
     return _load_em_from_meid(location, map[key], "Excess mortality rate")
+
+
+def modify_rr_affected_entity(
+    data: pd.DataFrame, risk_key: str, mod_map: Dict[str, List[str]]
+) -> None:
+    """Modify relative_risk data so that the affected_entity and affected_measure
+    columns correspond to what is used in the disease model
+    """
+
+    def is_transition_rate(name: str) -> bool:
+        """affected_measure needs to change to "transition_rate" in some cases"""
+        return "_to_" in name
+
+    idx_orig = list(data.index.names)
+    data = data.reset_index()
+    new_data = []
+    for key in mod_map.keys():
+        tmp = data.copy()
+        tmp = tmp[tmp["affected_entity"] == key]
+        for name in mod_map[key]:
+            df_new = tmp.copy()
+            df_new["affected_entity"] = name
+            if is_transition_rate(name):
+                df_new["affected_measure"] = "transition_rate"
+            new_data += [df_new]
+    new_data = pd.concat(new_data, ignore_index=True)
+    return new_data.set_index(idx_orig)
+
+
+def match_rr_to_cause_name(
+    data: Union[str, pd.DataFrame], source_key: Union[str, data_keys.TargetString]
+):
+    # Need to make relative risk data match causes in the model
+    map = {
+        "ischemic_heart_disease": [
+            "acute_myocardial_infarction",
+            "post_myocardial_infarction_to_acute_myocardial_infarction",
+        ],
+        "ischemic_stroke": [
+            "acute_ischemic_stroke",
+            "chronic_ischemic_stroke_to_acute_ischemic_stroke",
+        ],
+    }
+    affected_keys = [
+        data_keys.LDL_C.RELATIVE_RISK,
+        data_keys.LDL_C.PAF,
+    ]
+    if source_key in affected_keys:
+        data = modify_rr_affected_entity(data, source_key, map)
+    return data
