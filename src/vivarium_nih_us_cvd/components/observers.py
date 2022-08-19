@@ -71,7 +71,6 @@ class LdlcObserver:
         step_size_in_years = to_years(event.step_size)
         pop = self.population_view.get(event.index, query='alive == "alive"')
         ldlc_exposure = self.ldlc(pop.index)
-        # FIXME: Hacky; this should be a proper test
         assert ldlc_exposure.min() >= LDL_C_EXPOSURE_MINIMUM
         assert ldlc_exposure.max() <= LDL_C_EXPOSURE_MAXIMUM
 
