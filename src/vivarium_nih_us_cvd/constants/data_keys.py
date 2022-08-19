@@ -144,9 +144,32 @@ class __HighLDLCholesterol(NamedTuple):
 LDL_C = __HighLDLCholesterol()
 
 
+class __HighSBP(NamedTuple):
+    DISTRIBUTION: TargetString = TargetString("risk_factor.high_systolic_blood_pressure.distribution")
+    EXPOSURE_MEAN: TargetString = TargetString("risk_factor.high_systolic_blood_pressure.exposure")
+    EXPOSURE_SD: TargetString = TargetString("risk_factor.high_systolic_blood_pressure.exposure_standard_deviation")
+    EXPOSURE_WEIGHTS: TargetString = TargetString("risk_factor.high_systolic_blood_pressure.exposure_distribution_weights")
+    RELATIVE_RISK: TargetString = TargetString("risk_factor.high_systolic_blood_pressure.relative_risk")
+    PAF: TargetString = TargetString("risk_factor.high_systolic_blood_pressure.population_attributable_fraction")
+    TMRED: TargetString = TargetString("risk_factor.high_systolic_blood_pressure.tmred")
+    RELATIVE_RISK_SCALAR: TargetString = TargetString("risk_factor.high_systolic_blood_pressure.relative_risk_scalar")
+
+    @property
+    def name(self):
+        return "high_sbp"
+
+    @property
+    def log_name(self):
+        return self.name.replace("_", " ")
+
+
+SBP = __HighSBP()
+
+
 MAKE_ARTIFACT_KEY_GROUPS = [
     POPULATION,
     ISCHEMIC_STROKE,
     MYOCARDIAL_INFARCTION,
     LDL_C,
+    SBP,
 ]

@@ -81,6 +81,14 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.LDL_C.PAF: load_standard_data,
         data_keys.LDL_C.TMRED: load_metadata,
         data_keys.LDL_C.RELATIVE_RISK_SCALAR: load_metadata,
+        data_keys.SBP.DISTRIBUTION: load_metadata,
+        data_keys.SBP.EXPOSURE_MEAN: load_standard_data,
+        data_keys.SBP.EXPOSURE_SD: load_standard_data,
+        data_keys.SBP.EXPOSURE_WEIGHTS: load_standard_data,
+        data_keys.SBP.RELATIVE_RISK: load_standard_data,
+        data_keys.SBP.PAF: load_standard_data,
+        data_keys.SBP.TMRED: load_metadata,
+        data_keys.SBP.RELATIVE_RISK_SCALAR: load_metadata,
     }
     source_key = _get_source_key(lookup_key)
     data = mapping[lookup_key](source_key, location)
@@ -369,6 +377,8 @@ def match_rr_to_cause_name(
     affected_keys = [
         data_keys.LDL_C.RELATIVE_RISK,
         data_keys.LDL_C.PAF,
+        data_keys.SBP.RELATIVE_RISK,
+        data_keys.SBP.PAF,
     ]
     if source_key in affected_keys:
         data = modify_rr_affected_entity(data, source_key, map)
