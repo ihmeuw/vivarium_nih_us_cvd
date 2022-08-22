@@ -14,6 +14,7 @@ components:
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_ischemic_stroke.incidence_rate")
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
             # - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.heart_failure_from_ihd.incidence_rate")
+            
             - Risk("risk_factor.high_systolic_blood_pressure")
             - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_myocardial_infarction.incidence_rate")
             - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
