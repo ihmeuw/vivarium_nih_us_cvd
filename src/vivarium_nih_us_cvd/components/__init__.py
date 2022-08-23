@@ -1,3 +1,3 @@
 from .disease import IschemicStroke, MyocardialInfarction
-from .observers import RiskExposureTimeObserver, ResultsStratifier
+from .observers import ResultsStratifier, RiskExposureTimeObserver
 from .risks import Risk

@@ -54,7 +54,9 @@ class RiskExposureTimeObserver:
     def _get_configuration_defaults(self) -> Dict[str, Dict]:
         return {
             "observers": {
-                self.risk: RiskExposureTimeObserver.configuration_defaults["observers"]["risk"]
+                self.risk: RiskExposureTimeObserver.configuration_defaults["observers"][
+                    "risk"
+                ]
             }
         }
 
