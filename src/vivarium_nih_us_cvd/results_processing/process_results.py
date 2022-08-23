@@ -33,7 +33,7 @@ def make_measure_data(data):
         deaths=get_by_cause_measure_data(data, "deaths"),
         state_person_time=get_state_person_time_measure_data(data, "state_person_time"),
         transition_count=get_transition_count_measure_data(data, "transition_count"),
-        ldlc_exposure_time=get_ldl_c_exposure_time_data(data, "ldlc_exposure_time"),
+        risk_exposure_time=get_risk_exposure_time_data(data, "risk_exposure_time"),
     )
     return measure_data
 
@@ -45,7 +45,7 @@ class MeasureData(NamedTuple):
     deaths: pd.DataFrame
     state_person_time: pd.DataFrame
     transition_count: pd.DataFrame
-    ldlc_exposure_time: pd.DataFrame
+    risk_exposure_time: pd.DataFrame
 
     def dump(self, output_dir: Path):
         for key, df in self._asdict().items():
@@ -181,6 +181,6 @@ def get_transition_count_measure_data(data: pd.DataFrame, measure: str) -> pd.Da
     return sort_data(data)
 
 
-def get_ldl_c_exposure_time_data(data: pd.DataFrame, measure: str) -> pd.DataFrame:
+def get_risk_exposure_time_data(data: pd.DataFrame, measure: str) -> pd.DataFrame:
     data = get_measure_data(data, measure)
     return sort_data(data)
