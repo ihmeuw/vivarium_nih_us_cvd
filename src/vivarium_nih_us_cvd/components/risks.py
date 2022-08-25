@@ -6,9 +6,10 @@ from vivarium_public_health.risks.base_risk import Risk as Risk_
 from vivarium_nih_us_cvd.constants.data_values import RISK_EXPOSURE_LIMITS
 
 
+# FIXME: would be more proper to modify the distribution function itself
 class Risk(Risk_):
     """Use the standard vivarium_public_health Risk class for risk
-    exposure except limit to lower and upper bounds.
+    exposure except apply limits to lower and upper bounds (when defined).
     """
 
     def _get_current_exposure(self, index: pd.Index) -> pd.Series:

@@ -43,4 +43,8 @@ RISK_EXPOSURE_LIMITS = {
         "minimum": 0,
         "maximum": 10,
     },
+    "high_systolic_blood_pressure": {
+        "minimum": 50,
+        "maximum": 300,
+    },
 }
