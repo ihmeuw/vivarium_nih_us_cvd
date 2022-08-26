@@ -5,12 +5,7 @@ from vivarium.framework.engine import Builder
 from vivarium_public_health.metrics.stratification import (
     ResultsStratifier as ResultsStratifier_,
 )
-from vivarium_public_health.utilities import to_years
-
-from vivarium_nih_us_cvd.constants.data_values import (
-    LDL_C_EXPOSURE_MAXIMUM,
-    LDL_C_EXPOSURE_MINIMUM,
-)
+from vivarium_public_health.utilities import EntityString, to_years
 
 
 class ResultsStratifier(ResultsStratifier_):
@@ -30,36 +25,56 @@ class ResultsStratifier(ResultsStratifier_):
         self.register_stratifications(builder)
 
 
-class LdlcObserver:
-    """Observes (continuous) LDL-Cholesterol exposure-time per group."""
+class ContinuousRiskObserver:
+    """Observes (continuous) risk exposure-time per group."""
 
     configuration_defaults = {
         "observers": {
-            "ldl_c": {
+            "risk": {
                 "exclude": [],
                 "include": [],
             }
         }
     }
 
+    def __init__(self, risk: str):
+        self.risk = self.risk = EntityString(risk)
+        self.configuration_defaults = self._get_configuration_defaults()
+
     def __repr__(self):
-        return "LdlcObserver()"
+        return f"ContinuousRiskObserver({self.risk})"
+
+    ##########################
+    # Initialization methods #
+    ##########################
+
+    # noinspection PyMethodMayBeStatic
+    def _get_configuration_defaults(self) -> Dict[str, Dict]:
+        return {
+            "observers": {
+                self.risk: ContinuousRiskObserver.configuration_defaults["observers"]["risk"]
+            }
+        }
+
+    ##############
+    # Properties #
+    ##############
 
     @property
     def name(self):
-        return "ldl_c_observer"
+        return f"continuous_risk_observer.{self.risk}"
 
     #################
     # Setup methods #
     #################
 
     def setup(self, builder: Builder) -> None:
-        self.config = builder.configuration.observers.ldl_c
+        self.config = self._get_stratification_configuration(builder)
         self.stratifier = builder.components.get_component(ResultsStratifier.name)
 
         self.counter = Counter()
 
-        self.ldlc = builder.value.get_value("high_ldl_cholesterol.exposure")
+        self.exposure = builder.value.get_value(f"{self.risk.name}.exposure")
 
         columns_required = ["alive"]
         self.population_view = builder.population.get_view(columns_required)
@@ -67,18 +82,19 @@ class LdlcObserver:
         builder.event.register_listener("collect_metrics", self.on_collect_metrics)
         builder.value.register_value_modifier("metrics", self.metrics)
 
+    def _get_stratification_configuration(self, builder: Builder) -> "ConfigTree":
+        return builder.configuration.observers[self.risk]
+
     def on_collect_metrics(self, event: "Event"):
         step_size_in_years = to_years(event.step_size)
         pop = self.population_view.get(event.index, query='alive == "alive"')
-        ldlc_exposure = self.ldlc(pop.index)
-        assert ldlc_exposure.min() >= LDL_C_EXPOSURE_MINIMUM
-        assert ldlc_exposure.max() <= LDL_C_EXPOSURE_MAXIMUM
+        values = self.exposure(pop.index)
 
         new_observations = {}
         groups = self.stratifier.group(pop.index, self.config.include, self.config.exclude)
         for label, group_mask in groups:
-            key = f"total_ldl_c_exposure_time_{label}"
-            new_observations[key] = ldlc_exposure[group_mask].sum() * step_size_in_years
+            key = f"total_risk_exposure_time_{self.risk.name}_{label}"
+            new_observations[key] = values[group_mask].sum() * step_size_in_years
 
         self.counter.update(new_observations)
 

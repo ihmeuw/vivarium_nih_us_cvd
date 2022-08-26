@@ -1,3 +1,3 @@
 from .disease import IschemicStroke, MyocardialInfarction
-from .observers import LdlcObserver, ResultsStratifier
-from .risks import LdlcExposure
+from .observers import ContinuousRiskObserver, ResultsStratifier
+from .risks import Risk

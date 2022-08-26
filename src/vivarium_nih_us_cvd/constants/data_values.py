@@ -38,5 +38,9 @@ SCREENING_SCALE_UP_DIFFERENCE = (
 # Risk Parameters #
 ###################
 
-LDL_C_EXPOSURE_MINIMUM = 0
-LDL_C_EXPOSURE_MAXIMUM = 10
+RISK_EXPOSURE_LIMITS = {
+    "high_ldl_cholesterol": {
+        "minimum": 0,
+        "maximum": 10,
+    },
+}
