@@ -52,9 +52,7 @@ class ContinuousRiskObserver:
     def _get_configuration_defaults(self) -> Dict[str, Dict]:
         return {
             "observers": {
-                self.risk: ContinuousRiskObserver.configuration_defaults["observers"][
-                    "risk"
-                ]
+                self.risk: ContinuousRiskObserver.configuration_defaults["observers"]["risk"]
             }
         }
 
