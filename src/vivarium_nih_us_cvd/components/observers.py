@@ -7,8 +7,6 @@ from vivarium_public_health.metrics.stratification import (
 )
 from vivarium_public_health.utilities import EntityString, to_years
 
-from vivarium_nih_us_cvd.constants.data_values import RISK_EXPOSURE_LIMITS
-
 
 class ResultsStratifier(ResultsStratifier_):
     """Centralized component for handling results stratification.
@@ -27,7 +25,7 @@ class ResultsStratifier(ResultsStratifier_):
         self.register_stratifications(builder)
 
 
-class RiskExposureTimeObserver:
+class ContinuousRiskObserver:
     """Observes (continuous) risk exposure-time per group."""
 
     configuration_defaults = {
@@ -44,7 +42,7 @@ class RiskExposureTimeObserver:
         self.configuration_defaults = self._get_configuration_defaults()
 
     def __repr__(self):
-        return f"RiskExposureTimeObserver({self.risk})"
+        return f"ContinuousRiskObserver({self.risk})"
 
     ##########################
     # Initialization methods #
@@ -54,9 +52,7 @@ class RiskExposureTimeObserver:
     def _get_configuration_defaults(self) -> Dict[str, Dict]:
         return {
             "observers": {
-                self.risk: RiskExposureTimeObserver.configuration_defaults["observers"][
-                    "risk"
-                ]
+                self.risk: ContinuousRiskObserver.configuration_defaults["observers"]["risk"]
             }
         }
 
@@ -66,7 +62,7 @@ class RiskExposureTimeObserver:
 
     @property
     def name(self):
-        return f"risk_exposure_time_observer.{self.risk}"
+        return f"continuous_risk_observer.{self.risk}"
 
     #################
     # Setup methods #
@@ -93,9 +89,6 @@ class RiskExposureTimeObserver:
         step_size_in_years = to_years(event.step_size)
         pop = self.population_view.get(event.index, query='alive == "alive"')
         values = self.exposure(pop.index)
-        if self.risk.name in RISK_EXPOSURE_LIMITS:
-            assert values.min() >= RISK_EXPOSURE_LIMITS[self.risk.name]["minimum"]
-            assert values.max() <= RISK_EXPOSURE_LIMITS[self.risk.name]["maximum"]
 
         new_observations = {}
         groups = self.stratifier.group(pop.index, self.config.include, self.config.exclude)

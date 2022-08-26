@@ -28,10 +28,10 @@ components:
             - ResultsStratifier()
 
             - Risk("risk_factor.high_ldl_cholesterol")
-            - RiskExposureTimeObserver("risk_factor.high_ldl_cholesterol")
+            - ContinuousRiskObserver("risk_factor.high_ldl_cholesterol")
             
             - Risk("risk_factor.high_systolic_blood_pressure")
-            - RiskExposureTimeObserver("risk_factor.high_systolic_blood_pressure")
+            - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
         
 
 configuration:
