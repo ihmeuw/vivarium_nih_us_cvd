@@ -41,8 +41,8 @@ STATE_PERSON_TIME_COLUMN_TEMPLATE = (
 TRANSITION_COUNT_COLUMN_TEMPLATE = (
     "{TRANSITION}_event_count_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
 )
-LDLC_EXPOSURE_TIME_TEMPLATE = (
-    "total_ldl_c_exposure_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
+RISK_EXPOSURE_TIME_TEMPLATE = (
+    "total_exposure_time_risk_{RISK}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
 )
 
 COLUMN_TEMPLATES = {
@@ -52,7 +52,7 @@ COLUMN_TEMPLATES = {
     "ylds": YLDS_COLUMN_TEMPLATE,
     "state_person_time": STATE_PERSON_TIME_COLUMN_TEMPLATE,
     "transition_count": TRANSITION_COUNT_COLUMN_TEMPLATE,
-    "ldlc_exposure_time": LDLC_EXPOSURE_TIME_TEMPLATE,
+    "risk_exposure_time": RISK_EXPOSURE_TIME_TEMPLATE,
 }
 
 NON_COUNT_TEMPLATES = []
@@ -87,6 +87,11 @@ CAUSES_OF_DEATH = CAUSES_OF_DISABILITY + (
     models.POST_MYOCARDIAL_INFARCTION_STATE_NAME,
 )
 
+RISKS = (
+    "high_ldl_cholesterol",
+    "high_systolic_blood_pressure",
+)
+
 TEMPLATE_FIELD_MAP = {
     "POP_STATE": POP_STATES,
     "YEAR": YEARS,
@@ -96,6 +101,7 @@ TEMPLATE_FIELD_MAP = {
     "CAUSE_OF_DISABILITY": CAUSES_OF_DISABILITY,
     "STATE": models.STATES,
     "TRANSITION": models.TRANSITIONS,
+    "RISK": RISKS,
 }
 
 

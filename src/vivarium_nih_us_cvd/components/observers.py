@@ -93,7 +93,7 @@ class ContinuousRiskObserver:
         new_observations = {}
         groups = self.stratifier.group(pop.index, self.config.include, self.config.exclude)
         for label, group_mask in groups:
-            key = f"total_risk_exposure_time_{self.risk.name}_{label}"
+            key = f"total_exposure_time_risk_{self.risk.name}_{label}"
             new_observations[key] = values[group_mask].sum() * step_size_in_years
 
         self.counter.update(new_observations)
