@@ -49,12 +49,14 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
 
     """
     mapping = {
+        # Population
         data_keys.POPULATION.LOCATION: load_population_location,
         data_keys.POPULATION.STRUCTURE: load_population_structure,
         data_keys.POPULATION.AGE_BINS: load_age_bins,
         data_keys.POPULATION.DEMOGRAPHY: load_demographic_dimensions,
         data_keys.POPULATION.TMRLE: load_theoretical_minimum_risk_life_expectancy,
         data_keys.POPULATION.ACMR: load_standard_data,
+        # Cause (ischemic stroke)
         data_keys.ISCHEMIC_STROKE.PREVALENCE_ACUTE: load_prevalence_ischemic_stroke,
         data_keys.ISCHEMIC_STROKE.PREVALENCE_CHRONIC: load_prevalence_ischemic_stroke,
         data_keys.ISCHEMIC_STROKE.INCIDENCE_RATE_ACUTE: load_standard_data,
@@ -64,6 +66,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.ISCHEMIC_STROKE.EMR_CHRONIC: load_emr_ischemic_stroke,
         data_keys.ISCHEMIC_STROKE.CSMR: load_standard_data,
         data_keys.ISCHEMIC_STROKE.RESTRICTIONS: load_metadata,
+        # Cause (myocardial infarction)
         data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_ACUTE: load_prevalence_ihd,
         data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_POST: load_prevalence_ihd,
         data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_ACUTE: load_incidence_ihd,
@@ -73,6 +76,16 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.MYOCARDIAL_INFARCTION.EMR_POST: load_emr_ihd,
         data_keys.MYOCARDIAL_INFARCTION.CSMR: load_standard_data,
         data_keys.MYOCARDIAL_INFARCTION.RESTRICTIONS: load_metadata,
+        # Cause (angina)
+        data_keys.ANGINA.PREVALENCE: load_prevalence_ihd,
+        data_keys.ANGINA.INCIDENCE_RATE: load_incidence_ihd,
+        # data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_ACUTE: load_disability_weight_ihd,
+        # data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_POST: load_disability_weight_ihd,
+        # data_keys.MYOCARDIAL_INFARCTION.EMR_ACUTE: load_emr_ihd,
+        # data_keys.MYOCARDIAL_INFARCTION.EMR_POST: load_emr_ihd,
+        # data_keys.MYOCARDIAL_INFARCTION.CSMR: load_standard_data,
+        # data_keys.MYOCARDIAL_INFARCTION.RESTRICTIONS: load_metadata,
+        # Risk (LDL-cholesterol)
         data_keys.LDL_C.DISTRIBUTION: load_metadata,
         data_keys.LDL_C.EXPOSURE_MEAN: load_standard_data,
         data_keys.LDL_C.EXPOSURE_SD: load_standard_data,
@@ -81,6 +94,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.LDL_C.PAF: load_standard_data,
         data_keys.LDL_C.TMRED: load_metadata,
         data_keys.LDL_C.RELATIVE_RISK_SCALAR: load_metadata,
+        # Risk (stystolic blood pressure)
         data_keys.SBP.DISTRIBUTION: load_metadata,
         data_keys.SBP.EXPOSURE_MEAN: load_standard_data,
         data_keys.SBP.EXPOSURE_SD: load_standard_data,
@@ -285,6 +299,11 @@ def _get_ihd_sequela() -> Dict[str, List["Sequela"]]:
             for s in causes.ischemic_heart_disease.sequelae
             if s.name == "asymptomatic_ischemic_heart_disease_following_myocardial_infarction"
         ],
+        "angina": [
+            s
+            for s in causes.ischemic_heart_disease.sequelae
+            if "angina" in s.name
+        ],
     }
     return seq_by_cause
 
@@ -294,6 +313,7 @@ def load_prevalence_ihd(key: str, location: str) -> pd.DataFrame:
     map = {
         data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_ACUTE: ihd_seq["acute_mi"],
         data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_POST: ihd_seq["post_mi"],
+        data_keys.ANGINA.PREVALENCE: ihd_seq["angina"],
     }
     prevalence = _load_and_sum_prevalence_from_sequelae(key, map, location)
     return prevalence
@@ -303,6 +323,7 @@ def load_incidence_ihd(key: str, location: str) -> pd.DataFrame:
     ihd_seq = _get_ihd_sequela()
     map = {
         data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_ACUTE: (ihd_seq["acute_mi"], 24694),
+        data_keys.ANGINA.INCIDENCE_RATE: (ihd_seq["angina"], 1817),
     }
     sequela, meid = map[key]
     incidence = _load_em_from_meid(location, meid, "Incidence rate")
