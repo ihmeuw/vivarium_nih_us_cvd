@@ -297,11 +297,7 @@ def _get_ihd_sequela() -> Dict[str, List["Sequela"]]:
             for s in causes.ischemic_heart_disease.sequelae
             if s.name == "asymptomatic_ischemic_heart_disease_following_myocardial_infarction"
         ],
-        "angina": [
-            s
-            for s in causes.ischemic_heart_disease.sequelae
-            if "angina" in s.name
-        ],
+        "angina": [s for s in causes.ischemic_heart_disease.sequelae if "angina" in s.name],
     }
     return seq_by_cause
 
@@ -357,13 +353,13 @@ def load_emr_ihd(key: str, location: str) -> pd.DataFrame:
 def load_csmr_angina(key: str, location: str) -> pd.DataFrame:
     # We cannot query sequela for CSMR. Instead, let's return all zeros since
     # we need something for the SI model.
-    # FIXME: 
+    # FIXME:
     # Maybe use later... For now use IHD cause_specific_mortality, which contains angina emr,
     #   and make angina csmr be zero. The csmr is necessary to use the default SI model for angina
     # csmr_angina = (load_ihd_prevalence(data_keys.IHD.ANGINA_PREV, location)
     #               * load_ihd_emr(data_keys.IHD.ANGINA_EMR, location))
 
-    draws = [f'draw_{i}' for i in range(1000)]
+    draws = [f"draw_{i}" for i in range(1000)]
     df_zeros = load_emr_ihd(data_keys.ANGINA.EMR, location)
     df_zeros[draws] = 0.0
     return df_zeros
