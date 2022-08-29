@@ -357,7 +357,7 @@ def load_emr_ihd(key: str, location: str) -> pd.DataFrame:
 def load_csmr_angina(key: str, location: str) -> pd.DataFrame:
     # We cannot query sequela for CSMR. Instead, let's return all zeros since
     # we need something for the SI model.
-
+    # FIXME: 
     # Maybe use later... For now use IHD cause_specific_mortality, which contains angina emr,
     #   and make angina csmr be zero. The csmr is necessary to use the default SI model for angina
     # csmr_angina = (load_ihd_prevalence(data_keys.IHD.ANGINA_PREV, location)
