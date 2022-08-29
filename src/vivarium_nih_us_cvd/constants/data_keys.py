@@ -113,26 +113,16 @@ MYOCARDIAL_INFARCTION = __MyocardialInfarction()
 class __Angina(NamedTuple):
     PREVALENCE: TargetString = TargetString("cause.angina.prevalence")
     INCIDENCE_RATE: TargetString = TargetString("cause.angina.incidence_rate")
-    # DISABILITY_WEIGHT_ACUTE: TargetString = TargetString(
-    #     "cause.acute_myocardial_infarction.disability_weight"
-    # )
-    # DISABILITY_WEIGHT_POST: TargetString = TargetString(
-    #     "cause.post_myocardial_infarction.disability_weight"
-    # )
-    # EMR_ACUTE: TargetString = TargetString(
-    #     "cause.acute_myocardial_infarction.excess_mortality_rate"
-    # )
-    # EMR_POST: TargetString = TargetString(
-    #     "cause.post_myocardial_infarction.excess_mortality_rate"
-    # )
-    # CSMR: SourceTarget = SourceTarget(
-    #     "cause.ischemic_heart_disease.cause_specific_mortality_rate",
-    #     "cause.myocardial_infarction.cause_specific_mortality_rate",
-    # )
-    # RESTRICTIONS: SourceTarget = SourceTarget(
-    #     "cause.ischemic_heart_disease.restrictions",
-    #     "cause.myocardial_infarction.restrictions",
-    # )
+    DISABILITY_WEIGHT: TargetString = TargetString("cause.angina.disability_weight")
+    EMR: TargetString = TargetString("cause.angina.excess_mortality_rate")
+    CSMR: SourceTarget = SourceTarget(
+        "cause.ischemic_heart_disease.cause_specific_mortality_rate",
+        "cause.angina.cause_specific_mortality_rate",
+    )
+    RESTRICTIONS: SourceTarget = SourceTarget(
+        "cause.ischemic_heart_disease.restrictions",
+        "cause.angina.restrictions",
+    )
 
     @property
     def name(self):
