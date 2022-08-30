@@ -68,8 +68,6 @@ ISCHEMIC_STROKE = __IschemicStroke()
 
 
 class __MyocardialInfarction(NamedTuple):
-    # SDB - do these names matter? specifically, Kjell called these "cause.acute_myocardial_infarction.prevalence"
-    # instead of "sequela...".
     PREVALENCE_ACUTE: TargetString = TargetString(
         "cause.acute_myocardial_infarction.prevalence"
     )
@@ -110,6 +108,32 @@ class __MyocardialInfarction(NamedTuple):
 
 
 MYOCARDIAL_INFARCTION = __MyocardialInfarction()
+
+
+class __Angina(NamedTuple):
+    PREVALENCE: TargetString = TargetString("cause.angina.prevalence")
+    INCIDENCE_RATE: TargetString = TargetString("cause.angina.incidence_rate")
+    DISABILITY_WEIGHT: TargetString = TargetString("cause.angina.disability_weight")
+    EMR: TargetString = TargetString("cause.angina.excess_mortality_rate")
+    CSMR: SourceTarget = SourceTarget(
+        "cause.ischemic_heart_disease.cause_specific_mortality_rate",
+        "cause.angina.cause_specific_mortality_rate",
+    )
+    RESTRICTIONS: SourceTarget = SourceTarget(
+        "cause.ischemic_heart_disease.restrictions",
+        "cause.angina.restrictions",
+    )
+
+    @property
+    def name(self):
+        return "angina"
+
+    @property
+    def log_name(self):
+        return self.name.replace("_", " ")
+
+
+ANGINA = __Angina()
 
 
 class __HighLDLCholesterol(NamedTuple):
@@ -184,6 +208,7 @@ MAKE_ARTIFACT_KEY_GROUPS = [
     POPULATION,
     ISCHEMIC_STROKE,
     MYOCARDIAL_INFARCTION,
+    ANGINA,
     LDL_C,
     SBP,
 ]
