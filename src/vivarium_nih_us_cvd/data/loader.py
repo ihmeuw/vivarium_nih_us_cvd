@@ -412,6 +412,7 @@ def match_rr_to_cause_name(
         "ischemic_heart_disease": [
             "acute_myocardial_infarction",
             "post_myocardial_infarction_to_acute_myocardial_infarction",
+            "angina",
         ],
         "ischemic_stroke": [
             "acute_ischemic_stroke",
