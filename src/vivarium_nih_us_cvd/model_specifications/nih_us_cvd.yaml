@@ -4,10 +4,12 @@ components:
             - BasePopulation()
             - Mortality()
         metrics:
+            - MortalityObserver()
             - DisabilityObserver()
             - DiseaseObserver("ischemic_stroke")
             - DiseaseObserver("myocardial_infarction")
-            - MortalityObserver()
+        disease:
+            - SI("angina")
         risks:
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
@@ -23,9 +25,10 @@ components:
 
     vivarium_nih_us_cvd:
         components:
+            - ResultsStratifier()
+
             - IschemicStroke()
             - MyocardialInfarction()
-            - ResultsStratifier()
 
             - Risk("risk_factor.high_ldl_cholesterol")
             - ContinuousRiskObserver("risk_factor.high_ldl_cholesterol")
