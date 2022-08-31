@@ -139,7 +139,9 @@ ANGINA = __Angina()
 class __HeartFailureFromIHD(NamedTuple):
     PREVALENCE: TargetString = TargetString("cause.heart_failure_from_ihd.prevalence")
     INCIDENCE_RATE: TargetString = TargetString("cause.heart_failure_from_ihd.incidence_rate")
-    DISABILITY_WEIGHT: TargetString = TargetString("cause.heart_failure_from_ihd.disability_weight")
+    DISABILITY_WEIGHT: TargetString = TargetString(
+        "cause.heart_failure_from_ihd.disability_weight"
+    )
     EMR: TargetString = TargetString("cause.heart_failure_from_ihd.excess_mortality_rate")
     CSMR: SourceTarget = SourceTarget(
         "cause.ischemic_heart_disease.cause_specific_mortality_rate",

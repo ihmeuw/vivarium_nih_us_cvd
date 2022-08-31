@@ -74,7 +74,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_POST: load_disability_weight_ihd,
         data_keys.MYOCARDIAL_INFARCTION.EMR_ACUTE: load_emr_ihd,
         data_keys.MYOCARDIAL_INFARCTION.EMR_POST: load_emr_ihd,
-        data_keys.MYOCARDIAL_INFARCTION.CSMR: load_standard_data, #Assign 100% of IHD's CSMR to angina
+        data_keys.MYOCARDIAL_INFARCTION.CSMR: load_standard_data,  # Assign 100% of IHD's CSMR to angina
         data_keys.MYOCARDIAL_INFARCTION.RESTRICTIONS: load_metadata,
         # Cause (angina)
         data_keys.ANGINA.PREVALENCE: load_prevalence_ihd,
@@ -305,7 +305,9 @@ def _get_ihd_sequela() -> Dict[str, List["Sequela"]]:
             if s.name == "asymptomatic_ischemic_heart_disease_following_myocardial_infarction"
         ],
         "angina": [s for s in causes.ischemic_heart_disease.sequelae if "angina" in s.name],
-        "heart_failure": [s for s in causes.ischemic_heart_disease.sequelae if "heart_failure" in s.name],
+        "heart_failure": [
+            s for s in causes.ischemic_heart_disease.sequelae if "heart_failure" in s.name
+        ],
     }
     return seq_by_cause
 
@@ -368,9 +370,9 @@ def load_emr_ihd(key: str, location: str) -> pd.DataFrame:
 def load_csmr_all_zeros(emr_source: str, location: str) -> pd.DataFrame:
     # We cannot query sequela for CSMR. Instead, let's return all zeros since
     # we need something for the SI model.
-    # 
+    #
     # Note that 100% of CSMR for IHD has been assigned to MI. This then requires
-    # that other IHD causes (angina and heart failure) must be assigned 
+    # that other IHD causes (angina and heart failure) must be assigned
     # zero CSMR or else we would underestimate the IHD mortality rate because
     # we'd be subtracting off too much CSMR.
     #
