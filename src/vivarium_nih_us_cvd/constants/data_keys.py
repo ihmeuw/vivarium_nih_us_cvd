@@ -136,6 +136,32 @@ class __Angina(NamedTuple):
 ANGINA = __Angina()
 
 
+class __HeartFailureFromIHD(NamedTuple):
+    PREVALENCE: TargetString = TargetString("cause.heart_failure_from_ihd.prevalence")
+    INCIDENCE_RATE: TargetString = TargetString("cause.heart_failure_from_ihd.incidence_rate")
+    DISABILITY_WEIGHT: TargetString = TargetString("cause.heart_failure_from_ihd.disability_weight")
+    EMR: TargetString = TargetString("cause.heart_failure_from_ihd.excess_mortality_rate")
+    CSMR: SourceTarget = SourceTarget(
+        "cause.ischemic_heart_disease.cause_specific_mortality_rate",
+        "cause.heart_failure_from_ihd.cause_specific_mortality_rate",
+    )
+    RESTRICTIONS: SourceTarget = SourceTarget(
+        "cause.ischemic_heart_disease.restrictions",
+        "cause.heart_failure_from_ihd.restrictions",
+    )
+
+    @property
+    def name(self):
+        return "heart_failure_from_ihd"
+
+    @property
+    def log_name(self):
+        return self.name.replace("_", " ")
+
+
+HF_IHD = __HeartFailureFromIHD()
+
+
 class __HighLDLCholesterol(NamedTuple):
     DISTRIBUTION: TargetString = TargetString("risk_factor.high_ldl_cholesterol.distribution")
     EXPOSURE_MEAN: TargetString = TargetString("risk_factor.high_ldl_cholesterol.exposure")
@@ -209,6 +235,7 @@ MAKE_ARTIFACT_KEY_GROUPS = [
     ISCHEMIC_STROKE,
     MYOCARDIAL_INFARCTION,
     ANGINA,
+    HF_IHD,
     LDL_C,
     SBP,
 ]
