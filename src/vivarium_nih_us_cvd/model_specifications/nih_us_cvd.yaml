@@ -9,6 +9,7 @@ components:
             - DiseaseObserver("ischemic_stroke")
             - DiseaseObserver("myocardial_infarction")
             - DiseaseObserver("angina")
+            - DiseaseObserver("heart_failure_from_ihd")
         disease:
             - SI("angina")
             - SI("heart_failure_from_ihd")
