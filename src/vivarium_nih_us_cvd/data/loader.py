@@ -25,6 +25,7 @@ from vivarium_inputs import utility_data
 from vivarium_inputs.mapping_extension import alternative_risk_factors
 
 from vivarium_nih_us_cvd.constants import data_keys
+from vivarium_nih_us_cvd.constants.paths import DATASETS
 
 
 def _get_source_key(val: Union[str, data_keys.SourceTarget]) -> str:
@@ -335,7 +336,9 @@ def load_incidence_ihd(key: str, location: str) -> pd.DataFrame:
     incidence = _load_em_from_meid(location, meid, "Incidence rate")
     if key == data_keys.HF_IHD.INCIDENCE_RATE:
         # FIXME: need to implement proportion if HF like I,hf = incidence / (1 - prevalence) * PROP,hf
+        location_id = utility_data.get_location_id(location)
         pass
+        
     prevalence = sum(_get_measure_wrapped(s, "prevalence", location) for s in sequela)
     return incidence / (1 - prevalence)
 
