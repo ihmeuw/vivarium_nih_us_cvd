@@ -11,6 +11,7 @@ components:
             - DiseaseObserver("angina")
         disease:
             - SI("angina")
+            - SI("heart_failure_from_ihd")
         risks:
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
