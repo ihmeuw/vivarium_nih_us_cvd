@@ -85,7 +85,7 @@ CAUSES_OF_DISABILITY = (
 )
 CAUSES_OF_DEATH = CAUSES_OF_DISABILITY + (
     "other_causes",
-    models.POST_MYOCARDIAL_INFARCTION_STATE_NAME, # SDB - Post MI has no disability weight
+    models.POST_MYOCARDIAL_INFARCTION_STATE_NAME,  # SDB - Post MI has no disability weight
 )
 
 RISKS = (
