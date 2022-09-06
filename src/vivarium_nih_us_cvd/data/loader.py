@@ -334,9 +334,23 @@ def load_incidence_ihd(key: str, location: str) -> pd.DataFrame:
     }
     sequela, meid = map[key]
     incidence = _load_em_from_meid(location, meid, "Incidence rate")
+    breakpoint()
     if key == data_keys.HF_IHD.INCIDENCE_RATE:
         # FIXME: need to implement proportion if HF like I,hf = incidence / (1 - prevalence) * PROP,hf
         location_id = utility_data.get_location_id(location)
+        age_bins = utility_data.get_age_bins(location)
+        props = pd.read_csv(DATASETS.hf_ihd_proportions)
+        props = props[(props["location_id"] == location_id) & (props["sim_cause"] == "ihd")]
+        # Confirm only one proportion per group
+        assert props[["year_start", "year_end"]].drop_duplicates().shape[0] == 1, f"Dataset '{DATASETS.hf_ihd_proportions}' contains unimplemented time series data"
+        # Get sex column
+        props["sex"] = props["sex_id"].map({v:k for k,v in vi_globals.SEXES.items()})
+        # Get age_start and age_end columns
+        props = props.merge(age_bins, on="age_group_id", how="left")
+        props = props.set_index(["sex", "age_start", "age_end"])
+        # Multiply incidence table by the proportions based on sex, age_start, and age_end
+        incidence = incidence.merge(props[["proportion"]], left_on=list(props.index.names), right_index=True, how='left')
+        
         pass
         
     prevalence = sum(_get_measure_wrapped(s, "prevalence", location) for s in sequela)
