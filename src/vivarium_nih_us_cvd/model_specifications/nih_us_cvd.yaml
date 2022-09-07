@@ -54,7 +54,7 @@ configuration:
         random_seed: 0
     time:
         start:
-            year: 2023
+            year: 2021 # Includes two years for burn-in
             month: 1
             day: 1
         end:
