@@ -18,13 +18,16 @@ import pandas as pd
 from gbd_mapping import causes, covariates, risk_factors
 from vivarium.framework.artifact import EntityKey
 from vivarium_gbd_access import gbd
-from vivarium_gbd_access.constants import (ROUND_IDS, SEX, SOURCES, DECOMP_STEP)
+from vivarium_gbd_access.constants import DECOMP_STEP, ROUND_IDS, SEX, SOURCES
 from vivarium_gbd_access.utilities import get_draws
 from vivarium_inputs import globals as vi_globals
 from vivarium_inputs import interface
 from vivarium_inputs import utilities as vi_utils
 from vivarium_inputs import utility_data
-from vivarium_inputs.mapping_extension import alternative_risk_factors, healthcare_entities
+from vivarium_inputs.mapping_extension import (
+    alternative_risk_factors,
+    healthcare_entities,
+)
 
 from vivarium_nih_us_cvd.constants import data_keys
 
@@ -442,14 +445,16 @@ def load_healthcare_system_utilization_rate(key: str, location: str) -> pd.DataF
     # vivarium_inputs.core.get_utilization_rate() breaks with the hard-coded
     # gbd_round_id=6; use gbd_round_id=5.
     # TODO: SDB fix in vivarium_gbd_access.gbd.get_modelable_entity_draws()?
-    data = get_draws(gbd_id_type='modelable_entity_id',
-                     gbd_id=entity.gbd_id,
-                     source=SOURCES.EPI,
-                     location_id=location_id,
-                     sex_id=SEX.MALE + SEX.FEMALE,
-                     age_group_id=gbd.get_age_group_id(),
-                     gbd_round_id=ROUND_IDS.GBD_2017,
-                     status='best')
+    data = get_draws(
+        gbd_id_type="modelable_entity_id",
+        gbd_id=entity.gbd_id,
+        source=SOURCES.EPI,
+        location_id=location_id,
+        sex_id=SEX.MALE + SEX.FEMALE,
+        age_group_id=gbd.get_age_group_id(),
+        gbd_round_id=ROUND_IDS.GBD_2017,
+        status="best",
+    )
     data = vi_utils.normalize(data, fill_value=0)
     data = data.filter(vi_globals.DEMOGRAPHIC_COLUMNS + vi_globals.DRAW_COLUMNS)
     data = vi_utils.reshape(data)

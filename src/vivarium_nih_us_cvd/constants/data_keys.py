@@ -30,6 +30,7 @@ class __Population(NamedTuple):
     def log_name(self):
         return "population"
 
+
 POPULATION = __Population()
 
 
@@ -61,6 +62,7 @@ class __IschemicStroke(NamedTuple):
     @property
     def log_name(self):
         return self.name.replace("_", " ")
+
 
 ISCHEMIC_STROKE = __IschemicStroke()
 
@@ -104,6 +106,7 @@ class __MyocardialInfarction(NamedTuple):
     def log_name(self):
         return self.name.replace("_", " ")
 
+
 MYOCARDIAL_INFARCTION = __MyocardialInfarction()
 
 
@@ -128,6 +131,7 @@ class __Angina(NamedTuple):
     @property
     def log_name(self):
         return self.name.replace("_", " ")
+
 
 ANGINA = __Angina()
 
@@ -159,6 +163,7 @@ class __HighLDLCholesterol(NamedTuple):
     @property
     def log_name(self):
         return self.name.replace("_", " ")
+
 
 LDL_C = __HighLDLCholesterol()
 
@@ -195,6 +200,7 @@ class __HighSBP(NamedTuple):
     def log_name(self):
         return self.name.replace("_", " ")
 
+
 SBP = __HighSBP()
 
 
@@ -210,6 +216,7 @@ class __HealthcareSystem(NamedTuple):
     @property
     def log_name(self):
         return self.name.replace("_", " ")
+
 
 HEALTHCARE_SYSTEM = __HealthcareSystem()
 
