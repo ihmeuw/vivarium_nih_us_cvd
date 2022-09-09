@@ -458,7 +458,6 @@ def load_healthcare_system_utilization_rate(key: str, location: str) -> pd.DataF
     # Fill in year gaps manually. vi_utils.normalize does not quite work because
     # the data is missing required age_bin edges 2015 and 2019. Instead, let's
     # assume 2018 and 2019 is the same as 2017 and interpolate everything else
-    # TODO: SDB confirm this is ok
     tmp = data[data["year_id"] == 2017]
     for year in [2018, 2019]: 
         tmp["year_id"] = year
