@@ -459,7 +459,7 @@ def load_healthcare_system_utilization_rate(key: str, location: str) -> pd.DataF
     # the data is missing required age_bin edges 2015 and 2019. Instead, let's
     # assume 2018 and 2019 is the same as 2017 and interpolate everything else
     tmp = data[data["year_id"] == 2017]
-    for year in [2018, 2019]: 
+    for year in [2018, 2019]:
         tmp["year_id"] = year
         data = pd.concat([data, tmp], axis=0)
     data = vi_utils.interpolate_year(data)
