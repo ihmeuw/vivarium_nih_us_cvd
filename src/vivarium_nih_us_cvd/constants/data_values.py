@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import NamedTuple
 
 ############################
 # Disease Model Parameters #
@@ -6,6 +7,25 @@ from datetime import datetime
 
 REMISSION_RATE = 0.1
 MEAN_SOJOURN_TIME = 10
+
+
+################################
+# Healthcare System Parameters #
+################################
+
+class __VisitType(NamedTuple):
+    NONE: str = "none"
+    SCREENING: str = "screening"
+    SCHEDULED: str = "scheduled"
+    EMERGENCY: str = "emergency"
+    SCHEDULED_COLUMN_NAME: str = "scheduled_date"
+
+    @property
+    def name(self):
+        return "visit_type"
+
+
+VISIT_TYPE = __VisitType()
 
 
 ##############################
