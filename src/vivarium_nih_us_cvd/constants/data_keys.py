@@ -204,6 +204,23 @@ class __HighSBP(NamedTuple):
 SBP = __HighSBP()
 
 
+class __HealthcareSystem(NamedTuple):
+    OUTPATIENT_ENVELOPE: TargetString = TargetString(
+        "healthcare_entity.outpatient_visits.outpatient_envelope"
+    )
+
+    @property
+    def name(self):
+        return "healthcare_system"
+
+    @property
+    def log_name(self):
+        return self.name.replace("_", " ")
+
+
+HEALTHCARE_SYSTEM = __HealthcareSystem()
+
+
 MAKE_ARTIFACT_KEY_GROUPS = [
     POPULATION,
     ISCHEMIC_STROKE,
@@ -211,4 +228,5 @@ MAKE_ARTIFACT_KEY_GROUPS = [
     ANGINA,
     LDL_C,
     SBP,
+    HEALTHCARE_SYSTEM,
 ]
