@@ -18,7 +18,7 @@ import pandas as pd
 from gbd_mapping import causes, covariates, risk_factors
 from vivarium.framework.artifact import EntityKey
 from vivarium_gbd_access import gbd
-from vivarium_gbd_access.constants import DECOMP_STEP, ROUND_IDS, SEX, SOURCES
+from vivarium_gbd_access.constants import ROUND_IDS, SEX, SOURCES
 from vivarium_gbd_access.utilities import get_draws
 from vivarium_inputs import globals as vi_globals
 from vivarium_inputs import interface
