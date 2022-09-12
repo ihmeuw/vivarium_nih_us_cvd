@@ -21,7 +21,7 @@ class __Population(NamedTuple):
     DEMOGRAPHY: str = "population.demographic_dimensions"
     TMRLE: str = "population.theoretical_minimum_risk_life_expectancy"
     ACMR: str = "cause.all_causes.cause_specific_mortality_rate"
-    HEALTHCARE_UTILIZATION: str = "healthcare_entity.outpatient_visits.healthcare_utilization"
+    HEALTHCARE_UTILIZATION: str = "healthcare_entity.outpatient_visits.outpatient_envelope"
 
     @property
     def name(self):

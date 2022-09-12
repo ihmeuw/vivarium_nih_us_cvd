@@ -13,6 +13,7 @@ MEAN_SOJOURN_TIME = 10
 # Healthcare System Parameters #
 ################################
 
+
 class __VisitType(NamedTuple):
     NONE: str = "none"
     SCREENING: str = "screening"
