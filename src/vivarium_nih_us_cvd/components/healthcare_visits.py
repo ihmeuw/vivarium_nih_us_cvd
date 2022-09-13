@@ -40,9 +40,8 @@ class HealthcareVisits:
         )
 
         # Add columns
-        self.visit_type_column = VISIT_TYPE.name
         self.scheduled_visit_date_column = VISIT_TYPE.SCHEDULED_COLUMN_NAME
-        columns_created = [self.visit_type_column, self.scheduled_visit_date_column]
+        columns_created = [self.scheduled_visit_date_column]
         columns_required = [
             models.ISCHEMIC_STROKE_MODEL_NAME,
             models.MYOCARDIAL_INFARCTION_MODEL_NAME,
@@ -58,7 +57,6 @@ class HealthcareVisits:
 
         # Register listeners
         builder.event.register_listener("time_step__cleanup", self.on_time_step_cleanup)
-        builder.event.register_listener("time_step", self.on_time_step)
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         """All simulants on SBP medication, LDL-C medication, or a history of
@@ -70,9 +68,9 @@ class HealthcareVisits:
         (a burn-in period will allow the sim to start the observed
         time period with more realistic boundary conditions.)
         """
-        step_size = float(self.step_size().days)
+        breakpoint()
         idx = pop_data.index
-        visit_types = pd.Series(VISIT_TYPE.NONE, index=idx, name=self.visit_type_column)
+        event_time = self.clock() + self.step_size()
         scheduled_dates = pd.Series(pd.NaT, index=idx, name=self.scheduled_visit_date_column)
         states = self.population_view.subview(
             [models.ISCHEMIC_STROKE_MODEL_NAME, models.MYOCARDIAL_INFARCTION_MODEL_NAME]
@@ -80,51 +78,95 @@ class HealthcareVisits:
 
         # TODO [MIC-3371, MIC-3375]: Implement medication initialization
 
-        # Schedule appointments for simulants initialized in a post/chronic state
-        mask_acute_history = (
+        # Handle simulants initialized in a post/chronic state
+        mask_chronic_is = (
             states[models.ISCHEMIC_STROKE_MODEL_NAME]
             == models.CHRONIC_ISCHEMIC_STROKE_STATE_NAME
-        ) | (
+        )
+        mask_post_mi = (
             states[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
             == models.POST_MYOCARDIAL_INFARCTION_STATE_NAME
         )
-        scheduled_dates.loc[mask_acute_history] = pd.Series(
-            self.clock()
+        mask_acute_history = mask_chronic_is | mask_post_mi
+        scheduled_dates = self.visit_doctor(scheduled_dates, mask_acute_history, event_time, 1, FOLLOWUP_MAX - FOLLOWUP_MIN)
+
+        # Handle simulants initialized in an emergency state
+        mask_acute_is = (
+            states[models.ISCHEMIC_STROKE_MODEL_NAME]
+            == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
+        )
+        mask_acute_mi = (
+            states[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
+            == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
+        )
+        mask_initialized_acute = mask_acute_is | mask_acute_mi
+        breakpoint()
+        scheduled_dates = self.visit_doctor(scheduled_dates, mask_initialized_acute, event_time, FOLLOWUP_MIN, FOLLOWUP_MAX)
+
+        # Handle background visits
+        # Note: For simplicity, we do not apply background visits on intialization
+
+        self.population_view.update(pd.concat([scheduled_dates], axis=1))
+
+    def on_time_step_cleanup(self, event: Event) -> None:
+        """Determine if someone will go for an emergency visit, background visit,
+        or followup visit. In the event that a simulant goes for an emergency or
+        background visit but already has a followup visit scheduled for the future,
+        keep that scheduled followup and do not schedule another one.
+        """
+        df = self.population_view.get(event.index, query='alive == "alive"')
+
+        # Emergency visits
+        mask_acute_is = (
+            df[models.ISCHEMIC_STROKE_MODEL_NAME] == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
+        )
+        mask_acute_mi = (
+            df[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
+            == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
+        )
+        mask_emergency = mask_acute_is | mask_acute_mi
+        # TODO [MIC-3371, MIC-3375]: implement treatment
+        breakpoint()
+        df[self.scheduled_visit_date_column] = self.visit_doctor(df[self.scheduled_visit_date_column], mask_emergency, event.time, FOLLOWUP_MIN, FOLLOWUP_MAX)
+
+        # Scheduled visits
+
+        # Background visits
+
+        breakpoint()
+        self.population_view.update(df[[self.scheduled_visit_date_column]])
+
+
+    def visit_doctor(self, scheduled_dates: pd.Series, mask: pd.Series, event_time, min_followup: int, max_followup: int) -> pd.Series:
+        """Updates treatment plans and schedules followups.
+
+        Arguments:
+            scheduled_dates: Series of scheduled dates
+            mask: mask of relevant simulants needing followups scheduled
+            event_time: the date to check against
+            min_followup: minimum number of days out to schedule followup
+            max_followup: maximum number of days out to schedule followup
+        """
+        self.update_treatment()
+        return self.schedule_followup(scheduled_dates, mask, event_time, min_followup, max_followup)
+
+    def update_treatment(self):
+        pass
+
+    def schedule_followup(self, scheduled_dates: pd.Series, mask: pd.Series, event_time, min_followup: int, max_followup: int) -> pd.Series:
+        """Schedules follow up visits."""
+        idx = scheduled_dates.index
+        breakpoint()
+        scheduled_dates.loc[mask & ~(scheduled_dates > event_time)] = pd.Series(
+            event_time
             + self.random_time_delta(
-                pd.Series(step_size, index=idx),
-                pd.Series(FOLLOWUP_MAX + 1, index=idx),
+                pd.Series(min_followup, index=idx),
+                pd.Series(max_followup + 1, index=idx),
             ),
             index=idx,
         )
-
-        # Schedule appointments for simulants initialized in an acute event
-        mask_initialized_acute_not_already_scheduled = (scheduled_dates.isna()) & (
-            (
-                states[models.ISCHEMIC_STROKE_MODEL_NAME]
-                == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
-            )
-            | (
-                states[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
-                == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
-            )
-        )
-
-        scheduled_dates.loc[mask_initialized_acute_not_already_scheduled] = pd.Series(
-            self.clock()
-            + self.random_time_delta(
-                pd.Series(FOLLOWUP_MIN, index=idx),
-                pd.Series(FOLLOWUP_MAX + 1, index=idx),
-            ),
-            index=pop_data.index,
-        )
-
-        self.population_view.update(pd.concat([visit_types, scheduled_dates], axis=1))
-
-    def on_time_step(self, event: Event) -> None:
-        pass
-
-    def on_time_step_cleanup(self, event: Event) -> None:
-        pass
+        breakpoint()
+        return scheduled_dates
 
     def random_time_delta(self, start: pd.Series, end: pd.Series) -> pd.Series:
         """Generate a random time delta for each individual in the start
