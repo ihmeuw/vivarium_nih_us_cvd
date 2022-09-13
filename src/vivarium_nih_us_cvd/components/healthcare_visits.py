@@ -130,14 +130,11 @@ class HealthcareVisits:
             == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
         )
         mask_emergency = mask_acute_is | mask_acute_mi
-
         # Scheduled visits
         mask_scheduled = (
             df[self.scheduled_visit_date_column] > (event.time - event.step_size)
         ) & (df[self.scheduled_visit_date_column] <= event.time)
-
         # Background visits
-        breakpoint()
         idx_maybe_background_visit = df[~(mask_emergency | mask_scheduled)].index
         utilization_rate = self.background_utilization_rate(idx_maybe_background_visit)
         idx_background_visit = self.randomness.filter_for_rate(
@@ -146,7 +143,6 @@ class HealthcareVisits:
         mask_background = pd.Series(False, df.index)
         mask_background.loc[idx_background_visit] = True
 
-        breakpoint()
         df[self.scheduled_visit_date_column] = self.visit_doctor(
             scheduled_dates=df[self.scheduled_visit_date_column],
             event_time=event.time,
@@ -191,7 +187,6 @@ class HealthcareVisits:
     ) -> pd.Series:
         """Schedules follow up visits."""
         idx = scheduled_dates.index
-        breakpoint()
         scheduled_dates.loc[mask & ~(scheduled_dates > event_time)] = pd.Series(
             event_time
             + self.random_time_delta(
@@ -200,7 +195,6 @@ class HealthcareVisits:
             ),
             index=idx,
         )
-        breakpoint()
         return scheduled_dates
 
     def random_time_delta(self, start: pd.Series, end: pd.Series) -> pd.Series:
