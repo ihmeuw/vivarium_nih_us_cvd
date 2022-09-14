@@ -5,8 +5,7 @@ from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 
-from vivarium_nih_us_cvd.constants import data_keys, models
-from vivarium_nih_us_cvd.constants.data_values import VISIT_TYPE
+from vivarium_nih_us_cvd.constants import data_keys, data_values, models
 
 FOLLOWUP_MIN = 3 * 30  # 3 months
 FOLLOWUP_MAX = 6 * 30  # 6 months
@@ -51,8 +50,14 @@ class HealthcareVisits:
         )
 
         # Add columns
-        self.scheduled_visit_date_column = VISIT_TYPE.SCHEDULED_COLUMN_NAME
-        columns_created = [self.scheduled_visit_date_column]
+        self.scheduled_visit_date_column = data_values.VISITS.SCHEDULED_COLUMN_NAME
+        self.miss_scheduled_visit_probability_column = (
+            data_values.VISITS.MISS_SCHEDULED_COLUMN_NAME
+        )
+        columns_created = [
+            self.scheduled_visit_date_column,
+            self.miss_scheduled_visit_probability_column,
+        ]
         columns_required = [
             models.ISCHEMIC_STROKE_MODEL_NAME,
             models.MYOCARDIAL_INFARCTION_MODEL_NAME,
@@ -90,6 +95,15 @@ class HealthcareVisits:
             [models.ISCHEMIC_STROKE_MODEL_NAME, models.MYOCARDIAL_INFARCTION_MODEL_NAME]
         ).get(pop_data.index)
 
+        # Assign probabilities that each simulant will miss scheduled visits
+        lower = data_values.PROBABILITY_MISS_SCHEDULED_VISIT_MIN
+        upper = data_values.PROBABILITY_MISS_SCHEDULED_VISIT_MAX
+        miss_scheduled_visit_probabilities = pd.Series(
+            lower + (upper - lower) * self.randomness.get_draw(index),
+            index=index,
+            name=self.miss_scheduled_visit_probability_column,
+        )
+
         # Handle simulants initialized in a post/chronic state
         mask_chronic_is = (
             states[models.ISCHEMIC_STROKE_MODEL_NAME]
@@ -122,7 +136,9 @@ class HealthcareVisits:
             index=emergency_not_already_scheduled, event_time=event_time
         )
 
-        self.population_view.update(pd.concat([scheduled_dates], axis=1))
+        self.population_view.update(
+            pd.concat([scheduled_dates, miss_scheduled_visit_probabilities], axis=1)
+        )
 
     def on_time_step_cleanup(self, event: Event) -> None:
         """Determine if someone will go for an emergency visit, background visit,
@@ -141,16 +157,31 @@ class HealthcareVisits:
             == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
         )
         mask_emergency = mask_acute_is | mask_acute_mi
+        visit_emergency = df[mask_emergency].index
+
         # Scheduled visits
-        mask_scheduled = (
-            df[self.scheduled_visit_date_column] > (event.time - event.step_size)
-        ) & (df[self.scheduled_visit_date_column] <= event.time)
-        # Background visits
-        maybe_background = df[~(mask_emergency | mask_scheduled)].index
+        mask_scheduled_non_emergency = (
+            (df[self.scheduled_visit_date_column] > (event.time - event.step_size))
+            & (df[self.scheduled_visit_date_column] <= event.time)
+            & (~mask_emergency)
+        )
+        scheduled_non_emergency = df[mask_scheduled_non_emergency].index
+
+        # Missed scheduled (non-emergency) visits (these do not get re-scheduled)
+        missed_visit = self.randomness.filter_for_probability(
+            scheduled_non_emergency,
+            df.loc[scheduled_non_emergency, self.miss_scheduled_visit_probability_column],
+        )
+        df.loc[missed_visit, self.scheduled_visit_date_column] = pd.NaT  # no re-schedule
+        visit_scheduled = scheduled_non_emergency.difference(missed_visit)
+
+        # Background visits (for those who did not go for another reason)
+        maybe_background = df.index.difference(visit_emergency.union(visit_scheduled))
         utilization_rate = self.background_utilization_rate(maybe_background)
-        background = self.randomness.filter_for_rate(maybe_background, utilization_rate)
-        to_visit = background.union(df.index[mask_emergency | mask_scheduled])
-        # Already has future followup scheduled (do not reschedule these)
+        visit_background = self.randomness.filter_for_rate(maybe_background, utilization_rate)
+        to_visit = visit_emergency.union(visit_scheduled).union(visit_background)
+
+        # Only schedule a followup if a future one does not already exist
         has_followup_scheduled = df.loc[
             to_visit.intersection(
                 df[(df[self.scheduled_visit_date_column] > event.time)].index
