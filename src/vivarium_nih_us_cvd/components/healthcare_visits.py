@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Dict
 
 import pandas as pd
 from vivarium.framework.engine import Builder
@@ -9,15 +9,6 @@ from vivarium_nih_us_cvd.constants import data_keys, data_values, models
 
 FOLLOWUP_MIN = 3 * 30  # 3 months
 FOLLOWUP_MAX = 6 * 30  # 6 months
-
-
-class _NotProvided:
-    """simple sentinel class because pd.Series does not work well with None"""
-
-    pass
-
-
-NOT_PROVIDED = _NotProvided()
 
 
 class HealthcareVisits:
@@ -90,59 +81,64 @@ class HealthcareVisits:
         """
         index = pop_data.index
         event_time = self.clock() + self.step_size()
-        visit_types = pd.Series("", index=index, name=self.visit_type_column)
-        scheduled_dates = pd.Series(
-            pd.NaT, index=index, name=self.scheduled_visit_date_column
-        )
-        states = self.population_view.subview(
+        df = self.population_view.subview(
             [models.ISCHEMIC_STROKE_MODEL_NAME, models.MYOCARDIAL_INFARCTION_MODEL_NAME]
         ).get(pop_data.index)
+        df[self.visit_type_column] = data_values.VISITS.NONE
+        df[self.scheduled_visit_date_column] = pd.NaT
 
         # Assign probabilities that each simulant will miss scheduled visits
         lower = data_values.PROBABILITY_MISS_SCHEDULED_VISIT_MIN
         upper = data_values.PROBABILITY_MISS_SCHEDULED_VISIT_MAX
-        miss_scheduled_visit_probabilities = pd.Series(
-            lower + (upper - lower) * self.randomness.get_draw(index),
-            index=index,
-            name=self.miss_scheduled_visit_probability_column,
-        )
+        df[self.miss_scheduled_visit_probability_column] = lower + (
+            upper - lower
+        ) * self.randomness.get_draw(index)
 
-        # Handle simulants initialized in a post/chronic state
+        # Handle simulants initialized in an post/chronic state
+        visitors = {}
         mask_chronic_is = (
-            states[models.ISCHEMIC_STROKE_MODEL_NAME]
-            == models.CHRONIC_ISCHEMIC_STROKE_STATE_NAME
+            df[models.ISCHEMIC_STROKE_MODEL_NAME] == models.CHRONIC_ISCHEMIC_STROKE_STATE_NAME
         )
         mask_post_mi = (
-            states[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
+            df[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
             == models.POST_MYOCARDIAL_INFARCTION_STATE_NAME
         )
         acute_history = index[mask_chronic_is | mask_post_mi]
-        scheduled_dates.loc[acute_history] = self.visit_doctor(
-            index=acute_history,
+        visitors[data_values.VISITS.SCHEDULED] = acute_history
+        df.loc[acute_history] = self.visit_doctor(
+            df=df.loc[acute_history],
+            visitors=visitors,
             event_time=event_time,
             min_followup=0,
             max_followup=(FOLLOWUP_MAX - FOLLOWUP_MIN),
         )
         # Handle simulants initialized in an emergency state
+        visitors = {}
         mask_acute_is = (
-            states[models.ISCHEMIC_STROKE_MODEL_NAME]
-            == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
+            df[models.ISCHEMIC_STROKE_MODEL_NAME] == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
         )
         mask_acute_mi = (
-            states[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
+            df[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
             == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
         )
         emergency_not_already_scheduled = index[
             (mask_acute_is | mask_acute_mi) & ~(mask_chronic_is | mask_post_mi)
         ]
-        scheduled_dates.loc[emergency_not_already_scheduled] = self.visit_doctor(
-            index=emergency_not_already_scheduled, event_time=event_time
+        visitors[data_values.VISITS.EMERGENCY] = emergency_not_already_scheduled
+        df.loc[emergency_not_already_scheduled] = self.visit_doctor(
+            df=df.loc[emergency_not_already_scheduled],
+            visitors=visitors,
+            event_time=event_time,
         )
 
         self.population_view.update(
-            pd.concat(
-                [visit_types, scheduled_dates, miss_scheduled_visit_probabilities], axis=1
-            )
+            df[
+                [
+                    self.visit_type_column,
+                    self.scheduled_visit_date_column,
+                    self.miss_scheduled_visit_probability_column,
+                ]
+            ]
         )
 
     def on_time_step_cleanup(self, event: Event) -> None:
@@ -152,7 +148,7 @@ class HealthcareVisits:
         keep that scheduled followup and do not schedule another one.
         """
         df = self.population_view.get(event.index, query='alive == "alive"')
-        df[self.visit_type_column] = data_values.VISITS.NONE  # Clean up from last time step
+        visitors = {}
 
         # Emergency visits
         mask_acute_is = (
@@ -164,8 +160,7 @@ class HealthcareVisits:
         )
         mask_emergency = mask_acute_is | mask_acute_mi
         visit_emergency = df[mask_emergency].index
-        # TODO: consider refactoring these into self.visit_doctor()
-        df = self.update_visit_type(df, visit_emergency, data_values.VISITS.EMERGENCY)
+        visitors[data_values.VISITS.EMERGENCY] = visit_emergency
 
         # Scheduled visits
         mask_scheduled_non_emergency = (
@@ -174,16 +169,15 @@ class HealthcareVisits:
             & (~mask_emergency)
         )
         scheduled_non_emergency = df[mask_scheduled_non_emergency].index
-
         # Missed scheduled (non-emergency) visits (these do not get re-scheduled)
         missed_visit = self.randomness.filter_for_probability(
             scheduled_non_emergency,
             df.loc[scheduled_non_emergency, self.miss_scheduled_visit_probability_column],
         )  # pd.Index
-        df = self.update_visit_type(df, missed_visit, data_values.VISITS.MISSED)
+        visitors[data_values.VISITS.MISSED] = missed_visit
         df.loc[missed_visit, self.scheduled_visit_date_column] = pd.NaT  # no re-schedule
         visit_scheduled = scheduled_non_emergency.difference(missed_visit)
-        df = self.update_visit_type(df, visit_scheduled, data_values.VISITS.SCHEDULED)
+        visitors[data_values.VISITS.SCHEDULED] = visit_scheduled
 
         # Background visits (for those who did not go for another reason (even missed screenings))
         maybe_background = df.index.difference(visit_emergency.union(visit_scheduled))
@@ -191,57 +185,60 @@ class HealthcareVisits:
         visit_background = self.randomness.filter_for_rate(
             maybe_background, utilization_rate
         )  # pd.Index
-        df = self.update_visit_type(df, visit_background, data_values.VISITS.BACKGROUND)
+        visitors[data_values.VISITS.BACKGROUND] = visit_background
 
-        to_visit = visit_emergency.union(visit_scheduled).union(visit_background)
-
-        # Only schedule a followup if a future one does not already exist
-        has_followup_scheduled = df.loc[
-            to_visit.intersection(
-                df[(df[self.scheduled_visit_date_column] > event.time)].index
-            )
-        ].index
-        to_schedule_followup = to_visit.difference(has_followup_scheduled)
-
-        df.loc[to_schedule_followup, self.scheduled_visit_date_column] = self.visit_doctor(
-            index=to_visit, event_time=event.time, to_schedule_followup=to_schedule_followup
-        )
+        df = self.visit_doctor(df, visitors=visitors, event_time=event.time)
 
         self.population_view.update(
             df[[self.visit_type_column, self.scheduled_visit_date_column]]
         )
 
-    def update_visit_type(
-        self, df: pd.DataFrame, index: pd.Index, visit_type: str
-    ) -> pd.Series:
-        """Updates the visit type column"""
-        df.loc[index, self.visit_type_column] = df[self.visit_type_column] + f";{visit_type}"
-        return df
-
     def visit_doctor(
         self,
-        index: pd.Index,
+        df: pd.DataFrame,
+        visitors: Dict,
         event_time: pd.Timestamp,
-        to_schedule_followup: Union[pd.Index, _NotProvided] = NOT_PROVIDED,
         min_followup: int = FOLLOWUP_MIN,
         max_followup: int = FOLLOWUP_MAX,
-    ) -> pd.Series:
+    ) -> pd.DataFrame:
         """Updates treatment plans and schedules followups.
 
         Arguments:
-            index: index of simulants visiting the doctor
-            event_time: the date to check against
-            to_schedule_followup: optional index of simulants to schedule a followup
+            df: state table to update
+            visitors: dictionary of all simulants visiting the doctor and their visit types
+            event_time: timestamp at end of the time step
             min_followup: minimum number of days out to schedule followup
             max_followup: maximum number of days out to schedule followup
         """
-        self.update_treatment(index=index)
-        if to_schedule_followup is NOT_PROVIDED:
-            to_schedule_followup = index  # Schedule everyone
+        # Update visit type
+        df[self.visit_type_column] = data_values.VISITS.NONE
+        for k in visitors:
+            df[self.visit_type_column].loc[visitors[k]] = df[self.visit_type_column] + f";{k}"
 
-        return self.schedule_followup(
+        # Update treatments
+        to_visit = (
+            visitors.get(data_values.VISITS.EMERGENCY, pd.Index([]))
+            .union(visitors.get(data_values.VISITS.SCHEDULED, pd.Index([])))
+            .union(visitors.get(data_values.VISITS.BACKGROUND, pd.Index([])))
+        )
+        self.update_treatment(index=to_visit)
+
+        # Update scheduled visits
+        # Only schedule a followup if a future one does not already exist
+        has_followup_scheduled = df.loc[
+            to_visit.intersection(
+                df[(df[self.scheduled_visit_date_column] > event_time)].index
+            )
+        ].index
+        to_schedule_followup = to_visit.difference(has_followup_scheduled)
+
+        df.loc[
+            to_schedule_followup, self.scheduled_visit_date_column
+        ] = self.schedule_followup(
             to_schedule_followup, event_time, min_followup, max_followup
         )
+
+        return df
 
     def update_treatment(self, index: pd.Index):
         # TODO [MIC-3371, MIC-3375]
@@ -255,7 +252,7 @@ class HealthcareVisits:
         max_followup: int = FOLLOWUP_MAX,
     ) -> pd.Series:
         """Schedules followup visits"""
-        scheduled_dates = pd.Series(
+        return pd.Series(
             event_time
             + self.random_time_delta(
                 pd.Series(min_followup, index=index),
@@ -263,8 +260,6 @@ class HealthcareVisits:
             ),
             index=index,
         )
-
-        return scheduled_dates
 
     def random_time_delta(self, start: pd.Series, end: pd.Series) -> pd.Series:
         """Generate a random time delta for each individual in the start
