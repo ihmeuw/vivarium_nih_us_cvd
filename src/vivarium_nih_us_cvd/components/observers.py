@@ -103,7 +103,7 @@ class ContinuousRiskObserver:
         return metrics
 
 
-class HeathcareVisitObserver:
+class HealthcareVisitObserver:
     """Observes doctor visit counts per group."""
 
     def __repr__(self):
@@ -112,7 +112,6 @@ class HeathcareVisitObserver:
     ##########################
     # Initialization methods #
     ##########################
-
 
     ##############
     # Properties #
@@ -131,7 +130,7 @@ class HeathcareVisitObserver:
 
     def _get_stratification_configuration(self, builder: Builder) -> "ConfigTree":
         pass
-    
+
     def on_collect_metrics(self, event: "Event"):
         pass
 

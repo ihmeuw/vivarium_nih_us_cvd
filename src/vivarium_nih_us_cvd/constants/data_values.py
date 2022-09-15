@@ -16,9 +16,11 @@ from typing import NamedTuple
 
 class __Visits(NamedTuple):
     NONE: str = "none"
-    SCREENING: str = "screening"
-    SCHEDULED: str = "scheduled"
     EMERGENCY: str = "emergency"
+    SCHEDULED: str = "scheduled"
+    MISSED: str = "missed"
+    BACKGROUND: str = "background"
+    VISIT_TYPE_COLUMN_NAME: str = "visit_type"
     SCHEDULED_COLUMN_NAME: str = "scheduled_date"
     MISS_SCHEDULED_COLUMN_NAME: str = "miss_scheduled_visit_probability"
 

@@ -50,11 +50,13 @@ class HealthcareVisits:
         )
 
         # Add columns
+        self.visit_type_column = data_values.VISITS.VISIT_TYPE_COLUMN_NAME
         self.scheduled_visit_date_column = data_values.VISITS.SCHEDULED_COLUMN_NAME
         self.miss_scheduled_visit_probability_column = (
             data_values.VISITS.MISS_SCHEDULED_COLUMN_NAME
         )
         columns_created = [
+            self.visit_type_column,
             self.scheduled_visit_date_column,
             self.miss_scheduled_visit_probability_column,
         ]
@@ -88,6 +90,7 @@ class HealthcareVisits:
         """
         index = pop_data.index
         event_time = self.clock() + self.step_size()
+        visit_types = pd.Series("", index=index, name=self.visit_type_column)
         scheduled_dates = pd.Series(
             pd.NaT, index=index, name=self.scheduled_visit_date_column
         )
@@ -137,7 +140,9 @@ class HealthcareVisits:
         )
 
         self.population_view.update(
-            pd.concat([scheduled_dates, miss_scheduled_visit_probabilities], axis=1)
+            pd.concat(
+                [visit_types, scheduled_dates, miss_scheduled_visit_probabilities], axis=1
+            )
         )
 
     def on_time_step_cleanup(self, event: Event) -> None:
@@ -147,6 +152,7 @@ class HealthcareVisits:
         keep that scheduled followup and do not schedule another one.
         """
         df = self.population_view.get(event.index, query='alive == "alive"')
+        df[self.visit_type_column] = data_values.VISITS.NONE  # Clean up from last time step
 
         # Emergency visits
         mask_acute_is = (
@@ -158,6 +164,8 @@ class HealthcareVisits:
         )
         mask_emergency = mask_acute_is | mask_acute_mi
         visit_emergency = df[mask_emergency].index
+        # TODO: consider refactoring these into self.visit_doctor()
+        df = self.update_visit_type(df, visit_emergency, data_values.VISITS.EMERGENCY)
 
         # Scheduled visits
         mask_scheduled_non_emergency = (
@@ -171,14 +179,20 @@ class HealthcareVisits:
         missed_visit = self.randomness.filter_for_probability(
             scheduled_non_emergency,
             df.loc[scheduled_non_emergency, self.miss_scheduled_visit_probability_column],
-        )
+        )  # pd.Index
+        df = self.update_visit_type(df, missed_visit, data_values.VISITS.MISSED)
         df.loc[missed_visit, self.scheduled_visit_date_column] = pd.NaT  # no re-schedule
         visit_scheduled = scheduled_non_emergency.difference(missed_visit)
+        df = self.update_visit_type(df, visit_scheduled, data_values.VISITS.SCHEDULED)
 
-        # Background visits (for those who did not go for another reason)
+        # Background visits (for those who did not go for another reason (even missed screenings))
         maybe_background = df.index.difference(visit_emergency.union(visit_scheduled))
         utilization_rate = self.background_utilization_rate(maybe_background)
-        visit_background = self.randomness.filter_for_rate(maybe_background, utilization_rate)
+        visit_background = self.randomness.filter_for_rate(
+            maybe_background, utilization_rate
+        )  # pd.Index
+        df = self.update_visit_type(df, visit_background, data_values.VISITS.BACKGROUND)
+
         to_visit = visit_emergency.union(visit_scheduled).union(visit_background)
 
         # Only schedule a followup if a future one does not already exist
@@ -193,12 +207,21 @@ class HealthcareVisits:
             index=to_visit, event_time=event.time, to_schedule_followup=to_schedule_followup
         )
 
-        self.population_view.update(df[[self.scheduled_visit_date_column]])
+        self.population_view.update(
+            df[[self.visit_type_column, self.scheduled_visit_date_column]]
+        )
+
+    def update_visit_type(
+        self, df: pd.DataFrame, index: pd.Index, visit_type: str
+    ) -> pd.Series:
+        """Updates the visit type column"""
+        df.loc[index, self.visit_type_column] = df[self.visit_type_column] + f";{visit_type}"
+        return df
 
     def visit_doctor(
         self,
         index: pd.Index,
-        event_time,
+        event_time: pd.Timestamp,
         to_schedule_followup: Union[pd.Index, _NotProvided] = NOT_PROVIDED,
         min_followup: int = FOLLOWUP_MIN,
         max_followup: int = FOLLOWUP_MAX,
