@@ -38,6 +38,7 @@ components:
             - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
 
             - HealthcareVisits()
+            - HealthcareVisitObserver()
         
 
 configuration:

@@ -101,3 +101,39 @@ class ContinuousRiskObserver:
     def metrics(self, index: "pd.Index", metrics: Dict[str, float]) -> Dict[str, float]:
         metrics.update(self.counter)
         return metrics
+
+
+class HeathcareVisitObserver:
+    """Observes doctor visit counts per group."""
+
+    def __repr__(self):
+        return f"HealthcareVisitObserver"
+
+    ##########################
+    # Initialization methods #
+    ##########################
+
+
+    ##############
+    # Properties #
+    ##############
+
+    @property
+    def name(self):
+        return f"healthcare_visit_observer"
+
+    #################
+    # Setup methods #
+    #################
+
+    def setup(self, builder: Builder) -> None:
+        pass
+
+    def _get_stratification_configuration(self, builder: Builder) -> "ConfigTree":
+        pass
+    
+    def on_collect_metrics(self, event: "Event"):
+        pass
+
+    def metrics(self, index: "pd.Index", metrics: Dict[str, float]) -> Dict[str, float]:
+        pass
