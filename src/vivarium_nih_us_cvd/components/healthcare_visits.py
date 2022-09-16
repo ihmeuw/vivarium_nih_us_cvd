@@ -7,9 +7,6 @@ from vivarium.framework.population import SimulantData
 
 from vivarium_nih_us_cvd.constants import data_keys, data_values, models
 
-FOLLOWUP_MIN = 3 * 30  # 3 months
-FOLLOWUP_MAX = 6 * 30  # 6 months
-
 
 class HealthcareVisits:
     """Manages healthcare utilization"""
@@ -43,7 +40,9 @@ class HealthcareVisits:
         # Add columns
         self.visit_type_column = data_values.VISIT_TYPE_COLUMN
         self.scheduled_visit_date_column = data_values.SCHEDULED_VISIT_DATE_COLUMN
-        self.miss_scheduled_visit_probability_column = data_values.MISS_SCHEDULED_VISIT_PROBABILITY_COLUMN
+        self.miss_scheduled_visit_probability_column = (
+            data_values.MISS_SCHEDULED_VISIT_PROBABILITY_COLUMN
+        )
         columns_created = [
             self.visit_type_column,
             self.scheduled_visit_date_column,
@@ -70,12 +69,12 @@ class HealthcareVisits:
         an acute event (ie intialized in state post-MI or chronic IS) should be
         initialized with a scheduled followup visit 0-6 months out, uniformly
         distributed. All simulants initialized in an acute state should be
-        scheduled a followup visit 3-6 months out.
+        scheduled a followup visit 3-6 months out, uniformly distributed.
 
         For simplicity, do not assign background screenings on initialization.
 
-        A burn-in period will allow the sim to start the observed
-        time period with more realistic boundary conditions.
+        A burn-in period allows for the observed simulation to start with more
+        realistic treatments and scheduled followups.
         """
         index = pop_data.index
         event_time = self.clock() + self.step_size()
@@ -108,7 +107,7 @@ class HealthcareVisits:
             visitors=visitors,
             event_time=event_time,
             min_followup=0,
-            max_followup=(FOLLOWUP_MAX - FOLLOWUP_MIN),
+            max_followup=(data_values.FOLLOWUP_MAX - data_values.FOLLOWUP_MIN),
         )
         # Handle simulants initialized in an emergency state
         visitors = {}
@@ -196,8 +195,8 @@ class HealthcareVisits:
         df: pd.DataFrame,
         visitors: Dict,
         event_time: pd.Timestamp,
-        min_followup: int = FOLLOWUP_MIN,
-        max_followup: int = FOLLOWUP_MAX,
+        min_followup: int = data_values.FOLLOWUP_MIN,
+        max_followup: int = data_values.FOLLOWUP_MAX,
     ) -> pd.DataFrame:
         """Updates treatment plans and schedules followups.
 
@@ -215,7 +214,12 @@ class HealthcareVisits:
 
         # Update treatments
         to_visit = pd.Index([])
-        for visit_type in [visit_type for visit_type in data_values.VISIT_TYPES if visit_type != data_values.VISIT_TYPES.MISSED]:
+        attended_visit_types = [
+            visit_type
+            for visit_type in data_values.VISIT_TYPES
+            if visit_type != data_values.VISIT_TYPES.MISSED
+        ]
+        for visit_type in attended_visit_types:
             to_visit = to_visit.union(visitors.get(visit_type, pd.Index([])))
 
         self.update_treatment(index=to_visit)
@@ -245,8 +249,8 @@ class HealthcareVisits:
         self,
         index: pd.Index,
         event_time: pd.Timestamp,
-        min_followup: int = FOLLOWUP_MIN,
-        max_followup: int = FOLLOWUP_MAX,
+        min_followup: int = data_values.FOLLOWUP_MIN,
+        max_followup: int = data_values.FOLLOWUP_MAX,
     ) -> pd.Series:
         """Schedules followup visits"""
         return pd.Series(

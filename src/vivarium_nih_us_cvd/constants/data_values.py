@@ -16,6 +16,7 @@ from typing import NamedTuple
 
 class __VisitTypes(NamedTuple):
     """visit types to be observed"""
+
     EMERGENCY: str = "emergency"
     SCHEDULED: str = "scheduled"
     MISSED: str = "missed"
@@ -31,6 +32,9 @@ VISIT_TYPES = __VisitTypes()
 VISIT_TYPE_COLUMN = "visit_type"
 SCHEDULED_VISIT_DATE_COLUMN = "scheduled_date"
 MISS_SCHEDULED_VISIT_PROBABILITY_COLUMN = "miss_scheduled_visit_probability"
+
+FOLLOWUP_MIN = 3 * 30  # 3 months
+FOLLOWUP_MAX = 6 * 30  # 6 months
 
 MISS_SCHEDULED_VISIT_PROBABILITY_MIN = 0.05
 MISS_SCHEDULED_VISIT_PROBABILITY_MAX = 0.35
