@@ -21,6 +21,7 @@ class __Population(NamedTuple):
     DEMOGRAPHY: str = "population.demographic_dimensions"
     TMRLE: str = "population.theoretical_minimum_risk_life_expectancy"
     ACMR: str = "cause.all_causes.cause_specific_mortality_rate"
+    HEALTHCARE_UTILIZATION: str = "healthcare_entity.outpatient_visits.outpatient_envelope"
 
     @property
     def name(self):
@@ -204,23 +205,6 @@ class __HighSBP(NamedTuple):
 SBP = __HighSBP()
 
 
-class __HealthcareSystem(NamedTuple):
-    OUTPATIENT_ENVELOPE: TargetString = TargetString(
-        "healthcare_entity.outpatient_visits.outpatient_envelope"
-    )
-
-    @property
-    def name(self):
-        return "healthcare_system"
-
-    @property
-    def log_name(self):
-        return self.name.replace("_", " ")
-
-
-HEALTHCARE_SYSTEM = __HealthcareSystem()
-
-
 MAKE_ARTIFACT_KEY_GROUPS = [
     POPULATION,
     ISCHEMIC_STROKE,
@@ -228,5 +212,4 @@ MAKE_ARTIFACT_KEY_GROUPS = [
     ANGINA,
     LDL_C,
     SBP,
-    HEALTHCARE_SYSTEM,
 ]

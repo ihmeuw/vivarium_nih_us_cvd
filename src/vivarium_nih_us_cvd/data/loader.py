@@ -61,6 +61,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.POPULATION.DEMOGRAPHY: load_demographic_dimensions,
         data_keys.POPULATION.TMRLE: load_theoretical_minimum_risk_life_expectancy,
         data_keys.POPULATION.ACMR: load_standard_data,
+        data_keys.POPULATION.HEALTHCARE_UTILIZATION: load_healthcare_system_utilization_rate,
         # Cause (ischemic stroke)
         data_keys.ISCHEMIC_STROKE.PREVALENCE_ACUTE: load_prevalence_ischemic_stroke,
         data_keys.ISCHEMIC_STROKE.PREVALENCE_CHRONIC: load_prevalence_ischemic_stroke,
@@ -106,8 +107,6 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.SBP.PAF: load_standard_data,
         data_keys.SBP.TMRED: load_metadata,
         data_keys.SBP.RELATIVE_RISK_SCALAR: load_metadata,
-        # Healthcare visits
-        data_keys.HEALTHCARE_SYSTEM.OUTPATIENT_ENVELOPE: load_healthcare_system_utilization_rate,
     }
     source_key = _get_source_key(lookup_key)
     data = mapping[lookup_key](source_key, location)
