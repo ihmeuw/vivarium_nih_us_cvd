@@ -14,25 +14,26 @@ from typing import NamedTuple
 ################################
 
 
-class __Visits(NamedTuple):
-    NONE: str = "none"
+class __VisitTypes(NamedTuple):
+    """visit types to be observed"""
     EMERGENCY: str = "emergency"
     SCHEDULED: str = "scheduled"
     MISSED: str = "missed"
     BACKGROUND: str = "background"
-    VISIT_TYPE_COLUMN_NAME: str = "visit_type"
-    SCHEDULED_COLUMN_NAME: str = "scheduled_date"
-    MISS_SCHEDULED_COLUMN_NAME: str = "miss_scheduled_visit_probability"
 
     @property
     def name(self):
-        return "visits"
+        return "visit_types"
 
 
-VISITS = __Visits()
+VISIT_TYPES = __VisitTypes()
 
-PROBABILITY_MISS_SCHEDULED_VISIT_MIN = 0.05
-PROBABILITY_MISS_SCHEDULED_VISIT_MAX = 0.35
+VISIT_TYPE_COLUMN = "visit_type"
+SCHEDULED_VISIT_DATE_COLUMN = "scheduled_date"
+MISS_SCHEDULED_VISIT_PROBABILITY_COLUMN = "miss_scheduled_visit_probability"
+
+MISS_SCHEDULED_VISIT_PROBABILITY_MIN = 0.05
+MISS_SCHEDULED_VISIT_PROBABILITY_MAX = 0.35
 
 
 ##############################

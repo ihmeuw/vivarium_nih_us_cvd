@@ -2,6 +2,7 @@ from collections import Counter
 from typing import Dict
 
 from vivarium.framework.engine import Builder
+from vivarium.framework.time import get_time_stamp
 from vivarium_public_health.metrics.stratification import (
     ResultsStratifier as ResultsStratifier_,
 )
@@ -143,12 +144,13 @@ class HealthcareVisitObserver:
     #################
 
     def setup(self, builder: Builder) -> None:
+        self.observation_start_time = get_time_stamp(builder.configuration.time.observation_start)
         self.config = self._get_stratification_configuration(builder)
         self.stratifier = builder.components.get_component(ResultsStratifier.name)
 
         self.counter = Counter()
 
-        columns_required = [data_values.VISITS.VISIT_TYPE_COLUMN_NAME]
+        columns_required = [data_values.VISIT_TYPE_COLUMN]
         self.population_view = builder.population.get_view(columns_required)
 
         builder.event.register_listener("collect_metrics", self.on_collect_metrics)
@@ -158,12 +160,15 @@ class HealthcareVisitObserver:
         return builder.configuration.observers["visits"]
 
     def on_collect_metrics(self, event: "Event"):
+        # TODO: Confirm this is correct - it might be off by one
+        if event.time < self.observation_start_time:
+            return
         pop = self.population_view.get(event.index, query='alive == "alive"')
 
         new_observations = {}
         groups = self.stratifier.group(pop.index, self.config.include, self.config.exclude)
         for label, group_mask in groups:
-            for visit_type in [data_values.VISITS.EMERGENCY, data_values.VISITS.SCHEDULED, data_values.VISITS.MISSED, data_values.VISITS.BACKGROUND]:
+            for visit_type in data_values.VISIT_TYPES:
                 key = f"healthcare_visits_{visit_type}_{label}"
                 new_observations[key] = pop[group_mask].squeeze().str.contains(visit_type).sum()
 
