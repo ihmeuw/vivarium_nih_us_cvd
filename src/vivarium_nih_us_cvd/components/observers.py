@@ -7,6 +7,8 @@ from vivarium_public_health.metrics.stratification import (
 )
 from vivarium_public_health.utilities import EntityString, to_years
 
+from vivarium_nih_us_cvd.constants import data_values
+
 
 class ResultsStratifier(ResultsStratifier_):
     """Centralized component for handling results stratification.
@@ -106,12 +108,27 @@ class ContinuousRiskObserver:
 class HealthcareVisitObserver:
     """Observes doctor visit counts per group."""
 
+    configuration_defaults = {
+        "observers": {
+            "visits": {
+                "exclude": [],
+                "include": [],
+            }
+        }
+    }
+
+    def __init__(self):
+        self.configuration_defaults = self._get_configuration_defaults()
+
     def __repr__(self):
         return f"HealthcareVisitObserver"
 
     ##########################
     # Initialization methods #
     ##########################
+
+    def _get_configuration_defaults(self) -> Dict[str, Dict]:
+        return HealthcareVisitObserver.configuration_defaults
 
     ##############
     # Properties #
@@ -126,13 +143,32 @@ class HealthcareVisitObserver:
     #################
 
     def setup(self, builder: Builder) -> None:
-        pass
+        self.config = self._get_stratification_configuration(builder)
+        self.stratifier = builder.components.get_component(ResultsStratifier.name)
+
+        self.counter = Counter()
+
+        columns_required = [data_values.VISITS.VISIT_TYPE_COLUMN_NAME]
+        self.population_view = builder.population.get_view(columns_required)
+
+        builder.event.register_listener("collect_metrics", self.on_collect_metrics)
+        builder.value.register_value_modifier("metrics", self.metrics)
 
     def _get_stratification_configuration(self, builder: Builder) -> "ConfigTree":
-        pass
+        return builder.configuration.observers["visits"]
 
     def on_collect_metrics(self, event: "Event"):
-        pass
+        pop = self.population_view.get(event.index, query='alive == "alive"')
+
+        new_observations = {}
+        groups = self.stratifier.group(pop.index, self.config.include, self.config.exclude)
+        for label, group_mask in groups:
+            for visit_type in [data_values.VISITS.EMERGENCY, data_values.VISITS.SCHEDULED, data_values.VISITS.MISSED, data_values.VISITS.BACKGROUND]:
+                key = f"healthcare_visits_{visit_type}_{label}"
+                new_observations[key] = pop[group_mask].squeeze().str.contains(visit_type).sum()
+
+        self.counter.update(new_observations)
 
     def metrics(self, index: "pd.Index", metrics: Dict[str, float]) -> Dict[str, float]:
-        pass
+        metrics.update(self.counter)
+        return metrics

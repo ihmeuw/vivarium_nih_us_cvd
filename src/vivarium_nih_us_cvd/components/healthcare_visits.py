@@ -213,7 +213,7 @@ class HealthcareVisits:
         # Update visit type
         df[self.visit_type_column] = data_values.VISITS.NONE
         for k in visitors:
-            df[self.visit_type_column].loc[visitors[k]] = df[self.visit_type_column] + f";{k}"
+            df.loc[visitors[k], self.visit_type_column] = df[self.visit_type_column] + f";{k}"
 
         # Update treatments
         to_visit = (
