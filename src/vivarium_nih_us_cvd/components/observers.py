@@ -89,6 +89,8 @@ class ContinuousRiskObserver:
         return builder.configuration.observers[self.risk]
 
     def on_collect_metrics(self, event: "Event"):
+        if event.time < self.observation_start_time:
+            return
         step_size_in_years = to_years(event.step_size)
         pop = self.population_view.get(event.index, query='alive == "alive"')
         values = self.exposure(pop.index)
