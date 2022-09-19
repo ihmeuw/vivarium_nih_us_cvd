@@ -144,7 +144,9 @@ class HealthcareVisitObserver:
     #################
 
     def setup(self, builder: Builder) -> None:
-        self.observation_start_time = get_time_stamp(builder.configuration.time.observation_start)
+        self.observation_start_time = get_time_stamp(
+            builder.configuration.time.observation_start
+        )
         self.config = self._get_stratification_configuration(builder)
         self.stratifier = builder.components.get_component(ResultsStratifier.name)
 
@@ -160,7 +162,6 @@ class HealthcareVisitObserver:
         return builder.configuration.observers["visits"]
 
     def on_collect_metrics(self, event: "Event"):
-        # TODO: Confirm this is correct - it might be off by one
         if event.time < self.observation_start_time:
             return
         pop = self.population_view.get(event.index, query='alive == "alive"')
@@ -170,8 +171,9 @@ class HealthcareVisitObserver:
         for label, group_mask in groups:
             for visit_type in data_values.VISIT_TYPES:
                 key = f"healthcare_visits_{visit_type}_{label}"
-                new_observations[key] = pop[group_mask].squeeze().str.contains(visit_type).sum()
-
+                new_observations[key] = (
+                    pop[group_mask].squeeze().str.contains(visit_type).sum()
+                )
         self.counter.update(new_observations)
 
     def metrics(self, index: "pd.Index", metrics: Dict[str, float]) -> Dict[str, float]:

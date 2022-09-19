@@ -44,9 +44,7 @@ TRANSITION_COUNT_COLUMN_TEMPLATE = (
 RISK_EXPOSURE_TIME_TEMPLATE = (
     "total_exposure_time_risk_{RISK}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
 )
-VISIT_COUNT_TEMPLATE = (
-    "healthcare_visits_{VISIT_TYPE}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
-)
+VISIT_COUNT_TEMPLATE = "healthcare_visits_{VISIT_TYPE}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
 
 COLUMN_TEMPLATES = {
     "population": TOTAL_POPULATION_COLUMN_TEMPLATE,
@@ -63,7 +61,7 @@ NON_COUNT_TEMPLATES = []
 
 POP_STATES = ("living", "dead", "tracked", "untracked")
 SEXES = ("male", "female")
-YEARS = tuple(range(2021, 2022))
+YEARS = tuple(range(2021, 2041))
 AGE_GROUPS = (
     "25_to_29",
     "30_to_34",
