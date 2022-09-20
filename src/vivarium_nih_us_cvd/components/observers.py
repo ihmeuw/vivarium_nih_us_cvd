@@ -72,6 +72,9 @@ class ContinuousRiskObserver:
     #################
 
     def setup(self, builder: Builder) -> None:
+        self.observation_start_time = get_time_stamp(
+            builder.configuration.time.observation_start
+        )
         self.config = self._get_stratification_configuration(builder)
         self.stratifier = builder.components.get_component(ResultsStratifier.name)
 
