@@ -38,6 +38,7 @@ components:
             - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
 
             - HealthcareVisits()
+            - HealthcareVisitObserver()
         
 
 configuration:
@@ -54,6 +55,10 @@ configuration:
         random_seed: 0
     time:
         start:
+            year: 2021 # Includes two years for burn-in
+            month: 1
+            day: 1
+        observation_start: # TODO: Implement for all observers (currently only HealthcareVisit)
             year: 2023
             month: 1
             day: 1

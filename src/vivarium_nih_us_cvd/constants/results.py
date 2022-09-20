@@ -2,7 +2,7 @@ import itertools
 
 import pandas as pd
 
-from vivarium_nih_us_cvd.constants import models
+from vivarium_nih_us_cvd.constants import data_values, models
 
 #################################
 # Results columns and variables #
@@ -44,6 +44,7 @@ TRANSITION_COUNT_COLUMN_TEMPLATE = (
 RISK_EXPOSURE_TIME_TEMPLATE = (
     "total_exposure_time_risk_{RISK}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
 )
+VISIT_COUNT_TEMPLATE = "healthcare_visits_{VISIT_TYPE}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
 
 COLUMN_TEMPLATES = {
     "population": TOTAL_POPULATION_COLUMN_TEMPLATE,
@@ -53,13 +54,14 @@ COLUMN_TEMPLATES = {
     "state_person_time": STATE_PERSON_TIME_COLUMN_TEMPLATE,
     "transition_count": TRANSITION_COUNT_COLUMN_TEMPLATE,
     "risk_exposure_time": RISK_EXPOSURE_TIME_TEMPLATE,
+    "healthcare_visits": VISIT_COUNT_TEMPLATE,
 }
 
 NON_COUNT_TEMPLATES = []
 
 POP_STATES = ("living", "dead", "tracked", "untracked")
 SEXES = ("male", "female")
-YEARS = tuple(range(2023, 2041))
+YEARS = tuple(range(2022, 2041))
 AGE_GROUPS = (
     "25_to_29",
     "30_to_34",
@@ -103,6 +105,7 @@ TEMPLATE_FIELD_MAP = {
     "STATE": models.STATES,
     "TRANSITION": models.TRANSITIONS,
     "RISK": RISKS,
+    "VISIT_TYPE": data_values.VISIT_TYPES,
 }
 
 
