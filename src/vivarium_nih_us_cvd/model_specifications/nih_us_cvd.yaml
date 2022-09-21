@@ -4,25 +4,25 @@ components:
             - BasePopulation()
             - Mortality()
         metrics:
-            - MortalityObserver()
-            - DisabilityObserver()
+            # - MortalityObserver()
+            # - DisabilityObserver()
             - DiseaseObserver("ischemic_stroke")
             - DiseaseObserver("myocardial_infarction")
-            - DiseaseObserver("angina")
-        disease:
-            - SI("angina")
-        risks:
-            - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
-            - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
-            - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_ischemic_stroke.incidence_rate")
-            - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
-            - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.angina.incidence_rate")
+            # - DiseaseObserver("angina")
+        # disease:
+            # - SI("angina")
+        # risks:
+            # - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
+            # - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+            # - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_ischemic_stroke.incidence_rate")
+            # - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
+            # - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.angina.incidence_rate")
             
-            - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_myocardial_infarction.incidence_rate")
-            - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
-            - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_ischemic_stroke.incidence_rate")
-            - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
-            - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.angina.incidence_rate")
+            # - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_myocardial_infarction.incidence_rate")
+            # - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+            # - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_ischemic_stroke.incidence_rate")
+            # - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
+            # - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.angina.incidence_rate")
 
     vivarium_nih_us_cvd:
         components:
@@ -32,10 +32,10 @@ components:
             - MyocardialInfarction()
 
             - Risk("risk_factor.high_ldl_cholesterol")
-            - ContinuousRiskObserver("risk_factor.high_ldl_cholesterol")
+            # - ContinuousRiskObserver("risk_factor.high_ldl_cholesterol")
             
             - Risk("risk_factor.high_systolic_blood_pressure")
-            - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
+            # - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
 
             - HealthcareVisits()
             - HealthcareVisitObserver()
@@ -68,7 +68,7 @@ configuration:
             day: 31
         step_size: 28 # Days
     population:
-        population_size: 50_000
+        population_size: 10_000
         age_start: 7
         age_end: 125
         exit_age: 125

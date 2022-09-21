@@ -157,7 +157,7 @@ class HealthcareVisitObserver:
 
         self.counter = Counter()
 
-        columns_required = [data_values.VISIT_TYPE_COLUMN]
+        columns_required = [data_values.COLUMNS.VISIT_TYPE]
         self.population_view = builder.population.get_view(columns_required)
 
         builder.event.register_listener("collect_metrics", self.on_collect_metrics)
