@@ -7,6 +7,7 @@ from typing import NamedTuple
 
 class __Columns(NamedTuple):
     """column names"""
+
     VISIT_TYPE: str = "visit_type"
     SCHEDULED_VISIT_DATE: str = "scheduled_date"
     MISS_SCHEDULED_VISIT_PROBABILITY: str = "miss_scheduled_visit_probability"
@@ -58,7 +59,23 @@ VISIT_TYPE = __VisitType()
 # Medication Parameters #
 #########################
 
-THERAPEUTIC_INERTIA_NO_START = 0.4176 # The chance that a patient will not have medication changed
+THERAPEUTIC_INERTIA_NO_START = (
+    0.4176  # The chance that a patient will not have medication changed
+)
+
+
+class __SBPThreshold(NamedTuple):
+    """sbp exposure thresholds"""
+
+    LOW: int = 130
+    HIGH: int = 140
+
+    @property
+    def name(self):
+        return "sbp_threshold"
+
+
+SBP_THRESHOLD = __SBPThreshold()
 
 
 class __SBPMedicationLevel(NamedTuple):
@@ -95,27 +112,45 @@ class __LDLCMedicationLevel(NamedTuple):
 
 LDLC_MEDICATION_LEVEL = __LDLCMedicationLevel()
 
+MEDICATION_RAMP = {
+    "sbp": {
+        SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE: 1,
+        SBP_MEDICATION_LEVEL.ONE_DRUG_FULL_DOSE: 2,
+        SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE: 3,
+        SBP_MEDICATION_LEVEL.TWO_DRUGS_FULL_DOSE: 4,
+        SBP_MEDICATION_LEVEL.THREE_DRUGS_HALF_DOSE: 5,
+        SBP_MEDICATION_LEVEL.THREE_DRUGS_FULL_DOSE: 6,
+    },
+    "ldlc": {
+        LDLC_MEDICATION_LEVEL.LOW: 1,
+        LDLC_MEDICATION_LEVEL.MED: 2,
+        LDLC_MEDICATION_LEVEL.LOW_MED_EZE: 3,
+        LDLC_MEDICATION_LEVEL.HIGH: 4,
+        LDLC_MEDICATION_LEVEL.HIGH_EZE: 5,
+    },
+}
+
 
 # Define the baseline medication ramp level for simulants who are initialized as medicated
 BASELINE_MEDICATION_LEVEL_PROBABILITY = {
-    'SBP': {
-        SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE: 0.57,
-        SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE: 0.43,
+    "sbp": {
+        MEDICATION_RAMP["sbp"][SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE]: 0.57,
+        MEDICATION_RAMP["sbp"][SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE]: 0.43,
     },
-    'LDLC': {
-        LDLC_MEDICATION_LEVEL.LOW: 0.0382,
-        LDLC_MEDICATION_LEVEL.MED: 0.7194,
-        LDLC_MEDICATION_LEVEL.HIGH: 0.2424,
+    "ldlc": {
+        MEDICATION_RAMP["ldlc"][LDLC_MEDICATION_LEVEL.LOW]: 0.0382,
+        MEDICATION_RAMP["ldlc"][LDLC_MEDICATION_LEVEL.MED]: 0.7194,
+        MEDICATION_RAMP["ldlc"][LDLC_MEDICATION_LEVEL.HIGH]: 0.2424,
     },
 }
 
 
 # Define first-prescribed medication ramp levels for simulants who overcome therapeutic inertia
 FIRST_PRESCRIPTION_LEVEL_PROBABILITY = {
-    'SBP': {
-        'high': {
-            SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE: 0.55,
-            SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE: 0.45,
+    "sbp": {
+        "high": {
+            MEDICATION_RAMP["sbp"][SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE]: 0.55,
+            MEDICATION_RAMP["sbp"][SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE]: 0.45,
         },
     },
 }
@@ -138,12 +173,12 @@ MEDICATION_ADHERENCE_TYPE = __MedicationAdherenceType()
 
 # Define medication adherence level probabilitiies
 MEDICATION_ADHERENCE_TYPE_PROBABILITIY = {
-    'SBP': {
+    "sbp": {
         MEDICATION_ADHERENCE_TYPE.ADHERENT: 0.7392,
         MEDICATION_ADHERENCE_TYPE.PRIMARY_NON_ADHERENT: 0.16,
         MEDICATION_ADHERENCE_TYPE.SECONDARY_NON_ADHERENT: 0.1008,
     },
-    'LDLC': {
+    "ldlc": {
         MEDICATION_ADHERENCE_TYPE.ADHERENT: 0.6525,
         MEDICATION_ADHERENCE_TYPE.PRIMARY_NON_ADHERENT: 0.25,
         MEDICATION_ADHERENCE_TYPE.SECONDARY_NON_ADHERENT: 0.0975,

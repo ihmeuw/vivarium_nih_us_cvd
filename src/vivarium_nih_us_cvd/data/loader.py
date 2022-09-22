@@ -87,7 +87,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.ANGINA.INCIDENCE_RATE: load_incidence_ihd,
         data_keys.ANGINA.DISABILITY_WEIGHT: load_disability_weight_ihd,
         data_keys.ANGINA.EMR: load_emr_ihd,
-        data_keys.ANGINA.CSMR: load_csmr_all_zeros_angina, # All IHD CSMR went to MI
+        data_keys.ANGINA.CSMR: load_csmr_all_zeros_angina,  # All IHD CSMR went to MI
         data_keys.ANGINA.RESTRICTIONS: load_metadata,
         # Risk (LDL-cholesterol)
         data_keys.LDL_C.DISTRIBUTION: load_metadata,
