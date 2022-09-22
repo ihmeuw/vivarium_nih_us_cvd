@@ -105,7 +105,7 @@ TEMPLATE_FIELD_MAP = {
     "STATE": models.STATES,
     "TRANSITION": models.TRANSITIONS,
     "RISK": RISKS,
-    "VISIT_TYPE": data_values.VISIT_TYPES,
+    "VISIT_TYPE": data_values.VISIT_TYPE,
 }
 
 

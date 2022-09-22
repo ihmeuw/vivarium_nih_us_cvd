@@ -1,12 +1,12 @@
 from typing import NamedTuple
 
-
-##############################
-# State table columns to add #
-##############################
+#######################
+# State table columns #
+#######################
 
 
 class __Columns(NamedTuple):
+    """column names"""
     VISIT_TYPE: str = "visit_type"
     SCHEDULED_VISIT_DATE: str = "scheduled_date"
     MISS_SCHEDULED_VISIT_PROBABILITY: str = "miss_scheduled_visit_probability"
@@ -33,9 +33,12 @@ FOLLOWUP_MAX = 6 * 30  # 6 months
 MISS_SCHEDULED_VISIT_PROBABILITY_MIN = 0.05
 MISS_SCHEDULED_VISIT_PROBABILITY_MAX = 0.35
 
+MEASUREMENT_ERROR_MEAN_SBP = 0  # mmHg
+MEASUREMENT_ERROR_SD_SBP = 2.9  # mmHg
+
 
 class __VisitType(NamedTuple):
-    """visit types to be observed"""
+    """healthcare visit types"""
 
     NONE: str = "none"
     EMERGENCY: str = "emergency"
@@ -55,9 +58,11 @@ VISIT_TYPE = __VisitType()
 # Medication Parameters #
 #########################
 
+THERAPEUTIC_INERTIA_NO_START = 0.4176 # The chance that a patient will not have medication changed
 
-class __SBPMedication(NamedTuple):
-    """high sbp medication levels"""
+
+class __SBPMedicationLevel(NamedTuple):
+    """high sbp medication level"""
 
     ONE_DRUG_HALF_DOSE: str = "one_drug_half_dose_efficacy"
     ONE_DRUG_FULL_DOSE: str = "one_drug_std_dose_efficacy"
@@ -68,20 +73,14 @@ class __SBPMedication(NamedTuple):
 
     @property
     def name(self):
-        return "sbp_medication"
+        return "sbp_medication_level"
 
 
-SBP_MEDICATION = __SBPMedication()
+SBP_MEDICATION_LEVEL = __SBPMedicationLevel()
 
 
-SBP_MEDICATION_INITIAL_LEVEL_PROBABILITY = {
-    SBP_MEDICATION.ONE_DRUG_HALF_DOSE: 0.57,
-    SBP_MEDICATION.TWO_DRUGS_HALF_DOSE: 0.43,
-}
-
-
-class __LDLCMedication(NamedTuple):
-    """high ldl-c medication levels"""
+class __LDLCMedicationLevel(NamedTuple):
+    """high ldl-c medication level"""
 
     LOW: str = "low_intensity"
     MED: str = "medium_intensity"
@@ -91,20 +90,39 @@ class __LDLCMedication(NamedTuple):
 
     @property
     def name(self):
-        return "ldlc_medication_levels"
+        return "ldlc_medication_level"
 
 
-LDLC_MEDICATION = __LDLCMedication()
+LDLC_MEDICATION_LEVEL = __LDLCMedicationLevel()
 
 
-LDLC_MEDICATION_INITIAL_LEVEL_PROBABILITY = {
-    LDLC_MEDICATION.LOW: 0.0382,
-    LDLC_MEDICATION.MED: 0.7194,
-    LDLC_MEDICATION.HIGH: 0.2424,
+# Define the baseline medication ramp level for simulants who are initialized as medicated
+BASELINE_MEDICATION_LEVEL_PROBABILITY = {
+    'SBP': {
+        SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE: 0.57,
+        SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE: 0.43,
+    },
+    'LDLC': {
+        LDLC_MEDICATION_LEVEL.LOW: 0.0382,
+        LDLC_MEDICATION_LEVEL.MED: 0.7194,
+        LDLC_MEDICATION_LEVEL.HIGH: 0.2424,
+    },
+}
+
+
+# Define first-prescribed medication ramp levels for simulants who overcome therapeutic inertia
+FIRST_PRESCRIPTION_LEVEL_PROBABILITY = {
+    'SBP': {
+        'high': {
+            SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE: 0.55,
+            SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE: 0.45,
+        },
+    },
 }
 
 
 class __MedicationAdherenceType(NamedTuple):
+    """medication adherence types"""
 
     ADHERENT: str = "adherent"
     PRIMARY_NON_ADHERENT: str = "primary_non_adherent"
@@ -118,22 +136,23 @@ class __MedicationAdherenceType(NamedTuple):
 MEDICATION_ADHERENCE_TYPE = __MedicationAdherenceType()
 
 
-SBP_MEDICATION_ADHERENCE_VALUE = {
-    MEDICATION_ADHERENCE_TYPE.ADHERENT: 0.7392,
-    MEDICATION_ADHERENCE_TYPE.PRIMARY_NON_ADHERENT: 0.16,
-    MEDICATION_ADHERENCE_TYPE.SECONDARY_NON_ADHERENT: 0.1008,
-}
-
-
-LDLC_MEDICATION_ADHERENCE_VALUE = {
-    MEDICATION_ADHERENCE_TYPE.ADHERENT: 0.6525,
-    MEDICATION_ADHERENCE_TYPE.PRIMARY_NON_ADHERENT: 0.25,
-    MEDICATION_ADHERENCE_TYPE.SECONDARY_NON_ADHERENT: 0.0975,
+# Define medication adherence level probabilitiies
+MEDICATION_ADHERENCE_TYPE_PROBABILITIY = {
+    'SBP': {
+        MEDICATION_ADHERENCE_TYPE.ADHERENT: 0.7392,
+        MEDICATION_ADHERENCE_TYPE.PRIMARY_NON_ADHERENT: 0.16,
+        MEDICATION_ADHERENCE_TYPE.SECONDARY_NON_ADHERENT: 0.1008,
+    },
+    'LDLC': {
+        MEDICATION_ADHERENCE_TYPE.ADHERENT: 0.6525,
+        MEDICATION_ADHERENCE_TYPE.PRIMARY_NON_ADHERENT: 0.25,
+        MEDICATION_ADHERENCE_TYPE.SECONDARY_NON_ADHERENT: 0.0975,
+    },
 }
 
 
 class __MedicationAdherenceScore(NamedTuple):
-    """adherence score used in medication treatment effect calculation"""
+    """adherence scores; used in medication treatment effect calculation"""
 
     ADHERENT: float = 1.0
     PRIMARY_NON_ADHERENT: float = 0.0
@@ -148,6 +167,7 @@ MEDICATION_ADHERENCE_SCORE = __MedicationAdherenceScore()
 
 
 BASELINE_MEDICATION_COVERAGE_SEX_MAPPING = {
+    # used in medication treatment effect calculation
     "Female": 2,
     "Male": 1,
 }

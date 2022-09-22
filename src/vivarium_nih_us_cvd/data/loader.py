@@ -80,14 +80,14 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_POST: load_disability_weight_ihd,
         data_keys.MYOCARDIAL_INFARCTION.EMR_ACUTE: load_emr_ihd,
         data_keys.MYOCARDIAL_INFARCTION.EMR_POST: load_emr_ihd,
-        data_keys.MYOCARDIAL_INFARCTION.CSMR: load_standard_data,  # Assign 100% of IHD's CSMR to angina
+        data_keys.MYOCARDIAL_INFARCTION.CSMR: load_standard_data,  # Assign 100% of IHD CSMR to MI
         data_keys.MYOCARDIAL_INFARCTION.RESTRICTIONS: load_metadata,
         # Cause (angina)
         data_keys.ANGINA.PREVALENCE: load_prevalence_ihd,
         data_keys.ANGINA.INCIDENCE_RATE: load_incidence_ihd,
         data_keys.ANGINA.DISABILITY_WEIGHT: load_disability_weight_ihd,
         data_keys.ANGINA.EMR: load_emr_ihd,
-        data_keys.ANGINA.CSMR: load_csmr_all_zeros_angina,
+        data_keys.ANGINA.CSMR: load_csmr_all_zeros_angina, # All IHD CSMR went to MI
         data_keys.ANGINA.RESTRICTIONS: load_metadata,
         # Risk (LDL-cholesterol)
         data_keys.LDL_C.DISTRIBUTION: load_metadata,

@@ -2,6 +2,7 @@ from typing import Dict
 
 import numpy as np
 import pandas as pd
+import scipy
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
@@ -127,7 +128,8 @@ class HealthcareVisits:
         df[self.ldlc_medication_adherence_type_column] = np.nan
 
         df = self.initialize_medication_coverage(df)
-        
+        # breakpoint()
+
         # Handle simulants initialized in an post/chronic state
         visitors = {}
         mask_chronic_is = (
@@ -146,6 +148,7 @@ class HealthcareVisits:
             min_followup=0,
             max_followup=(data_values.FOLLOWUP_MAX - data_values.FOLLOWUP_MIN),
         )
+
         # Handle simulants initialized in an emergency state
         visitors = {}
         mask_acute_is = (
@@ -174,7 +177,7 @@ class HealthcareVisits:
                     self.sbp_medication_column,
                     self.sbp_medication_adherence_type_column,
                     self.ldlc_medication_column,
-                    self.ldlc_medication_adherence_type_column
+                    self.ldlc_medication_adherence_type_column,
                 ]
             ]
         )
@@ -277,31 +280,37 @@ class HealthcareVisits:
         )
         medicated_sbp = medicated_states[medicated_states.isin(["SBP", "BOTH"])].index
         medicated_ldlc = medicated_states[medicated_states.isin(["LDLC", "BOTH"])].index
-        
+
         # Define what level of medication for the medicated simulants
         # TODO: THE BELOW DOES NOT SEEM TO BE PROVIDING EXPECTED RESULTS - CONFIRM IT'S WORKING
+        breakpoint()
         df.loc[medicated_sbp, self.sbp_medication_column] = self.randomness.choice(
             medicated_sbp,
-            choices=list(data_values.SBP_MEDICATION_INITIAL_LEVEL_PROBABILITY.keys()),
-            p=list(data_values.SBP_MEDICATION_INITIAL_LEVEL_PROBABILITY.values()),
+            choices=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY['SBP'].keys()),
+            p=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY['SBP'].values()),
         )
         df.loc[medicated_ldlc, self.ldlc_medication_column] = self.randomness.choice(
             medicated_ldlc,
-            choices=list(data_values.LDLC_MEDICATION_INITIAL_LEVEL_PROBABILITY.keys()),
-            p=list(data_values.LDLC_MEDICATION_INITIAL_LEVEL_PROBABILITY.values()),
+            choices=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY['LDLC'].keys()),
+            p=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY['LDLC'].values()),
         )
 
-        # Calculate adherence
+        # Assign adherence types
         # TODO: THE BELOW DOES NOT SEEM TO BE PROVIDING EXPECTED RESULTS - CONFIRM IT'S WORKING
-        df.loc[medicated_sbp, self.sbp_medication_adherence_type_column] = self.randomness.choice(
+        breakpoint()
+        df.loc[
+            medicated_sbp, self.sbp_medication_adherence_type_column
+        ] = self.randomness.choice(
             medicated_sbp,
-            choices=list(data_values.SBP_MEDICATION_ADHERENCE_VALUE.keys()),
-            p=list(data_values.SBP_MEDICATION_ADHERENCE_VALUE.values()),
+            choices=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY['SBP'].keys()),
+            p=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY['SBP'].values()),
         )
-        df.loc[medicated_ldlc, self.ldlc_medication_adherence_type_column] = self.randomness.choice(
+        df.loc[
+            medicated_ldlc, self.ldlc_medication_adherence_type_column
+        ] = self.randomness.choice(
             medicated_ldlc,
-            choices=list(data_values.LDLC_MEDICATION_ADHERENCE_VALUE.keys()),
-            p=list(data_values.LDLC_MEDICATION_ADHERENCE_VALUE.values()),
+            choices=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY['LDLC'].keys()),
+            p=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY['LDLC'].values()),
         )
 
         return df
@@ -338,11 +347,12 @@ class HealthcareVisits:
         for visit_type in attended_visit_types:
             to_visit = to_visit.union(visitors.get(visit_type, pd.Index([])))
 
-        df = self.update_treatment(df, index=to_visit)
+        df.loc[to_visit] = self.update_treatment(df.loc[to_visit])
 
         # TODO: update based on decision tree
         # Update scheduled visits
         # Only schedule a followup if a future one does not already exist
+        breakpoint()
         has_followup_scheduled = df.loc[
             to_visit.intersection(
                 df[(df[self.scheduled_visit_date_column] > event_time)].index
@@ -358,13 +368,71 @@ class HealthcareVisits:
 
         return df
 
-    def update_treatment(self, df: pd.DataFrame, index: pd.Index) -> pd.DataFrame:
+    def update_treatment(self, df: pd.DataFrame) -> pd.DataFrame:
         """Applies treatment ramps"""
-        df = self.apply_sbp_treatment_ramp(df, index)
-        df = self.apply_ldlc_treatment_ramp(df, index)
+        df["to_schedule"] = np.nan
+        df = self.apply_sbp_treatment_ramp(df)
+        df = self.apply_ldlc_treatment_ramp(df)
         return df
 
-    def apply_sbp_treatment_ramp(self, df: pd.DataFrame, index: pd.Index) -> pd.DataFrame:
+    def treat_not_currently_medicated_sbp(self, df: pd.DataFrame) -> pd.DataFrame:
+        mid_sbp = df[(df["measured_level"] >= 130) & (df["measured_level"] < 140)].index
+        high_sbp = df[df["measured_level"] >= 140].index
+        breakpoint()
+        
+        # Mid-SBP patients
+        not_prescribed_mid_sbp = mid_sbp[
+            self.randomness.get_draw(mid_sbp) <= data_values.THERAPEUTIC_INERTIA_NO_START
+        ]
+        to_prescribe_mid_sbp = mid_sbp.difference(not_prescribed_mid_sbp)
+        df.loc[not_prescribed_mid_sbp, "to_schedule"] = "yes"
+        df.loc[
+            to_prescribe_mid_sbp, self.sbp_medication_column
+        ] = data_values.SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE
+        # TODO: Implement outreach intervention
+        df.loc[to_prescribe_mid_sbp, "to_schedule"] = "yes"
+
+        # High-SBP patients
+        not_prescribed_high_sbp = high_sbp[
+            self.randomness.get_draw(high_sbp) <= data_values.THERAPEUTIC_INERTIA_NO_START
+        ]
+        to_prescribe_high_sbp = high_sbp.difference(not_prescribed_high_sbp)
+        df.loc[not_prescribed_high_sbp, "to_schedule"] = "yes"
+        # TODO: is this working? out of 15 draws on first initialization, all get assigned two_drug_half_dose
+        df.loc[to_prescribe_high_sbp, self.sbp_medication_column] = self.randomness.choice(
+            to_prescribe_high_sbp,
+            choices=list(data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY['SBP']['high'].keys()),
+            p=list(data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY['SBP']['high'].values()),
+        )
+        # TODO: implement outreach intervention
+        df.loc[to_prescribe_high_sbp, "to_schedule"] = "yes"
+
+        return df
+
+    def treat_currently_medicated_sbp(self, df: pd.DataFrame) -> pd.DataFrame:
+        breakpoint()
+        return df
+
+    def get_measurement_error(self, index, mean, sd):
+        """Return measurement error assuming normal distribution"""
+        draw = self.randomness.get_draw(index)
+        return scipy.stats.norm(loc=mean, scale=sd).ppf(draw)
+
+    def apply_sbp_treatment_ramp(self, df: pd.DataFrame) -> pd.DataFrame:
+        df["measured_level"] = self.sbp(df.index) + self.get_measurement_error(
+            df.index,
+            mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
+            sd=data_values.MEASUREMENT_ERROR_SD_SBP,
+        )
+        currently_medicated = df[df[self.sbp_medication_column].notna()].index
+        not_currently_medicated = df.index.difference(currently_medicated)
+        breakpoint()
+        df.loc[not_currently_medicated] = self.treat_not_currently_medicated_sbp(
+            df.loc[not_currently_medicated]
+        )
+        breakpoint()
+        df.loc[currently_medicated] = self.treat_currently_medicated_sbp(df.loc[currently_medicated])
+        breakpoint()
         return df
 
     def apply_ldlc_treatment_ramp(self, df: pd.DataFrame, index: pd.Index) -> pd.DataFrame:
