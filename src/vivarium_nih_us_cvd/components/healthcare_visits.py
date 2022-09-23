@@ -137,8 +137,7 @@ class HealthcareVisits:
 
         df = self.initialize_medication_coverage(df)
 
-        # Handle simulants initialized in an post/chronic state
-        visitors = {}
+        # Schedule followups for simulants in a post/chronic state
         mask_chronic_is = (
             df[models.ISCHEMIC_STROKE_MODEL_NAME] == models.CHRONIC_ISCHEMIC_STROKE_STATE_NAME
         )
@@ -147,16 +146,16 @@ class HealthcareVisits:
             == models.POST_MYOCARDIAL_INFARCTION_STATE_NAME
         )
         acute_history = index[mask_chronic_is | mask_post_mi]
-        visitors[data_values.VISIT_TYPE.SCHEDULED] = acute_history
-        df.loc[acute_history] = self.visit_doctor(
-            df=df.loc[acute_history],
-            visitors=visitors,
+        df.loc[
+            acute_history, self.scheduled_visit_date_column
+        ] = self.schedule_followup(
+            index=acute_history,
             event_time=event_time,
             min_followup=0,
             max_followup=(data_values.FOLLOWUP_MAX - data_values.FOLLOWUP_MIN),
         )
 
-        # Handle simulants initialized in an emergency state
+        # Send simulants in an acute state to doctor
         visitors = {}
         mask_acute_is = (
             df[models.ISCHEMIC_STROKE_MODEL_NAME] == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
@@ -165,12 +164,10 @@ class HealthcareVisits:
             df[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
             == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
         )
-        emergency_not_already_scheduled = index[
-            (mask_acute_is | mask_acute_mi) & ~(mask_chronic_is | mask_post_mi)
-        ]
-        visitors[data_values.VISIT_TYPE.EMERGENCY] = emergency_not_already_scheduled
-        df.loc[emergency_not_already_scheduled] = self.visit_doctor(
-            df=df.loc[emergency_not_already_scheduled],
+        emergency = index[(mask_acute_is | mask_acute_mi)]
+        visitors[data_values.VISIT_TYPE.EMERGENCY] = emergency
+        df.loc[emergency] = self.visit_doctor(
+            df=df.loc[emergency],
             visitors=visitors,
             event_time=event_time,
         )
@@ -322,6 +319,7 @@ class HealthcareVisits:
             min_followup: minimum number of days out to schedule followup
             max_followup: maximum number of days out to schedule followup
         """
+        breakpoint()
         # Update visit type
         df[self.visit_type_column] = data_values.VISIT_TYPE.NONE  # Reset from last time step
         for k in visitors:
