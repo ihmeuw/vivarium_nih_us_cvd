@@ -146,9 +146,7 @@ class HealthcareVisits:
             == models.POST_MYOCARDIAL_INFARCTION_STATE_NAME
         )
         acute_history = index[mask_chronic_is | mask_post_mi]
-        df.loc[
-            acute_history, self.scheduled_visit_date_column
-        ] = self.schedule_followup(
+        df.loc[acute_history, self.scheduled_visit_date_column] = self.schedule_followup(
             index=acute_history,
             event_time=event_time,
             min_followup=0,
@@ -248,7 +246,6 @@ class HealthcareVisits:
         """Determine the probability of each simulant being medicated"""
         medication_coverage_covariates = {}
         med_types = data_values.BASELINE_MEDICATION_COVERAGE_COEFFICIENTS._fields
-        # TODO: typo in docs - confirm this is correct when clarified
         for med_type in med_types:
             (
                 c_int,
@@ -286,9 +283,6 @@ class HealthcareVisits:
         medicated_ldlc = medicated_states[medicated_states.isin(["LDLC", "BOTH"])].index
 
         # Define what level of medication for the medicated simulants
-        # SDB QUESTION: THE BELOW DOES NOT SEEM TO BE PROVIDING EXPECTED RESULTS - CONFIRM IT'S WORKING
-        #   SBP: 18% of 3718 goes to level 3 (2 drugs 1/2 dose) instead of the expected 43%
-        #   LDLC: 2.3% to 1 (low), 5.4% to 4 (high), 92.3% to 2 (med) instead of expected 3.82, 24.24, and 71.94
         df.loc[medicated_sbp, self.sbp_medication_column] = self.randomness.choice(
             medicated_sbp,
             choices=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["sbp"].keys()),
@@ -319,7 +313,7 @@ class HealthcareVisits:
             min_followup: minimum number of days out to schedule followup
             max_followup: maximum number of days out to schedule followup
         """
-        breakpoint()
+
         # Update visit type
         df[self.visit_type_column] = data_values.VISIT_TYPE.NONE  # Reset from last time step
         for k in visitors:
@@ -352,46 +346,56 @@ class HealthcareVisits:
         return df
 
     def update_treatment(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Applies treatment ramps"""
+        """Applies treatment ramps
+        
+        Arguments:
+            df: state table subset to include only simulants who visit the doctor
+        """
         df["to_schedule"] = np.nan  # temporary column
         df = self.apply_sbp_treatment_ramp(df)
         df = self.apply_ldlc_treatment_ramp(df)
         return df, df[df["to_schedule"].notna()].index
 
     def treat_not_currently_medicated_sbp(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Applies the SBP treatment ramp to simulants not already on medication
+        
+        Arguments:
+            df: dataframe of simulants subset to those visiting the doctor and
+                not already medicated
+        """
+
+        # Generate indexes for simulants who overcome therapeutic inertia and
+        # who have medium and high (measured) SBP levels
+        overcome_therapeutic_inertia = df.index[
+            self.randomness.get_draw(df.index) > data_values.THERAPEUTIC_INERTIA_NO_START
+        ]
         mid_sbp = df[
             (df["measured_level"] >= data_values.SBP_THRESHOLD.LOW)
             & (df["measured_level"] < data_values.SBP_THRESHOLD.HIGH)
         ].index
-        high_sbp = df[df["measured_level"] >= data_values.SBP_THRESHOLD.LOW].index
+        high_sbp = df[df["measured_level"] >= data_values.SBP_THRESHOLD.HIGH].index
+
+        # Low-SBP patients: do nothing
 
         # Mid-SBP patients
-        # SDB QUESTION - 9/40 (22.5%), not the expected 41.76%
-        #   I confirmed it works on 1000-long index
-        do_not_prescribe_mid_sbp = mid_sbp[
-            self.randomness.get_draw(mid_sbp) <= data_values.THERAPEUTIC_INERTIA_NO_START
-        ]
-        to_prescribe_mid_sbp = mid_sbp.difference(do_not_prescribe_mid_sbp)
+        to_prescribe_mid_sbp = mid_sbp.intersection(overcome_therapeutic_inertia)
+        do_not_prescribe_mid_sbp = mid_sbp.difference(to_prescribe_mid_sbp)
+        # If no tx prescribed, still schedule a followup
         df.loc[do_not_prescribe_mid_sbp, "to_schedule"] = 1
+        # If tx prescribed, it must be one_drug_half_dose; also schedule followup
         df.loc[
             to_prescribe_mid_sbp, self.sbp_medication_column
         ] = data_values.MEDICATION_RAMP["sbp"][
             data_values.SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE
         ]
-        # TODO: Implement outreach intervention
         df.loc[to_prescribe_mid_sbp, "to_schedule"] = 1
 
         # High-SBP patients
-        # SDB QUESTION - 5/20 (25%), not the expected 41.76%
-        #   I confirmed it works on 10000-long index
-        not_prescribed_high_sbp = high_sbp[
-            self.randomness.get_draw(high_sbp) <= data_values.THERAPEUTIC_INERTIA_NO_START
-        ]
-        to_prescribe_high_sbp = high_sbp.difference(not_prescribed_high_sbp)
-        df.loc[not_prescribed_high_sbp, "to_schedule"] = 1
-        # SBP QUESTION: is this working? out of 15 draws on first initialization, all get assigned two_drug_half_dose
-        #   expected 55% level 1, 45% level 3. I confirmed it works with larger indexes, but stills eems weird
-        #   anecdotally, I ran a 10-long index like 20 times and never saw all one level
+        to_prescribe_high_sbp = high_sbp.intersection(overcome_therapeutic_inertia)
+        do_not_prescribe_high_sbp = high_sbp.difference(to_prescribe_high_sbp)
+        # If no tx prescribed, still schedule a followup
+        df.loc[do_not_prescribe_high_sbp, "to_schedule"] = 1
+        # If tx prescribed, apply ramp and schedule a followup
         df.loc[to_prescribe_high_sbp, self.sbp_medication_column] = self.randomness.choice(
             to_prescribe_high_sbp,
             choices=list(
@@ -399,15 +403,26 @@ class HealthcareVisits:
             ),
             p=list(data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["sbp"]["high"].values()),
         )
-        # TODO: implement outreach intervention
         df.loc[to_prescribe_high_sbp, "to_schedule"] = 1
 
         return df
 
     def treat_currently_medicated_sbp(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Applies the SBP treatment ramp to simulants already on medication
+        
+        Arguments:
+            df: dataframe of simulants subset to those visiting the doctor and
+                who are already on medication
+        """
+
+        # Generate indexes for simulants who overcome therapeutic inertia, are
+        # adherent to their medication, who are not already medicated, and who
+        # have low and high (measured) SBP levels
         low_sbp = df[df["measured_level"] < data_values.SBP_THRESHOLD.HIGH].index
         high_sbp = df[df["measured_level"] >= data_values.SBP_THRESHOLD.HIGH].index
-        # SDB QUESTION - Can I front-load all probabilties, eg therapeutic inertia?
+        overcome_therapeutic_inertia = df.index[
+            self.randomness.get_draw(df.index) > data_values.THERAPEUTIC_INERTIA_NO_START
+        ]
         adherent = df[
             df[self.sbp_medication_adherence_type_column]
             == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
@@ -416,20 +431,23 @@ class HealthcareVisits:
             df[self.sbp_medication_column] < max(data_values.MEDICATION_RAMP["sbp"].values())
         ].index
 
-        # Low-SBP patients
+        # Low-SBP patients - just schedule a followup
         df.loc[low_sbp, "to_schedule"] = 1
 
         # High-SBP patients
-        # SDB QUESTIOIN: get_draw seems to somewhat consistently give a low mean
-        med_change = high_sbp[
-            self.randomness.get_draw(high_sbp) > data_values.THERAPEUTIC_INERTIA_NO_START
-        ]
-        med_change = med_change.intersection(adherent).intersection(not_already_max_medicated)
-        no_med_change = high_sbp.difference(med_change)
-        df.loc[no_med_change, "to_schedule"] = 1
-        df.loc[med_change, self.sbp_medication_column] = df[self.sbp_medication_column] + 1
-        # TODO: implement outreach intervention
-        df.loc[med_change, "to_schedule"] = 1
+        medication_change = (
+            high_sbp.intersection(overcome_therapeutic_inertia)
+            .intersection(adherent)
+            .intersection(not_already_max_medicated)
+        )
+        no_medication_change = high_sbp.difference(medication_change)
+        # If no tx changed, still schedule a followup
+        df.loc[no_medication_change, "to_schedule"] = 1
+        # If tx changed, move up ramp and schedule followup
+        df.loc[medication_change, self.sbp_medication_column] = (
+            df[self.sbp_medication_column] + 1
+        )
+        df.loc[medication_change, "to_schedule"] = 1
 
         return df
 
@@ -439,6 +457,11 @@ class HealthcareVisits:
         return scipy.stats.norm(loc=mean, scale=sd).ppf(draw)
 
     def apply_sbp_treatment_ramp(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Applies the SBP treatment ramp
+        
+        Arguments:
+            df: dataframe subset to simulants visiting the doctor
+        """
         df["measured_level"] = self.sbp(df.index) + self.get_measurement_error(
             df.index,
             mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
