@@ -10,7 +10,6 @@ class __Columns(NamedTuple):
 
     VISIT_TYPE: str = "visit_type"
     SCHEDULED_VISIT_DATE: str = "scheduled_date"
-    MISS_SCHEDULED_VISIT_PROBABILITY: str = "miss_scheduled_visit_probability"
     SBP_MEDICATION: str = "sbp_medication"
     SBP_MEDICATION_ADHERENCE: str = "sbp_medication_adherence"
     LDLC_MEDICATION: str = "ldlc_medication"
@@ -31,8 +30,7 @@ COLUMNS = __Columns()
 FOLLOWUP_MIN = 3 * 30  # 3 months
 FOLLOWUP_MAX = 6 * 30  # 6 months
 
-MISS_SCHEDULED_VISIT_PROBABILITY_MIN = 0.05
-MISS_SCHEDULED_VISIT_PROBABILITY_MAX = 0.35
+MISS_SCHEDULED_VISIT_PROBABILITY = 0.0868
 
 MEASUREMENT_ERROR_MEAN_SBP = 0  # mmHg
 MEASUREMENT_ERROR_SD_SBP = 2.9  # mmHg
