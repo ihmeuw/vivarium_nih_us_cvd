@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -345,7 +345,7 @@ class HealthcareVisits:
 
         return df
 
-    def update_treatment(self, df: pd.DataFrame) -> pd.DataFrame:
+    def update_treatment(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Index]:
         """Applies treatment ramps
         
         Arguments:
