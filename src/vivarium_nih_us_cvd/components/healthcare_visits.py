@@ -10,6 +10,9 @@ from vivarium.framework.population import SimulantData
 from vivarium_nih_us_cvd.constants import data_keys, data_values, models
 
 
+ATTENDED_VISIT_TYPES = [visit_type for visit_type in data_values.VISIT_TYPE if not visit_type in [data_values.VISIT_TYPE.MISSED, data_values.VISIT_TYPE.NONE]]
+
+
 class HealthcareVisits:
     """Manages healthcare utilization"""
 
@@ -305,12 +308,7 @@ class HealthcareVisits:
 
         # Update treatments (all visit types go through the same treatment ramp)
         to_visit = pd.Index([])
-        attended_visit_types = [
-            visit_type
-            for visit_type in data_values.VISIT_TYPE
-            if not visit_type in [data_values.VISIT_TYPE.MISSED, data_values.VISIT_TYPE.NONE]
-        ]
-        for visit_type in attended_visit_types:
+        for visit_type in ATTENDED_VISIT_TYPES:
             to_visit = to_visit.union(visitors.get(visit_type, pd.Index([])))
 
         df.loc[to_visit], to_schedule_followup = self.update_treatment(df.loc[to_visit])
