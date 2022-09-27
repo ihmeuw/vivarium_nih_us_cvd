@@ -44,10 +44,6 @@ class HealthcareVisits:
         # Add columns
         self.visit_type_column = data_values.COLUMNS.VISIT_TYPE
         self.scheduled_visit_date_column = data_values.COLUMNS.SCHEDULED_VISIT_DATE
-        # FIXME [MIC-3457]: doc update changes missed appointment probability
-        self.miss_scheduled_visit_probability_column = (
-            data_values.COLUMNS.MISS_SCHEDULED_VISIT_PROBABILITY
-        )
         self.sbp_medication_column = data_values.COLUMNS.SBP_MEDICATION
         self.sbp_medication_adherence_type_column = (
             data_values.COLUMNS.SBP_MEDICATION_ADHERENCE
@@ -60,7 +56,6 @@ class HealthcareVisits:
         columns_created = [
             self.visit_type_column,
             self.scheduled_visit_date_column,
-            self.miss_scheduled_visit_probability_column,
             self.sbp_medication_column,
             self.sbp_medication_adherence_type_column,
             self.ldlc_medication_column,
@@ -116,12 +111,6 @@ class HealthcareVisits:
         # Initialize new columns
         df[self.visit_type_column] = data_values.VISIT_TYPE.NONE
         df[self.scheduled_visit_date_column] = pd.NaT
-        # FIXME [MIC-3457]: doc update changes missed appointment probability
-        lower = data_values.MISS_SCHEDULED_VISIT_PROBABILITY_MIN
-        upper = data_values.MISS_SCHEDULED_VISIT_PROBABILITY_MAX
-        df[self.miss_scheduled_visit_probability_column] = lower + (
-            upper - lower
-        ) * self.randomness.get_draw(index)
         df[self.sbp_medication_column] = np.nan
         df[self.ldlc_medication_column] = np.nan
         df[self.sbp_medication_adherence_type_column] = self.randomness.choice(
@@ -175,7 +164,6 @@ class HealthcareVisits:
                 [
                     self.visit_type_column,
                     self.scheduled_visit_date_column,
-                    self.miss_scheduled_visit_probability_column,
                     self.sbp_medication_column,
                     self.sbp_medication_adherence_type_column,
                     self.ldlc_medication_column,
@@ -213,10 +201,7 @@ class HealthcareVisits:
         )
         scheduled_non_emergency = df[mask_scheduled_non_emergency].index
         # Missed scheduled (non-emergency) visits (these do not get re-scheduled)
-        missed_visit = self.randomness.filter_for_probability(
-            scheduled_non_emergency,
-            df.loc[scheduled_non_emergency, self.miss_scheduled_visit_probability_column],
-        )  # pd.Index
+        missed_visit = scheduled_non_emergency[self.randomness.get_draw(scheduled_non_emergency) <= data_values.MISS_SCHEDULED_VISIT_PROBABILITY]
         visitors[data_values.VISIT_TYPE.MISSED] = missed_visit
         df.loc[missed_visit, self.scheduled_visit_date_column] = pd.NaT  # no re-schedule
         visit_scheduled = scheduled_non_emergency.difference(missed_visit)
