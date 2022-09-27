@@ -227,7 +227,7 @@ class HealthcareVisits:
             ]
         )
 
-    def calculate_medication_coverage_probabilities(self, df: pd.DataFrame) -> Dict:
+    def calculate_medication_coverage_probabilities(self, df: pd.DataFrame) -> pd.DataFrame:
         """Determine the probability of each simulant being medicated"""
         medication_coverage_covariates = {}
         med_types = data_values.BASELINE_MEDICATION_COVERAGE_COEFFICIENTS._fields
@@ -255,14 +255,13 @@ class HealthcareVisits:
             )
         p_medication["NONE"] = pd.Series(1 / p_denominator, name="NONE")
 
-        return p_medication
+        return pd.concat(p_medication, axis=1)
 
     def initialize_medication_coverage(self, df: pd.DataFrame):
         """Initializes medication coverage"""
         p_medication = self.calculate_medication_coverage_probabilities(df)
-        df_p_meds = pd.concat(p_medication, axis=1)
         medicated_states = self.randomness.choice(
-            df_p_meds.index, choices=df_p_meds.columns, p=np.array(df_p_meds)
+            p_medication.index, choices=p_medication.columns, p=np.array(p_medication)
         )
         medicated_sbp = medicated_states[medicated_states.isin(["SBP", "BOTH"])].index
         medicated_ldlc = medicated_states[medicated_states.isin(["LDLC", "BOTH"])].index
