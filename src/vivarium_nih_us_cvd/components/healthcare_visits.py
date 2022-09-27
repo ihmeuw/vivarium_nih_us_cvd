@@ -10,7 +10,11 @@ from vivarium.framework.population import SimulantData
 from vivarium_nih_us_cvd.constants import data_keys, data_values, models
 
 
-ATTENDED_VISIT_TYPES = [visit_type for visit_type in data_values.VISIT_TYPE if not visit_type in [data_values.VISIT_TYPE.MISSED, data_values.VISIT_TYPE.NONE]]
+ATTENDED_VISIT_TYPES = [
+    visit_type
+    for visit_type in data_values.VISIT_TYPE
+    if not visit_type in [data_values.VISIT_TYPE.MISSED, data_values.VISIT_TYPE.NONE]
+]
 
 
 class HealthcareVisits:
@@ -204,7 +208,10 @@ class HealthcareVisits:
         )
         scheduled_non_emergency = df[mask_scheduled_non_emergency].index
         # Missed scheduled (non-emergency) visits (these do not get re-scheduled)
-        missed_visit = scheduled_non_emergency[self.randomness.get_draw(scheduled_non_emergency) <= data_values.MISS_SCHEDULED_VISIT_PROBABILITY]
+        missed_visit = scheduled_non_emergency[
+            self.randomness.get_draw(scheduled_non_emergency)
+            <= data_values.MISS_SCHEDULED_VISIT_PROBABILITY
+        ]
         visitors[data_values.VISIT_TYPE.MISSED] = missed_visit
         df.loc[missed_visit, self.scheduled_visit_date_column] = pd.NaT  # no re-schedule
         visit_scheduled = scheduled_non_emergency.difference(missed_visit)
@@ -329,7 +336,7 @@ class HealthcareVisits:
 
     def update_treatment(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Index]:
         """Applies treatment ramps
-        
+
         Arguments:
             df: state table subset to include only simulants who visit the doctor
         """
@@ -340,7 +347,7 @@ class HealthcareVisits:
 
     def treat_not_currently_medicated_sbp(self, df: pd.DataFrame) -> pd.DataFrame:
         """Applies the SBP treatment ramp to simulants not already on medication
-        
+
         Arguments:
             df: dataframe of simulants subset to those visiting the doctor and
                 not already medicated
@@ -387,7 +394,7 @@ class HealthcareVisits:
 
     def treat_currently_medicated_sbp(self, df: pd.DataFrame) -> pd.DataFrame:
         """Applies the SBP treatment ramp to simulants already on medication
-        
+
         Arguments:
             df: dataframe of simulants subset to those visiting the doctor and
                 who are already on medication
@@ -434,7 +441,7 @@ class HealthcareVisits:
 
     def apply_sbp_treatment_ramp(self, df: pd.DataFrame) -> pd.DataFrame:
         """Applies the SBP treatment ramp
-        
+
         Arguments:
             df: dataframe subset to simulants visiting the doctor
         """
