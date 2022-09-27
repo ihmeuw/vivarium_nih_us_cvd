@@ -360,24 +360,21 @@ class HealthcareVisits:
         # Low-SBP patients: do nothing
 
         # Mid-SBP patients
+        # Everyone gets scheduled a followup
+        df.loc[mid_sbp, "to_schedule"] = 1
+        # If tx prescribed, it must be one_drug_half_dose
         to_prescribe_mid_sbp = mid_sbp.intersection(overcome_therapeutic_inertia)
-        do_not_prescribe_mid_sbp = mid_sbp.difference(to_prescribe_mid_sbp)
-        # If no tx prescribed, still schedule a followup
-        df.loc[do_not_prescribe_mid_sbp, "to_schedule"] = 1
-        # If tx prescribed, it must be one_drug_half_dose; also schedule followup
         df.loc[
             to_prescribe_mid_sbp, self.sbp_medication_column
         ] = data_values.MEDICATION_RAMP["sbp"][
             data_values.SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE
         ]
-        df.loc[to_prescribe_mid_sbp, "to_schedule"] = 1
 
         # High-SBP patients
+        # Everyone gets scheduled a followup
+        df.loc[high_sbp, "to_schedule"] = 1
+        # If tx prescribed, apply ramp
         to_prescribe_high_sbp = high_sbp.intersection(overcome_therapeutic_inertia)
-        do_not_prescribe_high_sbp = high_sbp.difference(to_prescribe_high_sbp)
-        # If no tx prescribed, still schedule a followup
-        df.loc[do_not_prescribe_high_sbp, "to_schedule"] = 1
-        # If tx prescribed, apply ramp and schedule a followup
         df.loc[to_prescribe_high_sbp, self.sbp_medication_column] = self.randomness.choice(
             to_prescribe_high_sbp,
             choices=list(
@@ -385,7 +382,6 @@ class HealthcareVisits:
             ),
             p=list(data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["sbp"]["high"].values()),
         )
-        df.loc[to_prescribe_high_sbp, "to_schedule"] = 1
 
         return df
 
@@ -417,19 +413,17 @@ class HealthcareVisits:
         df.loc[low_sbp, "to_schedule"] = 1
 
         # High-SBP patients
+        # Everyone gets schecduled a followup
+        df.loc[high_sbp, "to_schedule"] = 1
+        # If tx changed, move up ramp
         medication_change = (
             high_sbp.intersection(overcome_therapeutic_inertia)
             .intersection(adherent)
             .intersection(not_already_max_medicated)
         )
-        no_medication_change = high_sbp.difference(medication_change)
-        # If no tx changed, still schedule a followup
-        df.loc[no_medication_change, "to_schedule"] = 1
-        # If tx changed, move up ramp and schedule followup
         df.loc[medication_change, self.sbp_medication_column] = (
             df[self.sbp_medication_column] + 1
         )
-        df.loc[medication_change, "to_schedule"] = 1
 
         return df
 
