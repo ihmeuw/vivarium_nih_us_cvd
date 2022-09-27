@@ -207,13 +207,13 @@ class HealthcareVisits:
             & (~mask_emergency)
         )
         scheduled_non_emergency = df[mask_scheduled_non_emergency].index
+        df.loc[scheduled_non_emergency, self.scheduled_visit_date_column] = pd.NaT
         # Missed scheduled (non-emergency) visits (these do not get re-scheduled)
         missed_visit = scheduled_non_emergency[
             self.randomness.get_draw(scheduled_non_emergency)
             <= data_values.MISS_SCHEDULED_VISIT_PROBABILITY
         ]
         visitors[data_values.VISIT_TYPE.MISSED] = missed_visit
-        df.loc[missed_visit, self.scheduled_visit_date_column] = pd.NaT  # no re-schedule
         visit_scheduled = scheduled_non_emergency.difference(missed_visit)
         visitors[data_values.VISIT_TYPE.SCHEDULED] = visit_scheduled
 
@@ -317,10 +317,12 @@ class HealthcareVisits:
         to_visit = pd.Index([])
         for visit_type in ATTENDED_VISIT_TYPES:
             to_visit = to_visit.union(visitors.get(visit_type, pd.Index([])))
-
-        df.loc[to_visit], to_schedule_followup = self.update_treatment(df.loc[to_visit])
+        df.loc[to_visit, "to_schedule"] = np.nan  # temporary column
+        df.loc[to_visit] = self.apply_sbp_treatment_ramp(df.loc[to_visit])
+        df.loc[to_visit] = self.apply_ldlc_treatment_ramp(df.loc[to_visit])
 
         # Update scheduled visits (only if a future one does not already exist)
+        to_schedule_followup = df[df["to_schedule"].notna()].index
         has_followup_already_scheduled = df[
             (df[self.scheduled_visit_date_column] > event_time)
         ].index
@@ -333,17 +335,6 @@ class HealthcareVisits:
         )
 
         return df
-
-    def update_treatment(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Index]:
-        """Applies treatment ramps
-
-        Arguments:
-            df: state table subset to include only simulants who visit the doctor
-        """
-        df["to_schedule"] = np.nan  # temporary column
-        df = self.apply_sbp_treatment_ramp(df)
-        df = self.apply_ldlc_treatment_ramp(df)
-        return df, df[df["to_schedule"].notna()].index
 
     def treat_not_currently_medicated_sbp(self, df: pd.DataFrame) -> pd.DataFrame:
         """Applies the SBP treatment ramp to simulants not already on medication
