@@ -210,7 +210,9 @@ class HealthcareVisits:
         df.loc[visit_scheduled, self.visit_type_column] = data_values.VISIT_TYPE.SCHEDULED
 
         # Background visits (for those who did not go for another reason or miss their scheduled visit)
-        maybe_background = df.index.difference(visit_emergency.union(visit_missed).union(visit_scheduled))
+        maybe_background = df.index.difference(
+            visit_emergency.union(visit_missed).union(visit_scheduled)
+        )
         utilization_rate = self.background_utilization_rate(maybe_background)
         visit_background = self.randomness.filter_for_rate(
             maybe_background, utilization_rate

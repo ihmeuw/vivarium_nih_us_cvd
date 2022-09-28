@@ -176,9 +176,7 @@ class HealthcareVisitObserver:
         for label, group_mask in groups:
             for visit_type in data_values.VISIT_TYPE:
                 key = f"healthcare_visits_{visit_type}_{label}"
-                new_observations[key] = (
-                    sum(pop[group_mask].squeeze() == visit_type)
-                )
+                new_observations[key] = sum(pop[group_mask].squeeze() == visit_type)
         self.counter.update(new_observations)
 
     def metrics(self, index: "pd.Index", metrics: Dict[str, float]) -> Dict[str, float]:
