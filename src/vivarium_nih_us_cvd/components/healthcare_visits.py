@@ -9,12 +9,6 @@ from vivarium.framework.population import SimulantData
 
 from vivarium_nih_us_cvd.constants import data_keys, data_values, models
 
-ATTENDED_VISIT_TYPES = [
-    visit_type
-    for visit_type in data_values.VISIT_TYPE
-    if not visit_type in [data_values.VISIT_TYPE.MISSED, data_values.VISIT_TYPE.NONE]
-]
-
 
 class HealthcareVisits:
     """Manages healthcare utilization"""
@@ -149,7 +143,6 @@ class HealthcareVisits:
         )
 
         # Send simulants in an acute state to doctor
-        visitors = {}
         mask_acute_is = (
             df[models.ISCHEMIC_STROKE_MODEL_NAME] == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
         )
@@ -158,10 +151,10 @@ class HealthcareVisits:
             == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
         )
         emergency = index[(mask_acute_is | mask_acute_mi)]
-        visitors[data_values.VISIT_TYPE.EMERGENCY] = emergency
-        df.loc[emergency] = self.visit_doctor(
-            df=df.loc[emergency],
-            visitors=visitors,
+        df.loc[emergency, self.visit_type_column] = data_values.VISIT_TYPE.EMERGENCY
+        df = self.visit_doctor(
+            df=df,
+            visitors=emergency,
             event_time=event_time,
         )
 
@@ -185,7 +178,7 @@ class HealthcareVisits:
         keep that scheduled followup and do not schedule another one.
         """
         df = self.population_view.get(event.index, query='alive == "alive"')
-        visitors = {}
+        df[self.visit_type_column] = data_values.VISIT_TYPE.NONE  # Reset from last time step
 
         # Emergency visits
         mask_acute_is = (
@@ -197,7 +190,7 @@ class HealthcareVisits:
         )
         mask_emergency = mask_acute_is | mask_acute_mi
         visit_emergency = df[mask_emergency].index
-        visitors[data_values.VISIT_TYPE.EMERGENCY] = visit_emergency
+        df.loc[visit_emergency, self.visit_type_column] = data_values.VISIT_TYPE.EMERGENCY
 
         # Scheduled visits
         mask_scheduled_non_emergency = (
@@ -212,9 +205,9 @@ class HealthcareVisits:
             self.randomness.get_draw(scheduled_non_emergency)
             <= data_values.MISS_SCHEDULED_VISIT_PROBABILITY
         ]
-        visitors[data_values.VISIT_TYPE.MISSED] = visit_missed
+        df.loc[visit_missed, self.visit_type_column] = data_values.VISIT_TYPE.MISSED
         visit_scheduled = scheduled_non_emergency.difference(visit_missed)
-        visitors[data_values.VISIT_TYPE.SCHEDULED] = visit_scheduled
+        df.loc[visit_scheduled, self.visit_type_column] = data_values.VISIT_TYPE.SCHEDULED
 
         # Background visits (for those who did not go for another reason or miss their scheduled visit)
         maybe_background = df.index.difference(visit_emergency.union(visit_missed).union(visit_scheduled))
@@ -222,9 +215,10 @@ class HealthcareVisits:
         visit_background = self.randomness.filter_for_rate(
             maybe_background, utilization_rate
         )  # pd.Index
-        visitors[data_values.VISIT_TYPE.BACKGROUND] = visit_background
+        df.loc[visit_background, self.visit_type_column] = data_values.VISIT_TYPE.BACKGROUND
 
-        df = self.visit_doctor(df, visitors=visitors, event_time=event.time)
+        all_visitors = visit_emergency.union(visit_scheduled).union(visit_background)
+        df = self.visit_doctor(df, visitors=all_visitors, event_time=event.time)
 
         self.population_view.update(
             df[
@@ -259,10 +253,8 @@ class HealthcareVisits:
         # Calculate probabilities of being medicated
         p_medication = {}
         p_denominator = sum(medication_coverage_covariates.values()) + 1
-        for med_type in medication_coverage_covariates:
-            p_medication[med_type] = pd.Series(
-                medication_coverage_covariates[med_type] / p_denominator, name=med_type
-            )
+        for med_type, cov in medication_coverage_covariates.items():
+            p_medication[med_type] = pd.Series(cov / p_denominator, name=med_type)
         p_medication["none"] = pd.Series(1 / p_denominator, name="none")
 
         return pd.concat(p_medication, axis=1)
@@ -293,7 +285,7 @@ class HealthcareVisits:
     def visit_doctor(
         self,
         df: pd.DataFrame,
-        visitors: Dict[str, pd.Index],
+        visitors: pd.Index,
         event_time: pd.Timestamp,
         min_followup: int = data_values.FOLLOWUP_MIN,
         max_followup: int = data_values.FOLLOWUP_MAX,
@@ -301,25 +293,17 @@ class HealthcareVisits:
         """Updates treatment plans and schedules followups.
 
         Arguments:
-            df: state table to update
-            visitors: dictionary of all simulants visiting the doctor and their visit types
+            df: state table
+            visitors: index of all simulants visiting the doctor
             event_time: timestamp at end of the time step
             min_followup: minimum number of days out to schedule followup
             max_followup: maximum number of days out to schedule followup
         """
 
-        # Update visit type
-        df[self.visit_type_column] = data_values.VISIT_TYPE.NONE  # Reset from last time step
-        for visit_type in visitors:
-            df.loc[visitors[visit_type], self.visit_type_column] = visit_type
-
         # Update treatments (all visit types go through the same treatment ramp)
-        to_visit = pd.Index([])
-        for visit_type in ATTENDED_VISIT_TYPES:
-            to_visit = to_visit.union(visitors.get(visit_type, pd.Index([])))
-        df.loc[to_visit, "to_schedule"] = np.nan  # temporary column
-        df.loc[to_visit] = self.apply_sbp_treatment_ramp(df.loc[to_visit])
-        df.loc[to_visit] = self.apply_ldlc_treatment_ramp(df.loc[to_visit])
+        df.loc[visitors, "to_schedule"] = np.nan  # temporary column
+        df.loc[visitors] = self.apply_sbp_treatment_ramp(df.loc[visitors])
+        df.loc[visitors] = self.apply_ldlc_treatment_ramp(df.loc[visitors])
 
         # Update scheduled visits (only if a future one does not already exist)
         to_schedule_followup = df[df["to_schedule"].notna()].index
