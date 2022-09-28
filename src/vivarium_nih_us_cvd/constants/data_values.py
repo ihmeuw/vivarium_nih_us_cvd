@@ -206,20 +206,40 @@ BASELINE_MEDICATION_COVERAGE_SEX_MAPPING = {
 }
 
 
-class __BaselineMedicationCoverageCoefficients(NamedTuple):
-    """Coefficients used to calculate baseline medication coverage upon initialization"""
+class MedicationCoverageCoefficientsBaseClass(NamedTuple):
+    """Base class to define medication coverage coefficients"""
 
-    # Baselie medication coefficients for medication types, like (intercept, sbp, ldlc, age, sex)
-    SBP: tuple = (-6.75, 0.025, -0.0045, 0.05, 0.16)
-    LDLC: tuple = (-4.23, -0.0026, -0.005, 0.062, -0.19)
-    BOTH: tuple = (-6.26, 0.018, -0.014, 0.069, 0.13)
+    NAME: str
+    INTERCEPT: float
+    SBP: float
+    LDLC: float
+    AGE: float
+    SEX: float
 
     @property
     def name(self):
-        return "baseline_medication_coverage_coefficients"
+        return "medication_coverage_coefficients_base_class"
 
 
-BASELINE_MEDICATION_COVERAGE_COEFFICIENTS = __BaselineMedicationCoverageCoefficients()
+class __MedicationCoveragecoefficients(NamedTuple):
+    """Coefficients used to calculate baseline medication coverage upon initialization"""
+
+    SBP: MedicationCoverageCoefficientsBaseClass = MedicationCoverageCoefficientsBaseClass(
+        "sbp", -6.75, 0.025, -0.0045, 0.05, 0.16
+    )
+    LDLC: MedicationCoverageCoefficientsBaseClass = MedicationCoverageCoefficientsBaseClass(
+        "ldlc", -4.23, -0.0026, -0.005, 0.062, -0.19
+    )
+    BOTH: MedicationCoverageCoefficientsBaseClass = MedicationCoverageCoefficientsBaseClass(
+        "both", -6.26, 0.018, -0.014, 0.069, 0.13
+    )
+
+    @property
+    def name(self):
+        return "medication coverage coefficients"
+
+
+MEDICATION_COVERAGE_COEFFICIENTS = __MedicationCoveragecoefficients()
 
 
 ###################

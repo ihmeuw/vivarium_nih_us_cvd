@@ -9,7 +9,6 @@ from vivarium.framework.population import SimulantData
 
 from vivarium_nih_us_cvd.constants import data_keys, data_values, models
 
-
 ATTENDED_VISIT_TYPES = [
     visit_type
     for visit_type in data_values.VISIT_TYPE
@@ -239,17 +238,18 @@ class HealthcareVisits:
 
     def calculate_medication_coverage_probabilities(self, df: pd.DataFrame) -> pd.DataFrame:
         """Determine the probability of each simulant being medicated"""
+
+        # Calculate the covariates
         medication_coverage_covariates = {}
-        med_types = data_values.BASELINE_MEDICATION_COVERAGE_COEFFICIENTS._fields
-        for med_type in med_types:
-            (
-                c_int,
-                c_sbp,
-                c_ldlc,
-                c_age,
-                c_sex,
-            ) = eval(f"data_values.BASELINE_MEDICATION_COVERAGE_COEFFICIENTS.{med_type}")
-            medication_coverage_covariates[med_type] = np.exp(
+        for (
+            name,
+            c_int,
+            c_sbp,
+            c_ldlc,
+            c_age,
+            c_sex,
+        ) in data_values.MEDICATION_COVERAGE_COEFFICIENTS:
+            medication_coverage_covariates[name] = np.exp(
                 c_int
                 + c_sbp * self.sbp(df.index)
                 + c_ldlc * self.ldlc(df.index)
@@ -259,11 +259,11 @@ class HealthcareVisits:
         # Calculate probabilities of being medicated
         p_medication = {}
         p_denominator = sum(medication_coverage_covariates.values()) + 1
-        for med_type in med_types:
+        for med_type in medication_coverage_covariates:
             p_medication[med_type] = pd.Series(
                 medication_coverage_covariates[med_type] / p_denominator, name=med_type
             )
-        p_medication["NONE"] = pd.Series(1 / p_denominator, name="NONE")
+        p_medication["none"] = pd.Series(1 / p_denominator, name="none")
 
         return pd.concat(p_medication, axis=1)
 
@@ -273,8 +273,8 @@ class HealthcareVisits:
         medicated_states = self.randomness.choice(
             p_medication.index, choices=p_medication.columns, p=np.array(p_medication)
         )
-        medicated_sbp = medicated_states[medicated_states.isin(["SBP", "BOTH"])].index
-        medicated_ldlc = medicated_states[medicated_states.isin(["LDLC", "BOTH"])].index
+        medicated_sbp = medicated_states[medicated_states.isin(["sbp", "both"])].index
+        medicated_ldlc = medicated_states[medicated_states.isin(["ldlc", "both"])].index
 
         # Define what level of medication for the medicated simulants
         df.loc[medicated_sbp, self.sbp_medication_column] = self.randomness.choice(
