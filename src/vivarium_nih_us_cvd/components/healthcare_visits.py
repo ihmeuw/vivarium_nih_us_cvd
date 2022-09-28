@@ -208,16 +208,16 @@ class HealthcareVisits:
         scheduled_non_emergency = df[mask_scheduled_non_emergency].index
         df.loc[scheduled_non_emergency, self.scheduled_visit_date_column] = pd.NaT
         # Missed scheduled (non-emergency) visits (these do not get re-scheduled)
-        missed_visit = scheduled_non_emergency[
+        visit_missed = scheduled_non_emergency[
             self.randomness.get_draw(scheduled_non_emergency)
             <= data_values.MISS_SCHEDULED_VISIT_PROBABILITY
         ]
-        visitors[data_values.VISIT_TYPE.MISSED] = missed_visit
-        visit_scheduled = scheduled_non_emergency.difference(missed_visit)
+        visitors[data_values.VISIT_TYPE.MISSED] = visit_missed
+        visit_scheduled = scheduled_non_emergency.difference(visit_missed)
         visitors[data_values.VISIT_TYPE.SCHEDULED] = visit_scheduled
 
-        # Background visits (for those who did not go for another reason (even missed screenings))
-        maybe_background = df.index.difference(visit_emergency.union(visit_scheduled))
+        # Background visits (for those who did not go for another reason or miss their scheduled visit)
+        maybe_background = df.index.difference(visit_emergency.union(visit_missed).union(visit_scheduled))
         utilization_rate = self.background_utilization_rate(maybe_background)
         visit_background = self.randomness.filter_for_rate(
             maybe_background, utilization_rate
@@ -310,8 +310,8 @@ class HealthcareVisits:
 
         # Update visit type
         df[self.visit_type_column] = data_values.VISIT_TYPE.NONE  # Reset from last time step
-        for k in visitors:
-            df.loc[visitors[k], self.visit_type_column] = df[self.visit_type_column] + f";{k}"
+        for visit_type in visitors:
+            df.loc[visitors[visit_type], self.visit_type_column] = visit_type
 
         # Update treatments (all visit types go through the same treatment ramp)
         to_visit = pd.Index([])
