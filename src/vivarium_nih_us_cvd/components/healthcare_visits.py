@@ -293,7 +293,7 @@ class HealthcareVisits:
     def visit_doctor(
         self,
         df: pd.DataFrame,
-        visitors: Dict,
+        visitors: Dict[str, pd.Index],
         event_time: pd.Timestamp,
         min_followup: int = data_values.FOLLOWUP_MIN,
         max_followup: int = data_values.FOLLOWUP_MAX,
