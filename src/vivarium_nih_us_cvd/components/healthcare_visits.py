@@ -1,6 +1,3 @@
-from typing import Dict, Tuple
-
-import numpy as np
 import pandas as pd
 import scipy
 from vivarium.framework.engine import Builder
@@ -8,10 +5,11 @@ from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 
 from vivarium_nih_us_cvd.constants import data_keys, data_values, models
+from vivarium_nih_us_cvd.utilities import get_measurement_error
 
 
 class HealthcareVisits:
-    """Manages healthcare utilization"""
+    """Manages healthcare utilization and scheduling of appointments."""
 
     configuration_defaults = {}
 
@@ -41,32 +39,28 @@ class HealthcareVisits:
             "utilization_rate", background_utilization_rate, requires_columns=["age", "sex"]
         )
 
-        # Add columns
+        # Columns
+        self.ischemic_stroke_state_column = models.ISCHEMIC_STROKE_MODEL_NAME
+        self.myocardial_infarction_state_column = models.MYOCARDIAL_INFARCTION_MODEL_NAME
         self.visit_type_column = data_values.COLUMNS.VISIT_TYPE
         self.scheduled_visit_date_column = data_values.COLUMNS.SCHEDULED_VISIT_DATE
         self.sbp_medication_column = data_values.COLUMNS.SBP_MEDICATION
-        self.sbp_medication_adherence_type_column = (
-            data_values.COLUMNS.SBP_MEDICATION_ADHERENCE
-        )
         self.ldlc_medication_column = data_values.COLUMNS.LDLC_MEDICATION
-        self.ldlc_medication_adherence_type_column = (
-            data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE
-        )
 
         columns_created = [
             self.visit_type_column,
             self.scheduled_visit_date_column,
-            self.sbp_medication_column,
-            self.sbp_medication_adherence_type_column,
-            self.ldlc_medication_column,
-            self.ldlc_medication_adherence_type_column,
         ]
+
         columns_required = [
             "age",
             "sex",
-            models.ISCHEMIC_STROKE_MODEL_NAME,
-            models.MYOCARDIAL_INFARCTION_MODEL_NAME,
+            self.ischemic_stroke_state_column,
+            self.myocardial_infarction_state_column,
+            self.sbp_medication_column,
+            self.ldlc_medication_column,
         ]
+
         self.population_view = builder.population.get_view(columns_required + columns_created)
 
         values_required = [
@@ -83,365 +77,175 @@ class HealthcareVisits:
         )
 
         # Register listeners
-        builder.event.register_listener("time_step__cleanup", self.on_time_step_cleanup)
+        builder.event.register_listener(
+            "time_step__cleanup",
+            self.on_time_step_cleanup,
+            priority=data_values.COMPONENT_PRIORITIES.HEALTHCARE_VISITS,
+        )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
-        """All simulants on SBP medication, LDL-C medication, or a history of
-        an acute event (ie intialized in state post-MI or chronic IS) should be
-        initialized with a scheduled followup visit 0-6 months out, uniformly
-        distributed. All simulants initialized in an acute state should be
-        scheduled a followup visit 3-6 months out, uniformly distributed.
+        """Initializes the visit type of simulants in an emergency state so
+        that they can be sent to the medication ramps.
 
-        For simplicity, do not assign background screenings on initialization.
-
-        A burn-in period allows for the observed simulation to start with more
-        realistic treatments and scheduled followups.
+        Note that scheduled visits are initialized in the Treatment componenet
+        due to their reliance on initial/baseline medication coverage.
         """
-        index = pop_data.index
         event_time = self.clock() + self.step_size()
-        df = self.population_view.subview(
+        pop = self.population_view.subview(
             [
                 "age",
                 "sex",
-                models.ISCHEMIC_STROKE_MODEL_NAME,
-                models.MYOCARDIAL_INFARCTION_MODEL_NAME,
+                self.ischemic_stroke_state_column,
+                self.myocardial_infarction_state_column,
+                self.sbp_medication_column,
+                self.ldlc_medication_column,
             ]
         ).get(pop_data.index)
 
         # Initialize new columns
-        df[self.visit_type_column] = data_values.VISIT_TYPE.NONE
-        df[self.scheduled_visit_date_column] = pd.NaT
-        df[self.sbp_medication_column] = np.nan
-        df[self.ldlc_medication_column] = np.nan
-        df[self.sbp_medication_adherence_type_column] = self.randomness.choice(
-            index,
-            choices=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY["sbp"].keys()),
-            p=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY["sbp"].values()),
-        )
-        df[self.ldlc_medication_adherence_type_column] = self.randomness.choice(
-            index,
-            choices=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY["ldlc"].keys()),
-            p=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY["ldlc"].values()),
-        )
+        pop[self.visit_type_column] = data_values.VISIT_TYPE.NONE
+        pop[self.scheduled_visit_date_column] = pd.NaT
 
-        df = self.initialize_medication_coverage(df)
+        # Update simulants initialized in an emergency state
+        mask_acute_is = (
+            pop[self.ischemic_stroke_state_column] == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
+        )
+        mask_acute_mi = (
+            pop[self.myocardial_infarction_state_column]
+            == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
+        )
+        emergency = pop.index[(mask_acute_is | mask_acute_mi)]
+        pop.loc[emergency, self.visit_type_column] = data_values.VISIT_TYPE.EMERGENCY
 
-        # Schedule followups for simulants in a post/chronic state
+        # Schedule followups
+        # On medication and/or Post/chronic state 0-6 months out
+        on_medication = pop[
+            (pop[self.sbp_medication_column].notna())
+            | (pop[self.ldlc_medication_column].notna())
+        ].index
         mask_chronic_is = (
-            df[models.ISCHEMIC_STROKE_MODEL_NAME] == models.CHRONIC_ISCHEMIC_STROKE_STATE_NAME
+            pop[self.ischemic_stroke_state_column]
+            == models.CHRONIC_ISCHEMIC_STROKE_STATE_NAME
         )
         mask_post_mi = (
-            df[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
+            pop[self.myocardial_infarction_state_column]
             == models.POST_MYOCARDIAL_INFARCTION_STATE_NAME
         )
-        acute_history = index[mask_chronic_is | mask_post_mi]
-        df.loc[acute_history, self.scheduled_visit_date_column] = self.schedule_followup(
+        acute_history = pop.index[mask_chronic_is | mask_post_mi]
+        pop.loc[
+            on_medication.union(acute_history), self.scheduled_visit_date_column
+        ] = self.schedule_followup(
             index=acute_history,
             event_time=event_time,
             min_followup=0,
             max_followup=(data_values.FOLLOWUP_MAX - data_values.FOLLOWUP_MIN),
         )
-
-        # Send simulants in an acute state to doctor
-        mask_acute_is = (
-            df[models.ISCHEMIC_STROKE_MODEL_NAME] == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
-        )
-        mask_acute_mi = (
-            df[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
-            == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
-        )
-        emergency = index[(mask_acute_is | mask_acute_mi)]
-        df.loc[emergency, self.visit_type_column] = data_values.VISIT_TYPE.EMERGENCY
-        df = self.visit_doctor(
-            df=df,
-            visitors=emergency,
+        # Emergency (acute) state 3-6 months out
+        pop.loc[emergency, self.scheduled_visit_date_column] = self.schedule_followup(
+            index=emergency,
             event_time=event_time,
         )
 
         self.population_view.update(
-            df[
-                [
-                    self.visit_type_column,
-                    self.scheduled_visit_date_column,
-                    self.sbp_medication_column,
-                    self.sbp_medication_adherence_type_column,
-                    self.ldlc_medication_column,
-                    self.ldlc_medication_adherence_type_column,
-                ]
-            ]
+            pop[[self.visit_type_column, self.scheduled_visit_date_column]]
         )
 
     def on_time_step_cleanup(self, event: Event) -> None:
         """Determine if someone will go for an emergency visit, background visit,
-        or followup visit. In the event that a simulant goes for an emergency or
-        background visit but already has a followup visit scheduled for the future,
-        keep that scheduled followup and do not schedule another one.
+        or followup visit and schedule followups. In the event that a simulant
+        already has a followup visit scheduled for the future, keep that scheduled
+        followup and do not schedule a new one or another one.
         """
-        df = self.population_view.get(event.index, query='alive == "alive"')
-        df[self.visit_type_column] = data_values.VISIT_TYPE.NONE  # Reset from last time step
+        pop = self.population_view.subview(
+            [
+                self.ischemic_stroke_state_column,
+                self.myocardial_infarction_state_column,
+                self.visit_type_column,
+                self.scheduled_visit_date_column,
+                self.sbp_medication_column,
+                self.ldlc_medication_column,
+            ]
+        ).get(event.index, query='alive == "alive"')
+        pop[self.visit_type_column] = data_values.VISIT_TYPE.NONE
 
         # Emergency visits
         mask_acute_is = (
-            df[models.ISCHEMIC_STROKE_MODEL_NAME] == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
+            pop[self.ischemic_stroke_state_column] == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
         )
         mask_acute_mi = (
-            df[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
+            pop[self.myocardial_infarction_state_column]
             == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
         )
         mask_emergency = mask_acute_is | mask_acute_mi
-        visit_emergency = df[mask_emergency].index
-        df.loc[visit_emergency, self.visit_type_column] = data_values.VISIT_TYPE.EMERGENCY
+        visit_emergency = pop[mask_emergency].index
+        pop.loc[visit_emergency, self.visit_type_column] = data_values.VISIT_TYPE.EMERGENCY
 
-        # Scheduled visits
+        # Missed scheduled (non-emergency) visits (these do not get re-scheduled)
         mask_scheduled_non_emergency = (
-            (df[self.scheduled_visit_date_column] > (event.time - event.step_size))
-            & (df[self.scheduled_visit_date_column] <= event.time)
+            (pop[self.scheduled_visit_date_column] > (event.time - event.step_size))
+            & (pop[self.scheduled_visit_date_column] <= event.time)
             & (~mask_emergency)
         )
-        scheduled_non_emergency = df[mask_scheduled_non_emergency].index
-        df.loc[scheduled_non_emergency, self.scheduled_visit_date_column] = pd.NaT
-        # Missed scheduled (non-emergency) visits (these do not get re-scheduled)
+        scheduled_non_emergency = pop[mask_scheduled_non_emergency].index
+        pop.loc[scheduled_non_emergency, self.scheduled_visit_date_column] = pd.NaT
         visit_missed = scheduled_non_emergency[
             self.randomness.get_draw(scheduled_non_emergency)
             <= data_values.MISS_SCHEDULED_VISIT_PROBABILITY
         ]
-        df.loc[visit_missed, self.visit_type_column] = data_values.VISIT_TYPE.MISSED
+        pop.loc[visit_missed, self.visit_type_column] = data_values.VISIT_TYPE.MISSED
+
+        # Scheduled visits
         visit_scheduled = scheduled_non_emergency.difference(visit_missed)
-        df.loc[visit_scheduled, self.visit_type_column] = data_values.VISIT_TYPE.SCHEDULED
+        pop.loc[visit_scheduled, self.visit_type_column] = data_values.VISIT_TYPE.SCHEDULED
 
         # Background visits (for those who did not go for another reason or miss their scheduled visit)
-        maybe_background = df.index.difference(
+        maybe_background = pop.index.difference(
             visit_emergency.union(visit_missed).union(visit_scheduled)
         )
         utilization_rate = self.background_utilization_rate(maybe_background)
         visit_background = self.randomness.filter_for_rate(
             maybe_background, utilization_rate
         )  # pd.Index
-        df.loc[visit_background, self.visit_type_column] = data_values.VISIT_TYPE.BACKGROUND
+        pop.loc[visit_background, self.visit_type_column] = data_values.VISIT_TYPE.BACKGROUND
 
+        # Take measurements (required to determine if a followup is required)
         all_visitors = visit_emergency.union(visit_scheduled).union(visit_background)
-        df = self.visit_doctor(df, visitors=all_visitors, event_time=event.time)
+        measured_sbp = self.sbp(all_visitors) + get_measurement_error(
+            index=all_visitors,
+            mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
+            sd=data_values.MEASUREMENT_ERROR_SD_SBP,
+            randomness=self.randomness,
+        )
+
+        # Schedule followups
+        visitors_high_sbp = all_visitors.intersection(
+            measured_sbp[measured_sbp >= data_values.SBP_THRESHOLD.LOW].index
+        )
+        visitors_on_sbp_medication = all_visitors.intersection(
+            pop[pop[self.sbp_medication_column].notna()].index
+        )
+        visitors_not_on_sbp_medication = all_visitors.difference(visitors_on_sbp_medication)
+        # Schedule those on sbp medication or those not on sbp medication but have a high sbp
+        needs_followup = visitors_on_sbp_medication.union(
+            visitors_not_on_sbp_medication.intersection(visitors_high_sbp)
+        )
+        # Do no re-schedule followups that already exist
+        has_followup_already_scheduled = pop[
+            (pop[self.scheduled_visit_date_column] > event.time)
+        ].index
+        to_schedule_followup = needs_followup.difference(has_followup_already_scheduled)
+        pop.loc[
+            to_schedule_followup, self.scheduled_visit_date_column
+        ] = self.schedule_followup(index=to_schedule_followup, event_time=event.time)
 
         self.population_view.update(
-            df[
+            pop[
                 [
                     self.visit_type_column,
                     self.scheduled_visit_date_column,
-                    self.sbp_medication_column,
                 ]
             ]
         )
-
-    def calculate_medication_coverage_probabilities(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Determine the probability of each simulant being medicated"""
-
-        # Calculate the covariates
-        medication_coverage_covariates = {}
-        for (
-            name,
-            c_int,
-            c_sbp,
-            c_ldlc,
-            c_age,
-            c_sex,
-        ) in data_values.MEDICATION_COVERAGE_COEFFICIENTS:
-            medication_coverage_covariates[name] = np.exp(
-                c_int
-                + c_sbp * self.sbp(df.index)
-                + c_ldlc * self.ldlc(df.index)
-                + c_age * df["age"]
-                + c_sex * df["sex"].map(data_values.BASELINE_MEDICATION_COVERAGE_SEX_MAPPING)
-            )
-        # Calculate probabilities of being medicated
-        p_medication = {}
-        p_denominator = sum(medication_coverage_covariates.values()) + 1
-        for med_type, cov in medication_coverage_covariates.items():
-            p_medication[med_type] = pd.Series(cov / p_denominator, name=med_type)
-        p_medication["none"] = pd.Series(1 / p_denominator, name="none")
-
-        return pd.concat(p_medication, axis=1)
-
-    def initialize_medication_coverage(self, df: pd.DataFrame):
-        """Initializes medication coverage"""
-        p_medication = self.calculate_medication_coverage_probabilities(df)
-        medicated_states = self.randomness.choice(
-            p_medication.index, choices=p_medication.columns, p=np.array(p_medication)
-        )
-        medicated_sbp = medicated_states[medicated_states.isin(["sbp", "both"])].index
-        medicated_ldlc = medicated_states[medicated_states.isin(["ldlc", "both"])].index
-
-        # Define what level of medication for the medicated simulants
-        df.loc[medicated_sbp, self.sbp_medication_column] = self.randomness.choice(
-            medicated_sbp,
-            choices=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["sbp"].keys()),
-            p=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["sbp"].values()),
-        )
-        df.loc[medicated_ldlc, self.ldlc_medication_column] = self.randomness.choice(
-            medicated_ldlc,
-            choices=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["ldlc"].keys()),
-            p=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["ldlc"].values()),
-        )
-
-        return df
-
-    def visit_doctor(
-        self,
-        df: pd.DataFrame,
-        visitors: pd.Index,
-        event_time: pd.Timestamp,
-        min_followup: int = data_values.FOLLOWUP_MIN,
-        max_followup: int = data_values.FOLLOWUP_MAX,
-    ) -> pd.DataFrame:
-        """Updates treatment plans and schedules followups.
-
-        Arguments:
-            df: state table
-            visitors: index of all simulants visiting the doctor
-            event_time: timestamp at end of the time step
-            min_followup: minimum number of days out to schedule followup
-            max_followup: maximum number of days out to schedule followup
-        """
-
-        # Update treatments (all visit types go through the same treatment ramp)
-        df.loc[visitors, "to_schedule"] = np.nan  # temporary column
-        df.loc[visitors] = self.apply_sbp_treatment_ramp(df.loc[visitors])
-        df.loc[visitors] = self.apply_ldlc_treatment_ramp(df.loc[visitors])
-
-        # Update scheduled visits (only if a future one does not already exist)
-        to_schedule_followup = df[df["to_schedule"].notna()].index
-        has_followup_already_scheduled = df[
-            (df[self.scheduled_visit_date_column] > event_time)
-        ].index
-        to_schedule_followup = to_schedule_followup.difference(has_followup_already_scheduled)
-
-        df.loc[
-            to_schedule_followup, self.scheduled_visit_date_column
-        ] = self.schedule_followup(
-            to_schedule_followup, event_time, min_followup, max_followup
-        )
-
-        return df
-
-    def treat_not_currently_medicated_sbp(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Applies the SBP treatment ramp to simulants not already on medication
-
-        Arguments:
-            df: dataframe of simulants subset to those visiting the doctor and
-                not already medicated
-        """
-
-        # Generate indexes for simulants who overcome therapeutic inertia and
-        # who have medium and high (measured) SBP levels
-        overcome_therapeutic_inertia = df.index[
-            self.randomness.get_draw(df.index) > data_values.THERAPEUTIC_INERTIA_NO_START
-        ]
-        mid_sbp = df[
-            (df["measured_level"] >= data_values.SBP_THRESHOLD.LOW)
-            & (df["measured_level"] < data_values.SBP_THRESHOLD.HIGH)
-        ].index
-        high_sbp = df[df["measured_level"] >= data_values.SBP_THRESHOLD.HIGH].index
-
-        # Low-SBP patients: do nothing
-
-        # Mid-SBP patients
-        # Everyone gets scheduled a followup
-        df.loc[mid_sbp, "to_schedule"] = 1
-        # If tx prescribed, it must be one_drug_half_dose
-        to_prescribe_mid_sbp = mid_sbp.intersection(overcome_therapeutic_inertia)
-        df.loc[
-            to_prescribe_mid_sbp, self.sbp_medication_column
-        ] = data_values.MEDICATION_RAMP["sbp"][
-            data_values.SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE
-        ]
-
-        # High-SBP patients
-        # Everyone gets scheduled a followup
-        df.loc[high_sbp, "to_schedule"] = 1
-        # If tx prescribed, apply ramp
-        to_prescribe_high_sbp = high_sbp.intersection(overcome_therapeutic_inertia)
-        df.loc[to_prescribe_high_sbp, self.sbp_medication_column] = self.randomness.choice(
-            to_prescribe_high_sbp,
-            choices=list(
-                data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["sbp"]["high"].keys()
-            ),
-            p=list(data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["sbp"]["high"].values()),
-        )
-
-        return df
-
-    def treat_currently_medicated_sbp(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Applies the SBP treatment ramp to simulants already on medication
-
-        Arguments:
-            df: dataframe of simulants subset to those visiting the doctor and
-                who are already on medication
-        """
-
-        # Generate indexes for simulants who overcome therapeutic inertia, are
-        # adherent to their medication, who are not already medicated, and who
-        # have low and high (measured) SBP levels
-        low_sbp = df[df["measured_level"] < data_values.SBP_THRESHOLD.HIGH].index
-        high_sbp = df[df["measured_level"] >= data_values.SBP_THRESHOLD.HIGH].index
-        overcome_therapeutic_inertia = df.index[
-            self.randomness.get_draw(df.index) > data_values.THERAPEUTIC_INERTIA_NO_START
-        ]
-        adherent = df[
-            df[self.sbp_medication_adherence_type_column]
-            == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
-        ].index
-        not_already_max_medicated = df[
-            df[self.sbp_medication_column] < max(data_values.MEDICATION_RAMP["sbp"].values())
-        ].index
-
-        # Low-SBP patients - just schedule a followup
-        df.loc[low_sbp, "to_schedule"] = 1
-
-        # High-SBP patients
-        # Everyone gets schecduled a followup
-        df.loc[high_sbp, "to_schedule"] = 1
-        # If tx changed, move up ramp
-        medication_change = (
-            high_sbp.intersection(overcome_therapeutic_inertia)
-            .intersection(adherent)
-            .intersection(not_already_max_medicated)
-        )
-        df.loc[medication_change, self.sbp_medication_column] = (
-            df[self.sbp_medication_column] + 1
-        )
-
-        return df
-
-    def get_measurement_error(self, index, mean, sd):
-        """Return measurement error assuming normal distribution"""
-        draw = self.randomness.get_draw(index)
-        return scipy.stats.norm(loc=mean, scale=sd).ppf(draw)
-
-    def apply_sbp_treatment_ramp(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Applies the SBP treatment ramp
-
-        Arguments:
-            df: dataframe subset to simulants visiting the doctor
-        """
-        df["measured_level"] = self.sbp(df.index) + self.get_measurement_error(
-            df.index,
-            mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
-            sd=data_values.MEASUREMENT_ERROR_SD_SBP,
-        )  # temporary column
-        currently_medicated = df[df[self.sbp_medication_column].notna()].index
-        not_currently_medicated = df.index.difference(currently_medicated)
-
-        df.loc[not_currently_medicated] = self.treat_not_currently_medicated_sbp(
-            df.loc[not_currently_medicated]
-        )
-        df.loc[currently_medicated] = self.treat_currently_medicated_sbp(
-            df.loc[currently_medicated]
-        )
-
-        return df
-
-    def apply_ldlc_treatment_ramp(self, df: pd.DataFrame) -> pd.DataFrame:
-        # TODO: [MIC-3375]
-        return df
 
     def schedule_followup(
         self,
