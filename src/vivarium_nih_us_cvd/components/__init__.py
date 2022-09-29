@@ -6,3 +6,4 @@ from .observers import (
     ResultsStratifier,
 )
 from .risks import Risk
+from .treatment import Treatment

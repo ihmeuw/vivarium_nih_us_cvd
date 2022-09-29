@@ -14,6 +14,8 @@ class __Columns(NamedTuple):
     SBP_MEDICATION_ADHERENCE: str = "sbp_medication_adherence"
     LDLC_MEDICATION: str = "ldlc_medication"
     LDLC_MEDICATION_ADHERENCE: str = "ldlc_medication_adherence"
+    BASELINE_SBP_MEDICATION: str = "baseline_sbp_medication"
+    BASELINE_LDLC_MEDICATION: str = "baseline_ldlc_medication"
 
     @property
     def name(self):
@@ -21,6 +23,25 @@ class __Columns(NamedTuple):
 
 
 COLUMNS = __Columns()
+
+
+########################
+# Component priorities #
+########################
+
+
+class __ComponentPriorities(NamedTuple):
+    """component listenr priorities that require something other than the default (5)"""
+
+    HEALTHCARE_VISITS: int = 5
+    TREATMENT: int = 6
+
+    @property
+    def name(self):
+        return "component_priorities"
+
+
+COMPONENT_PRIORITIES = __ComponentPriorities()
 
 
 #####################################
