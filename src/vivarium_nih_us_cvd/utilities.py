@@ -184,32 +184,3 @@ def get_measurement_error(
     """Return measurement error assuming normal distribution"""
     draw = randomness.get_draw(index)
     return stats.norm(loc=mean, scale=sd).ppf(draw)
-
-
-def schedule_followup(
-    index: pd.Index,
-    event_time: pd.Timestamp,
-    randomness: "RandomnessStream",
-    min_followup: int = data_values.FOLLOWUP_MIN,
-    max_followup: int = data_values.FOLLOWUP_MAX,
-) -> pd.Series:
-    """Schedules followup visits"""
-    return pd.Series(
-        event_time
-        + random_time_delta(
-            pd.Series(min_followup, index=index),
-            pd.Series(max_followup, index=index),
-            randomness,
-        ),
-        index=index,
-    )
-
-
-def random_time_delta(
-    start: pd.Series, end: pd.Series, randomness: "RandomnessStream"
-) -> pd.Series:
-    """Generate a random time delta for each individual in the start
-    and end series."""
-    return pd.to_timedelta(
-        start + (end - start) * randomness.get_draw(start.index), unit="day"
-    )

@@ -5,7 +5,7 @@ from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 
 from vivarium_nih_us_cvd.constants import data_keys, data_values, models
-from vivarium_nih_us_cvd.utilities import get_measurement_error, schedule_followup
+from vivarium_nih_us_cvd.utilities import get_measurement_error
 
 
 class HealthcareVisits:
@@ -134,18 +134,16 @@ class HealthcareVisits:
         acute_history = pop.index[mask_chronic_is | mask_post_mi]
         pop.loc[
             on_medication.union(acute_history), self.scheduled_visit_date_column
-        ] = schedule_followup(
+        ] = self.schedule_followup(
             index=acute_history,
             event_time=event_time,
-            randomness=self.randomness,
             min_followup=0,
             max_followup=(data_values.FOLLOWUP_MAX - data_values.FOLLOWUP_MIN),
         )
         # Emergency (acute) state 3-6 months out
-        pop.loc[emergency, self.scheduled_visit_date_column] = schedule_followup(
+        pop.loc[emergency, self.scheduled_visit_date_column] = self.schedule_followup(
             index=emergency,
             event_time=event_time,
-            randomness=self.randomness,
         )
 
         self.population_view.update(
@@ -236,9 +234,9 @@ class HealthcareVisits:
             (pop[self.scheduled_visit_date_column] > event.time)
         ].index
         to_schedule_followup = needs_followup.difference(has_followup_already_scheduled)
-        pop.loc[to_schedule_followup, self.scheduled_visit_date_column] = schedule_followup(
-            index=to_schedule_followup, event_time=event.time, randomness=self.randomness
-        )
+        pop.loc[
+            to_schedule_followup, self.scheduled_visit_date_column
+        ] = self.schedule_followup(index=to_schedule_followup, event_time=event.time)
 
         self.population_view.update(
             pop[
@@ -247,4 +245,28 @@ class HealthcareVisits:
                     self.scheduled_visit_date_column,
                 ]
             ]
+        )
+
+    def schedule_followup(
+        self,
+        index: pd.Index,
+        event_time: pd.Timestamp,
+        min_followup: int = data_values.FOLLOWUP_MIN,
+        max_followup: int = data_values.FOLLOWUP_MAX,
+    ) -> pd.Series:
+        """Schedules followup visits"""
+        return pd.Series(
+            event_time
+            + self.random_time_delta(
+                pd.Series(min_followup, index=index),
+                pd.Series(max_followup, index=index),
+            ),
+            index=index,
+        )
+
+    def random_time_delta(self, start: pd.Series, end: pd.Series) -> pd.Series:
+        """Generate a random time delta for each individual in the start
+        and end series."""
+        return pd.to_timedelta(
+            start + (end - start) * self.randomness.get_draw(start.index), unit="day"
         )
