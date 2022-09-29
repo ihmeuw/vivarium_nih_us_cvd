@@ -177,10 +177,14 @@ def get_random_variable(draw: int, seeded_distribution: SeededDistribution) -> f
     np.random.seed(get_hash(f"{seed}_draw_{draw}"))
     return distribution.rvs()
 
-def get_measurement_error(index: pd.Index, mean: float, sd: float, randomness: "RandomnessStream") -> pd.Series:
-        """Return measurement error assuming normal distribution"""
-        draw = randomness.get_draw(index)
-        return stats.norm(loc=mean, scale=sd).ppf(draw)
+
+def get_measurement_error(
+    index: pd.Index, mean: float, sd: float, randomness: "RandomnessStream"
+) -> pd.Series:
+    """Return measurement error assuming normal distribution"""
+    draw = randomness.get_draw(index)
+    return stats.norm(loc=mean, scale=sd).ppf(draw)
+
 
 def schedule_followup(
     index: pd.Index,
@@ -200,7 +204,10 @@ def schedule_followup(
         index=index,
     )
 
-def random_time_delta(start: pd.Series, end: pd.Series, randomness: "RandomnessStream") -> pd.Series:
+
+def random_time_delta(
+    start: pd.Series, end: pd.Series, randomness: "RandomnessStream"
+) -> pd.Series:
     """Generate a random time delta for each individual in the start
     and end series."""
     return pd.to_timedelta(

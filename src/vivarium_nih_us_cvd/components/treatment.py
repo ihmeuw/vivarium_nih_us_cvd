@@ -6,7 +6,7 @@ from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 
 from vivarium_nih_us_cvd.constants import data_values, models
-from vivarium_nih_us_cvd.utilities import schedule_followup, get_measurement_error
+from vivarium_nih_us_cvd.utilities import get_measurement_error, schedule_followup
 
 
 class Treatment:
@@ -25,8 +25,6 @@ class Treatment:
         return "Treatment"
 
     def setup(self, builder: Builder) -> None:
-        self.clock = builder.time.clock()
-        self.step_size = builder.time.step_size()
         self.randomness = builder.randomness.get_stream(self.name)
         self.sbp = builder.value.get_value("high_systolic_blood_pressure.exposure")
         self.ldlc = builder.value.get_value("high_ldl_cholesterol.exposure")
@@ -35,7 +33,6 @@ class Treatment:
         self.ischemic_stroke_state_column = models.ISCHEMIC_STROKE_MODEL_NAME
         self.myocardial_infarction_state_column = models.MYOCARDIAL_INFARCTION_MODEL_NAME
         self.visit_type_column = data_values.COLUMNS.VISIT_TYPE
-        self.scheduled_visit_date_column = data_values.COLUMNS.SCHEDULED_VISIT_DATE
         self.sbp_medication_column = data_values.COLUMNS.SBP_MEDICATION
         self.ldlc_medication_column = data_values.COLUMNS.LDLC_MEDICATION
         self.sbp_medication_adherence_type_column = (
@@ -46,7 +43,6 @@ class Treatment:
         )
 
         columns_created = [
-            self.scheduled_visit_date_column,
             self.sbp_medication_column,
             self.ldlc_medication_column,
             self.sbp_medication_adherence_type_column,
@@ -55,12 +51,11 @@ class Treatment:
         columns_required = [
             "age",
             "sex",
-            self.visit_type_column,
             self.ischemic_stroke_state_column,
             self.myocardial_infarction_state_column,
         ]
 
-        self.population_view = builder.population.get_view(columns_required + columns_created)
+        self.population_view = builder.population.get_view(columns_required + columns_created + [self.visit_type_column])
 
         values_required = [
             "high_systolic_blood_pressure.exposure",
@@ -70,6 +65,7 @@ class Treatment:
         # Initialize simulants
         builder.population.initializes_simulants(
             self.on_initialize_simulants,
+            creates_columns=columns_created,
             requires_columns=columns_required,
             requires_values=values_required,
         )
@@ -94,19 +90,16 @@ class Treatment:
         in an acute state should bescheduled a followup visit 3-6 months out,
         uniformly distributed.
         """
-        event_time = self.clock() + self.step_size()
         df = self.population_view.subview(
             [
                 "age",
                 "sex",
-                self.visit_type_column,
                 self.ischemic_stroke_state_column,
                 self.myocardial_infarction_state_column,
             ]
         ).get(pop_data.index)
 
         # Initialize new columns
-        df[self.scheduled_visit_date_column] = pd.NaT
         df[self.sbp_medication_adherence_type_column] = self.randomness.choice(
             df.index,
             choices=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY["sbp"].keys()),
@@ -119,42 +112,24 @@ class Treatment:
         )
         df[self.sbp_medication_column] = np.nan
         df[self.ldlc_medication_column] = np.nan
+        # todo - initialize adheren'ts in here as well
         df = self.initialize_medication_coverage(df)
 
-        # Schedule followups
-        # On medication and/or Post/chronic state 0-6 months out
-        on_medication = df[(df[self.sbp_medication_column].notna()) | (df[self.ldlc_medication_column].notna())].index
-        mask_chronic_is = (
-            df[self.ischemic_stroke_state_column] == models.CHRONIC_ISCHEMIC_STROKE_STATE_NAME
-        )
-        mask_post_mi = (
-            df[self.myocardial_infarction_state_column]
-            == models.POST_MYOCARDIAL_INFARCTION_STATE_NAME
-        )
-        acute_history = df.index[mask_chronic_is | mask_post_mi]
-        df.loc[on_medication.union(acute_history), self.scheduled_visit_date_column] = schedule_followup(
-            index=acute_history,
-            event_time=event_time,
-            randomness=self.randomness,
-            min_followup=0,
-            max_followup=(data_values.FOLLOWUP_MAX - data_values.FOLLOWUP_MIN),
-        )
-        # Emergency (acute) state 3-6 months out
-        emergency = df[df[self.visit_type_column] == data_values.VISIT_TYPE.EMERGENCY].index
-        df.loc[emergency, self.scheduled_visit_date_column] = schedule_followup(
-            index=emergency,
-            event_time=event_time,
-            randomness=self.randomness,
-        )
-
         # Send anyone in emergency state to medication ramp
+        mask_acute_is = (
+            df[self.ischemic_stroke_state_column] == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
+        )
+        mask_acute_mi = (
+            df[self.myocardial_infarction_state_column]
+            == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
+        )
+        emergency = df.index[(mask_acute_is | mask_acute_mi)]
         df.loc[emergency] = self.apply_sbp_treatment_ramp(df.loc[emergency])
         df.loc[emergency] = self.apply_ldlc_treatment_ramp(df.loc[emergency])
 
         self.population_view.update(
             df[
                 [
-                    self.scheduled_visit_date_column,
                     self.sbp_medication_column,
                     self.sbp_medication_adherence_type_column,
                     self.ldlc_medication_column,
@@ -240,7 +215,14 @@ class Treatment:
         df.loc[visitors] = self.apply_sbp_treatment_ramp(df.loc[visitors])
         df.loc[visitors] = self.apply_ldlc_treatment_ramp(df.loc[visitors])
 
-        self.population_view.update(df[[self.sbp_medication_column, self.ldlc_medication_column,]])
+        self.population_view.update(
+            df[
+                [
+                    self.sbp_medication_column,
+                    self.ldlc_medication_column,
+                ]
+            ]
+        )
 
     def treat_not_currently_medicated_sbp(self, df: pd.DataFrame) -> pd.DataFrame:
         """Applies the SBP treatment ramp to simulants not already on medication
@@ -329,9 +311,7 @@ class Treatment:
         """
         currently_medicated = df[df[self.sbp_medication_column].notna()].index
         not_currently_medicated = df.index.difference(currently_medicated)
-        df["measured_sbp"] = self.sbp(
-            df.index
-        ) + get_measurement_error(
+        df["measured_sbp"] = self.sbp(df.index) + get_measurement_error(
             index=df.index,
             mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
             sd=data_values.MEASUREMENT_ERROR_SD_SBP,
@@ -341,6 +321,10 @@ class Treatment:
         df.loc[not_currently_medicated] = self.treat_not_currently_medicated_sbp(
             df.loc[not_currently_medicated]
         )
+        # TODO - REFACTOR TO BE CLEARER
+        # pop_data.loc[not_currently_medicated] = self.treat_not_currently_medicated_sbp(
+        #     pop_data, not_currently_medicated
+        # )
         df.loc[currently_medicated] = self.treat_currently_medicated_sbp(
             df.loc[currently_medicated]
         )
@@ -350,5 +334,3 @@ class Treatment:
     def apply_ldlc_treatment_ramp(self, df: pd.DataFrame) -> pd.DataFrame:
         # TODO: [MIC-3375]
         return df
-
-    
