@@ -120,7 +120,6 @@ class Treatment:
         df[self.sbp_medication_column] = np.nan
         df[self.ldlc_medication_column] = np.nan
         df = self.initialize_medication_coverage(df)
-        # TODO: REMOVE MEDICATION LEVEL FROM NON-ADHERENT PEOPLE (GET CLARIFICATION FROM SYL)
 
         # Schedule followups
         # On medication and/or Post/chronic state 0-6 months out
