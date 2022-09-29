@@ -1,6 +1,3 @@
-from typing import Dict, Tuple
-
-import numpy as np
 import pandas as pd
 import scipy
 from vivarium.framework.engine import Builder
@@ -8,6 +5,7 @@ from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 
 from vivarium_nih_us_cvd.constants import data_keys, data_values, models
+from vivarium_nih_us_cvd.utilities import schedule_followup, get_measurement_error
 
 
 class HealthcareVisits:
@@ -84,13 +82,11 @@ class HealthcareVisits:
         )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
-        """All simulants on SBP medication, LDL-C medication, or a history of
-        an acute event (ie intialized in state post-MI or chronic IS) should be
-        initialized with a scheduled followup visit 0-6 months out, uniformly
-        distributed. All simulants initialized in an acute state should be
-        scheduled a followup visit 3-6 months out, uniformly distributed.
+        """Initializes the visit type of simulants in an emergency state so
+        that they can be sent to the medication ramps.
 
-        For simplicity, do not assign background screenings on initialization.
+        Note that scheduled visits are initialized in the Treatment componenet
+        due to their reliance on initial/baseline medication coverage.
         """
 
         df = self.population_view.subview(
@@ -120,10 +116,9 @@ class HealthcareVisits:
 
     def on_time_step_cleanup(self, event: Event) -> None:
         """Determine if someone will go for an emergency visit, background visit,
-        or followup visit and schedule followups. In the event that a simulant goes
-        for an emergency or background visit but already has a followup visit
-        scheduled for the future, keep that scheduled followup and do not schedule
-        another one.
+        or followup visit and schedule followups. In the event that a simulant
+        already has a followup visit scheduled for the future, keep that scheduled
+        followup and do not schedule a new one or another one.
         """
         df = self.population_view.subview(
             [
@@ -177,22 +172,22 @@ class HealthcareVisits:
         )  # pd.Index
         df.loc[visit_background, self.visit_type_column] = data_values.VISIT_TYPE.BACKGROUND
 
-        # Take measurements
+        # Take measurements (required to determine if a followup is required)
         all_visitors = visit_emergency.union(visit_scheduled).union(visit_background)
         df.loc[all_visitors, "measured_sbp"] = self.sbp(
             all_visitors
-        ) + self.get_measurement_error(
+        ) + get_measurement_error(
             index=all_visitors,
             mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
             sd=data_values.MEASUREMENT_ERROR_SD_SBP,
+            randomness=self.randomness,
         )
 
         # Schedule followups
-        high_sbp = df[df["measured_sbp"] >= data_values.SBP_THRESHOLD.LOW].index
-        visitors_high_sbp = all_visitors.intersection(high_sbp)
-        on_sbp_medication = df[df[self.sbp_medication_column].notna()].index
-        visitors_on_sbp_medication = all_visitors.intersection(on_sbp_medication)
+        visitors_high_sbp = all_visitors.intersection(df[df["measured_sbp"] >= data_values.SBP_THRESHOLD.LOW].index)
+        visitors_on_sbp_medication = all_visitors.intersection(df[df[self.sbp_medication_column].notna()].index)
         visitors_not_on_sbp_medication = all_visitors.difference(visitors_on_sbp_medication)
+        # Schedule those on sbp medication or those not on sbp medication but have a high sbp
         needs_followup = visitors_on_sbp_medication.union(
             visitors_not_on_sbp_medication.intersection(visitors_high_sbp)
         )
@@ -203,7 +198,7 @@ class HealthcareVisits:
         to_schedule_followup = needs_followup.difference(has_followup_already_scheduled)
         df.loc[
             to_schedule_followup, self.scheduled_visit_date_column
-        ] = self.schedule_followup(to_schedule_followup, event.time)
+        ] = schedule_followup(index=to_schedule_followup, event_time=event.time, randomness=self.randomness)
 
         self.population_view.update(
             df[
@@ -213,32 +208,3 @@ class HealthcareVisits:
                 ]
             ]
         )
-
-    def schedule_followup(
-        self,
-        index: pd.Index,
-        event_time: pd.Timestamp,
-        min_followup: int = data_values.FOLLOWUP_MIN,
-        max_followup: int = data_values.FOLLOWUP_MAX,
-    ) -> pd.Series:
-        """Schedules followup visits"""
-        return pd.Series(
-            event_time
-            + self.random_time_delta(
-                pd.Series(min_followup, index=index),
-                pd.Series(max_followup, index=index),
-            ),
-            index=index,
-        )
-
-    def random_time_delta(self, start: pd.Series, end: pd.Series) -> pd.Series:
-        """Generate a random time delta for each individual in the start
-        and end series."""
-        return pd.to_timedelta(
-            start + (end - start) * self.randomness.get_draw(start.index), unit="day"
-        )
-
-    def get_measurement_error(self, index, mean, sd):
-        """Return measurement error assuming normal distribution"""
-        draw = self.randomness.get_draw(index)
-        return scipy.stats.norm(loc=mean, scale=sd).ppf(draw)
