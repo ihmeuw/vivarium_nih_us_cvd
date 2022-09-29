@@ -161,10 +161,10 @@ class Treatment:
         )
 
         # # Move medicated but non-adherent simulants to lowest level
-        # sbp_non_adherent = pop[pop[self.sbp_medication_adherence_type_column] != data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT].index
-        # ldlc_non_adherent = pop[pop[self.ldlc_medication_adherence_type_column] != data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT].index
-        # pop.loc[medicated_sbp.intersection(sbp_non_adherent), self.sbp_medication_column] = 1
-        # pop.loc[medicated_ldlc.intersection(ldlc_non_adherent), self.ldlc_medication_column] = 1
+        sbp_non_adherent = pop[pop[self.sbp_medication_adherence_type_column] != data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT].index
+        ldlc_non_adherent = pop[pop[self.ldlc_medication_adherence_type_column] != data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT].index
+        pop.loc[medicated_sbp.intersection(sbp_non_adherent), self.sbp_medication_column] = 1
+        pop.loc[medicated_ldlc.intersection(ldlc_non_adherent), self.ldlc_medication_column] = 1
 
         return pop
 
