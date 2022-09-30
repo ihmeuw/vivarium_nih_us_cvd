@@ -5,5 +5,5 @@ from .observers import (
     HealthcareVisitObserver,
     ResultsStratifier,
 )
-from .risks import Risk
+from .risks import Risk, SBPRisk
 from .treatment import Treatment

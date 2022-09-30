@@ -25,8 +25,8 @@ class Treatment:
 
     def setup(self, builder: Builder) -> None:
         self.randomness = builder.randomness.get_stream(self.name)
-        self.sbp = builder.value.get_value("high_systolic_blood_pressure.exposure")
-        self.ldlc = builder.value.get_value("high_ldl_cholesterol.exposure")
+        self.sbp = builder.value.get_value("high_systolic_blood_pressure.base_exposure")
+        self.ldlc = builder.value.get_value("high_ldl_cholesterol.base_exposure")
 
         # Columns
         self.ischemic_stroke_state_column = models.ISCHEMIC_STROKE_MODEL_NAME
@@ -59,8 +59,8 @@ class Treatment:
         )
 
         values_required = [
-            "high_systolic_blood_pressure.exposure",
-            "high_ldl_cholesterol.exposure",
+            "high_systolic_blood_pressure.base_exposure",
+            "high_ldl_cholesterol.base_exposure",
         ]
 
         # Initialize simulants
@@ -69,6 +69,7 @@ class Treatment:
             creates_columns=columns_created,
             requires_columns=columns_required,
             requires_values=values_required,
+            requires_streams=[self.name],
         )
 
         # Register listeners

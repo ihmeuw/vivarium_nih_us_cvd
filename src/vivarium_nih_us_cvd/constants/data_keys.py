@@ -14,6 +14,10 @@ class SourceTarget(NamedTuple):
     target: str
 
 
+##########
+# Causes #
+##########
+
 class __Population(NamedTuple):
     LOCATION: str = "population.location"
     STRUCTURE: str = "population.structure"
@@ -136,6 +140,10 @@ class __Angina(NamedTuple):
 
 ANGINA = __Angina()
 
+
+################
+# Risk Factors #
+################
 
 class __HighLDLCholesterol(NamedTuple):
     DISTRIBUTION: TargetString = TargetString("risk_factor.high_ldl_cholesterol.distribution")
