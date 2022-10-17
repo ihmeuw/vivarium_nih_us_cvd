@@ -164,20 +164,13 @@ class Treatment:
 
         # Calculate the covariates
         medication_coverage_covariates = {}
-        for (
-            name,
-            c_int,
-            c_sbp,
-            c_ldlc,
-            c_age,
-            c_sex,
-        ) in data_values.MEDICATION_COVERAGE_COEFFICIENTS:
-            medication_coverage_covariates[name] = np.exp(
-                c_int
-                + c_sbp * self.sbp(pop.index)
-                + c_ldlc * self.ldlc(pop.index)
-                + c_age * pop["age"]
-                + c_sex * pop["sex"].map(data_values.BASELINE_MEDICATION_COVERAGE_SEX_MAPPING)
+        for coefficients in data_values.MEDICATION_COVERAGE_COEFFICIENTS:
+            medication_coverage_covariates[coefficients.NAME] = np.exp(
+                coefficients.INTERCEPT
+                + coefficients.SBP * self.sbp(pop.index)
+                + coefficients.LDLC * self.ldlc(pop.index)
+                + coefficients.AGE * pop["age"]
+                + coefficients.SEX * pop["sex"].map(data_values.BASELINE_MEDICATION_COVERAGE_SEX_MAPPING)
             )
         # Calculate probabilities of being medicated
         p_medication = {}
