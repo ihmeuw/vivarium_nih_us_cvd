@@ -187,7 +187,9 @@ class HealthcareVisits:
         scheduled_non_emergency = pop[mask_scheduled_non_emergency].index
         pop.loc[scheduled_non_emergency, data_values.COLUMNS.SCHEDULED_VISIT_DATE] = pd.NaT
         visit_missed = scheduled_non_emergency[
-            self.randomness.get_draw(scheduled_non_emergency)
+            self.randomness.get_draw(
+                scheduled_non_emergency, additional_key="miss_scheduled_visits"
+            )
             <= data_values.MISS_SCHEDULED_VISIT_PROBABILITY
         ]
         pop.loc[visit_missed, data_values.COLUMNS.VISIT_TYPE] = data_values.VISIT_TYPE.MISSED
@@ -204,7 +206,7 @@ class HealthcareVisits:
         )
         utilization_rate = self.background_utilization_rate(maybe_background)
         visit_background = self.randomness.filter_for_rate(
-            maybe_background, utilization_rate
+            maybe_background, utilization_rate, additional_key="background_visits"
         )  # pd.Index
         pop.loc[
             visit_background, data_values.COLUMNS.VISIT_TYPE
@@ -217,6 +219,7 @@ class HealthcareVisits:
             mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
             sd=data_values.MEASUREMENT_ERROR_SD_SBP,
             randomness=self.randomness,
+            additional_key="measured_sbp",
         )
 
         # Schedule followups
@@ -272,5 +275,8 @@ class HealthcareVisits:
         """Generate a random time delta for each individual in the start
         and end series."""
         return pd.to_timedelta(
-            start + (end - start) * self.randomness.get_draw(start.index), unit="day"
+            start
+            + (end - start)
+            * self.randomness.get_draw(start.index, additional_key="schedule_followup"),
+            unit="day",
         )

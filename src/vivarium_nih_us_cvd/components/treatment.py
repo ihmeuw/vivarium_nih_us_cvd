@@ -118,11 +118,13 @@ class Treatment:
             pop.index,
             choices=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY["sbp"].keys()),
             p=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY["sbp"].values()),
+            additional_key="initialize_sbp_adherence",
         )
         pop[data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE] = self.randomness.choice(
             pop.index,
             choices=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY["ldlc"].keys()),
             p=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY["ldlc"].values()),
+            additional_key="initialize_ldlc_adherence",
         )
 
         # Initialize medication coverage
@@ -134,7 +136,10 @@ class Treatment:
         ]
         p_medication = self.calculate_initial_medication_coverage_probabilities(pop)
         medicated_states = self.randomness.choice(
-            p_medication.index, choices=p_medication.columns, p=np.array(p_medication)
+            p_medication.index,
+            choices=p_medication.columns,
+            p=np.array(p_medication),
+            additional_key="initial_medication_coverage",
         )
         medicated_sbp = medicated_states[medicated_states.isin(["sbp", "both"])].index
         medicated_ldlc = medicated_states[medicated_states.isin(["ldlc", "both"])].index
@@ -143,11 +148,13 @@ class Treatment:
             medicated_sbp,
             choices=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["sbp"].keys()),
             p=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["sbp"].values()),
+            additional_key="initial_sbp_medication",
         )
         pop.loc[medicated_ldlc, data_values.COLUMNS.LDLC_MEDICATION] = self.randomness.choice(
             medicated_ldlc,
             choices=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["ldlc"].keys()),
             p=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["ldlc"].values()),
+            additional_key="initial_ldlc_medication",
         )
 
         # # Move medicated but non-adherent simulants to lowest level
@@ -236,6 +243,7 @@ class Treatment:
             mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
             sd=data_values.MEASUREMENT_ERROR_SD_SBP,
             randomness=self.randomness,
+            additional_key="measured_sbp",
         )
 
         pop_visitors.loc[not_currently_medicated] = self.treat_not_currently_medicated_sbp(
@@ -266,7 +274,10 @@ class Treatment:
         # Generate indexes for simulants who overcome therapeutic inertia and
         # who have medium and high (measured) SBP levels
         overcome_therapeutic_inertia = pop_not_medicated[
-            self.randomness.get_draw(pop_not_medicated.index)
+            self.randomness.get_draw(
+                pop_not_medicated.index,
+                additional_key="not_currently_medicated_sbp_therapeutic_inertia",
+            )
             > data_values.THERAPEUTIC_INERTIA_NO_START
         ].index
         mid_sbp = measured_sbp[
@@ -297,6 +308,7 @@ class Treatment:
                 data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["sbp"]["high"].keys()
             ),
             p=list(data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["sbp"]["high"].values()),
+            additional_key="high_sbp_first_prescriptions",
         )
 
         return pop_not_medicated
@@ -317,7 +329,10 @@ class Treatment:
         # have low and high (measured) SBP levels
         high_sbp = measured_sbp[measured_sbp >= data_values.SBP_THRESHOLD.HIGH].index
         overcome_therapeutic_inertia = pop_medicated[
-            self.randomness.get_draw(pop_medicated.index)
+            self.randomness.get_draw(
+                pop_medicated.index,
+                additional_key="currently_medicated_sbp_therapeutic_inertia",
+            )
             > data_values.THERAPEUTIC_INERTIA_NO_START
         ].index
         adherent = pop_medicated[
