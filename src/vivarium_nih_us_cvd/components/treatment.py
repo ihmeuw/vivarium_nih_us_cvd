@@ -90,9 +90,9 @@ class Treatment:
             pop[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
             == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
         )
-        emergency = pop[(mask_acute_is | mask_acute_mi)].index
-        pop.loc[emergency] = self.apply_sbp_treatment_ramp(pop_visitors=pop.loc[emergency])
-        pop.loc[emergency] = self.apply_ldlc_treatment_ramp(pop_visitors=pop.loc[emergency])
+        mask_emergency = pop[(mask_acute_is | mask_acute_mi)]
+        pop.loc[mask_emergency] = self.apply_sbp_treatment_ramp(pop_visitors=pop.loc[mask_emergency])
+        pop.loc[mask_emergency] = self.apply_ldlc_treatment_ramp(pop_visitors=pop.loc[mask_emergency])
 
         self.population_view.update(
             pop[
