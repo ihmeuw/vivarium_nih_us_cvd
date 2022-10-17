@@ -39,26 +39,18 @@ class HealthcareVisits:
             "utilization_rate", background_utilization_rate, requires_columns=["age", "sex"]
         )
 
-        # Columns
-        self.ischemic_stroke_state_column = models.ISCHEMIC_STROKE_MODEL_NAME
-        self.myocardial_infarction_state_column = models.MYOCARDIAL_INFARCTION_MODEL_NAME
-        self.visit_type_column = data_values.COLUMNS.VISIT_TYPE
-        self.scheduled_visit_date_column = data_values.COLUMNS.SCHEDULED_VISIT_DATE
-        self.sbp_medication_column = data_values.COLUMNS.SBP_MEDICATION
-        self.ldlc_medication_column = data_values.COLUMNS.LDLC_MEDICATION
-
         columns_created = [
-            self.visit_type_column,
-            self.scheduled_visit_date_column,
+            data_values.COLUMNS.VISIT_TYPE,
+            data_values.COLUMNS.SCHEDULED_VISIT_DATE,
         ]
 
         columns_required = [
             "age",
             "sex",
-            self.ischemic_stroke_state_column,
-            self.myocardial_infarction_state_column,
-            self.sbp_medication_column,
-            self.ldlc_medication_column,
+            models.ISCHEMIC_STROKE_MODEL_NAME,
+            models.MYOCARDIAL_INFARCTION_MODEL_NAME,
+            data_values.COLUMNS.SBP_MEDICATION,
+            data_values.COLUMNS.LDLC_MEDICATION,
         ]
 
         self.population_view = builder.population.get_view(columns_required + columns_created)
@@ -95,45 +87,45 @@ class HealthcareVisits:
             [
                 "age",
                 "sex",
-                self.ischemic_stroke_state_column,
-                self.myocardial_infarction_state_column,
-                self.sbp_medication_column,
-                self.ldlc_medication_column,
+                models.ISCHEMIC_STROKE_MODEL_NAME,
+                models.MYOCARDIAL_INFARCTION_MODEL_NAME,
+                data_values.COLUMNS.SBP_MEDICATION,
+                data_values.COLUMNS.LDLC_MEDICATION,
             ]
         ).get(pop_data.index)
 
         # Initialize new columns
-        pop[self.visit_type_column] = data_values.VISIT_TYPE.NONE
-        pop[self.scheduled_visit_date_column] = pd.NaT
+        pop[data_values.COLUMNS.VISIT_TYPE] = data_values.VISIT_TYPE.NONE
+        pop[data_values.COLUMNS.SCHEDULED_VISIT_DATE] = pd.NaT
 
         # Update simulants initialized in an emergency state
         mask_acute_is = (
-            pop[self.ischemic_stroke_state_column] == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
+            pop[models.ISCHEMIC_STROKE_MODEL_NAME] == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
         )
         mask_acute_mi = (
-            pop[self.myocardial_infarction_state_column]
+            pop[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
             == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
         )
         emergency = pop.index[(mask_acute_is | mask_acute_mi)]
-        pop.loc[emergency, self.visit_type_column] = data_values.VISIT_TYPE.EMERGENCY
+        pop.loc[emergency, data_values.COLUMNS.VISIT_TYPE] = data_values.VISIT_TYPE.EMERGENCY
 
         # Schedule followups
         # On medication and/or Post/chronic state 0-6 months out
         on_medication = pop[
-            (pop[self.sbp_medication_column].notna())
-            | (pop[self.ldlc_medication_column].notna())
+            (pop[data_values.COLUMNS.SBP_MEDICATION].notna())
+            | (pop[data_values.COLUMNS.LDLC_MEDICATION].notna())
         ].index
         mask_chronic_is = (
-            pop[self.ischemic_stroke_state_column]
+            pop[models.ISCHEMIC_STROKE_MODEL_NAME]
             == models.CHRONIC_ISCHEMIC_STROKE_STATE_NAME
         )
         mask_post_mi = (
-            pop[self.myocardial_infarction_state_column]
+            pop[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
             == models.POST_MYOCARDIAL_INFARCTION_STATE_NAME
         )
         acute_history = pop.index[mask_chronic_is | mask_post_mi]
         pop.loc[
-            on_medication.union(acute_history), self.scheduled_visit_date_column
+            on_medication.union(acute_history), data_values.COLUMNS.SCHEDULED_VISIT_DATE
         ] = self.schedule_followup(
             index=acute_history,
             event_time=event_time,
@@ -141,13 +133,13 @@ class HealthcareVisits:
             max_followup=(data_values.FOLLOWUP_MAX - data_values.FOLLOWUP_MIN),
         )
         # Emergency (acute) state 3-6 months out
-        pop.loc[emergency, self.scheduled_visit_date_column] = self.schedule_followup(
+        pop.loc[emergency, data_values.COLUMNS.SCHEDULED_VISIT_DATE] = self.schedule_followup(
             index=emergency,
             event_time=event_time,
         )
 
         self.population_view.update(
-            pop[[self.visit_type_column, self.scheduled_visit_date_column]]
+            pop[[data_values.COLUMNS.VISIT_TYPE, data_values.COLUMNS.SCHEDULED_VISIT_DATE]]
         )
 
     def on_time_step_cleanup(self, event: Event) -> None:
@@ -158,45 +150,45 @@ class HealthcareVisits:
         """
         pop = self.population_view.subview(
             [
-                self.ischemic_stroke_state_column,
-                self.myocardial_infarction_state_column,
-                self.visit_type_column,
-                self.scheduled_visit_date_column,
-                self.sbp_medication_column,
-                self.ldlc_medication_column,
+                models.ISCHEMIC_STROKE_MODEL_NAME,
+                models.MYOCARDIAL_INFARCTION_MODEL_NAME,
+                data_values.COLUMNS.VISIT_TYPE,
+                data_values.COLUMNS.SCHEDULED_VISIT_DATE,
+                data_values.COLUMNS.SBP_MEDICATION,
+                data_values.COLUMNS.LDLC_MEDICATION,
             ]
         ).get(event.index, query='alive == "alive"')
-        pop[self.visit_type_column] = data_values.VISIT_TYPE.NONE
+        pop[data_values.COLUMNS.VISIT_TYPE] = data_values.VISIT_TYPE.NONE
 
         # Emergency visits
         mask_acute_is = (
-            pop[self.ischemic_stroke_state_column] == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
+            pop[models.ISCHEMIC_STROKE_MODEL_NAME] == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
         )
         mask_acute_mi = (
-            pop[self.myocardial_infarction_state_column]
+            pop[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
             == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
         )
         mask_emergency = mask_acute_is | mask_acute_mi
         visit_emergency = pop[mask_emergency].index
-        pop.loc[visit_emergency, self.visit_type_column] = data_values.VISIT_TYPE.EMERGENCY
+        pop.loc[visit_emergency, data_values.COLUMNS.VISIT_TYPE] = data_values.VISIT_TYPE.EMERGENCY
 
         # Missed scheduled (non-emergency) visits (these do not get re-scheduled)
         mask_scheduled_non_emergency = (
-            (pop[self.scheduled_visit_date_column] > (event.time - event.step_size))
-            & (pop[self.scheduled_visit_date_column] <= event.time)
+            (pop[data_values.COLUMNS.SCHEDULED_VISIT_DATE] > (event.time - event.step_size))
+            & (pop[data_values.COLUMNS.SCHEDULED_VISIT_DATE] <= event.time)
             & (~mask_emergency)
         )
         scheduled_non_emergency = pop[mask_scheduled_non_emergency].index
-        pop.loc[scheduled_non_emergency, self.scheduled_visit_date_column] = pd.NaT
+        pop.loc[scheduled_non_emergency, data_values.COLUMNS.SCHEDULED_VISIT_DATE] = pd.NaT
         visit_missed = scheduled_non_emergency[
             self.randomness.get_draw(scheduled_non_emergency)
             <= data_values.MISS_SCHEDULED_VISIT_PROBABILITY
         ]
-        pop.loc[visit_missed, self.visit_type_column] = data_values.VISIT_TYPE.MISSED
+        pop.loc[visit_missed, data_values.COLUMNS.VISIT_TYPE] = data_values.VISIT_TYPE.MISSED
 
         # Scheduled visits
         visit_scheduled = scheduled_non_emergency.difference(visit_missed)
-        pop.loc[visit_scheduled, self.visit_type_column] = data_values.VISIT_TYPE.SCHEDULED
+        pop.loc[visit_scheduled, data_values.COLUMNS.VISIT_TYPE] = data_values.VISIT_TYPE.SCHEDULED
 
         # Background visits (for those who did not go for another reason or miss their scheduled visit)
         maybe_background = pop.index.difference(
@@ -206,7 +198,7 @@ class HealthcareVisits:
         visit_background = self.randomness.filter_for_rate(
             maybe_background, utilization_rate
         )  # pd.Index
-        pop.loc[visit_background, self.visit_type_column] = data_values.VISIT_TYPE.BACKGROUND
+        pop.loc[visit_background, data_values.COLUMNS.VISIT_TYPE] = data_values.VISIT_TYPE.BACKGROUND
 
         # Take measurements (required to determine if a followup is required)
         all_visitors = visit_emergency.union(visit_scheduled).union(visit_background)
@@ -222,7 +214,7 @@ class HealthcareVisits:
             measured_sbp[measured_sbp >= data_values.SBP_THRESHOLD.LOW].index
         )
         visitors_on_sbp_medication = all_visitors.intersection(
-            pop[pop[self.sbp_medication_column].notna()].index
+            pop[pop[data_values.COLUMNS.SBP_MEDICATION].notna()].index
         )
         visitors_not_on_sbp_medication = all_visitors.difference(visitors_on_sbp_medication)
         # Schedule those on sbp medication or those not on sbp medication but have a high sbp
@@ -231,18 +223,18 @@ class HealthcareVisits:
         )
         # Do no re-schedule followups that already exist
         has_followup_already_scheduled = pop[
-            (pop[self.scheduled_visit_date_column] > event.time)
+            (pop[data_values.COLUMNS.SCHEDULED_VISIT_DATE] > event.time)
         ].index
         to_schedule_followup = needs_followup.difference(has_followup_already_scheduled)
         pop.loc[
-            to_schedule_followup, self.scheduled_visit_date_column
+            to_schedule_followup, data_values.COLUMNS.SCHEDULED_VISIT_DATE
         ] = self.schedule_followup(index=to_schedule_followup, event_time=event.time)
 
         self.population_view.update(
             pop[
                 [
-                    self.visit_type_column,
-                    self.scheduled_visit_date_column,
+                    data_values.COLUMNS.VISIT_TYPE,
+                    data_values.COLUMNS.SCHEDULED_VISIT_DATE,
                 ]
             ]
         )
