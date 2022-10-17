@@ -187,9 +187,7 @@ class HealthcareVisits:
         ] = data_values.VISIT_TYPE.SCHEDULED
 
         # Background visits (for those who did not go for another reason or miss their scheduled visit)
-        maybe_background = pop.index.difference(
-            visit_emergency.union(visit_missed).union(visit_scheduled)
-        )
+        maybe_background = pop.index.difference(visit_emergency.union(scheduled_non_emergency))
         utilization_rate = self.background_utilization_rate(maybe_background)
         visit_background = self.randomness.filter_for_rate(
             maybe_background, utilization_rate
