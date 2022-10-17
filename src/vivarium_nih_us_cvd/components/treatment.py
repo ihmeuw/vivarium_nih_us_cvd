@@ -157,9 +157,12 @@ class Treatment:
             pop[data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE]
             != data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
         ].index
-        pop.loc[medicated_sbp.intersection(sbp_non_adherent), data_values.COLUMNS.SBP_MEDICATION] = 1
         pop.loc[
-            medicated_ldlc.intersection(ldlc_non_adherent), data_values.COLUMNS.LDLC_MEDICATION
+            medicated_sbp.intersection(sbp_non_adherent), data_values.COLUMNS.SBP_MEDICATION
+        ] = 1
+        pop.loc[
+            medicated_ldlc.intersection(ldlc_non_adherent),
+            data_values.COLUMNS.LDLC_MEDICATION,
         ] = 1
 
         return pop

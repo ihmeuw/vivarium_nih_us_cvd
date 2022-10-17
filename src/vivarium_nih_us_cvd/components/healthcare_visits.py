@@ -163,7 +163,9 @@ class HealthcareVisits:
         )
         mask_emergency = mask_acute_is | mask_acute_mi
         visit_emergency = pop[mask_emergency].index
-        pop.loc[visit_emergency, data_values.COLUMNS.VISIT_TYPE] = data_values.VISIT_TYPE.EMERGENCY
+        pop.loc[
+            visit_emergency, data_values.COLUMNS.VISIT_TYPE
+        ] = data_values.VISIT_TYPE.EMERGENCY
 
         # Missed scheduled (non-emergency) visits (these do not get re-scheduled)
         mask_scheduled_non_emergency = (
@@ -181,7 +183,9 @@ class HealthcareVisits:
 
         # Scheduled visits
         visit_scheduled = scheduled_non_emergency.difference(visit_missed)
-        pop.loc[visit_scheduled, data_values.COLUMNS.VISIT_TYPE] = data_values.VISIT_TYPE.SCHEDULED
+        pop.loc[
+            visit_scheduled, data_values.COLUMNS.VISIT_TYPE
+        ] = data_values.VISIT_TYPE.SCHEDULED
 
         # Background visits (for those who did not go for another reason or miss their scheduled visit)
         maybe_background = pop.index.difference(
@@ -191,7 +195,9 @@ class HealthcareVisits:
         visit_background = self.randomness.filter_for_rate(
             maybe_background, utilization_rate
         )  # pd.Index
-        pop.loc[visit_background, data_values.COLUMNS.VISIT_TYPE] = data_values.VISIT_TYPE.BACKGROUND
+        pop.loc[
+            visit_background, data_values.COLUMNS.VISIT_TYPE
+        ] = data_values.VISIT_TYPE.BACKGROUND
 
         # Take measurements (required to determine if a followup is required)
         all_visitors = visit_emergency.union(visit_scheduled).union(visit_background)
