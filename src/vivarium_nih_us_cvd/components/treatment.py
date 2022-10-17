@@ -69,7 +69,7 @@ class Treatment:
         """Implements baseline medication coverage as well as adherence levels
         Anyone initialized in an emergency (acute) state will enter the treatment
         ramps. A burn-in period allows for the observed simulation to start with
-        more realistic treatments and scheduled followups.
+        a more realistic treatment spread.
         """
         pop = self.population_view.subview(
             [
