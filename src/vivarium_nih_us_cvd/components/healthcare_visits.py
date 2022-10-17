@@ -169,8 +169,7 @@ class HealthcareVisits:
 
         # Missed scheduled (non-emergency) visits (these do not get re-scheduled)
         mask_scheduled_non_emergency = (
-            (pop[data_values.COLUMNS.SCHEDULED_VISIT_DATE] > (event.time - event.step_size))
-            & (pop[data_values.COLUMNS.SCHEDULED_VISIT_DATE] <= event.time)
+            (pop[data_values.COLUMNS.SCHEDULED_VISIT_DATE] <= event.time)
             & (~mask_emergency)
         )
         scheduled_non_emergency = pop[mask_scheduled_non_emergency].index
