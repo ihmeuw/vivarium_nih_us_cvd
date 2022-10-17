@@ -34,7 +34,7 @@ class Treatment:
             data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
             data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
         ]
-        columns_required = [
+        columns_required_on_initialization = [
             "age",
             "sex",
             models.ISCHEMIC_STROKE_MODEL_NAME,
@@ -42,7 +42,7 @@ class Treatment:
         ]
 
         self.population_view = builder.population.get_view(
-            columns_required + columns_created + [data_values.COLUMNS.VISIT_TYPE]
+            columns_required_on_initialization + columns_created + [data_values.COLUMNS.VISIT_TYPE]
         )
 
         values_required = [
@@ -54,7 +54,7 @@ class Treatment:
         builder.population.initializes_simulants(
             self.on_initialize_simulants,
             creates_columns=columns_created,
-            requires_columns=columns_required,
+            requires_columns=columns_required_on_initialization,
             requires_values=values_required,
         )
 
