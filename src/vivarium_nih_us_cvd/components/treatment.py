@@ -68,7 +68,8 @@ class Treatment:
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         """Implements baseline medication coverage as well as adherence levels
         Anyone initialized in an emergency (acute) state will enter the treatment
-        ramps.
+        ramps. A burn-in period allows for the observed simulation to start with
+        more realistic treatments and scheduled followups.
 
         This component also initializes scheduled followups because doing so
         requires medication coverage. All simulants on SBP medication, LDL-C

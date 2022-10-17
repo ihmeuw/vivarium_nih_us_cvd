@@ -77,7 +77,9 @@ class HealthcareVisits:
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         """Initializes the visit type of simulants in an emergency state so
-        that they can be sent to the medication ramps.
+        that they can be sent to the medication ramps. A burn-in period allows
+        for the observed simulation to start with more realistic treatments
+        and scheduled followups.
 
         Note that scheduled visits are initialized in the Treatment componenet
         due to their reliance on initial/baseline medication coverage.
