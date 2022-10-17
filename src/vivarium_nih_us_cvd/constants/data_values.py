@@ -119,6 +119,7 @@ SBP_THRESHOLD = __SBPThreshold()
 class __SBPMedicationLevel(NamedTuple):
     """high sbp medication level"""
 
+    NO_TREATMENT: str = "no_treatment"
     ONE_DRUG_HALF_DOSE: str = "one_drug_half_dose_efficacy"
     ONE_DRUG_FULL_DOSE: str = "one_drug_std_dose_efficacy"
     TWO_DRUGS_HALF_DOSE: str = "two_drug_half_dose_efficacy"
@@ -137,6 +138,7 @@ SBP_MEDICATION_LEVEL = __SBPMedicationLevel()
 class __LDLCMedicationLevel(NamedTuple):
     """high ldl-c medication level"""
 
+    NO_TREATMENT: str = "no_treatment"
     LOW: str = "low_intensity"
     MED: str = "medium_intensity"
     LOW_MED_EZE: str = "low_med_with_eze"
@@ -152,6 +154,7 @@ LDLC_MEDICATION_LEVEL = __LDLCMedicationLevel()
 
 MEDICATION_RAMP = {
     "sbp": {
+        SBP_MEDICATION_LEVEL.NO_TREATMENT: 0,
         SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE: 1,
         SBP_MEDICATION_LEVEL.ONE_DRUG_FULL_DOSE: 2,
         SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE: 3,
@@ -160,6 +163,7 @@ MEDICATION_RAMP = {
         SBP_MEDICATION_LEVEL.THREE_DRUGS_FULL_DOSE: 6,
     },
     "ldlc": {
+        LDLC_MEDICATION_LEVEL.NO_TREATMENT: 0,
         LDLC_MEDICATION_LEVEL.LOW: 1,
         LDLC_MEDICATION_LEVEL.MED: 2,
         LDLC_MEDICATION_LEVEL.LOW_MED_EZE: 3,

@@ -42,7 +42,9 @@ class Treatment:
         ]
 
         self.population_view = builder.population.get_view(
-            columns_required_on_initialization + columns_created + [data_values.COLUMNS.VISIT_TYPE]
+            columns_required_on_initialization
+            + columns_created
+            + [data_values.COLUMNS.VISIT_TYPE]
         )
 
         values_required = [
@@ -90,9 +92,13 @@ class Treatment:
             pop[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
             == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
         )
-        mask_emergency = pop[(mask_acute_is | mask_acute_mi)]
-        pop.loc[mask_emergency] = self.apply_sbp_treatment_ramp(pop_visitors=pop.loc[mask_emergency])
-        pop.loc[mask_emergency] = self.apply_ldlc_treatment_ramp(pop_visitors=pop.loc[mask_emergency])
+        mask_emergency = mask_acute_is | mask_acute_mi
+        pop.loc[mask_emergency] = self.apply_sbp_treatment_ramp(
+            pop_visitors=pop.loc[mask_emergency]
+        )
+        pop.loc[mask_emergency] = self.apply_ldlc_treatment_ramp(
+            pop_visitors=pop.loc[mask_emergency]
+        )
 
         self.population_view.update(
             pop[
@@ -120,8 +126,12 @@ class Treatment:
         )
 
         # Initialize medication coverage
-        pop[data_values.COLUMNS.SBP_MEDICATION] = np.nan
-        pop[data_values.COLUMNS.LDLC_MEDICATION] = np.nan
+        pop[data_values.COLUMNS.SBP_MEDICATION] = data_values.MEDICATION_RAMP["sbp"][
+            data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT
+        ]
+        pop[data_values.COLUMNS.LDLC_MEDICATION] = data_values.MEDICATION_RAMP["ldlc"][
+            data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT
+        ]
         p_medication = self.calculate_initial_medication_coverage_probabilities(pop)
         medicated_states = self.randomness.choice(
             p_medication.index, choices=p_medication.columns, p=np.array(p_medication)
@@ -159,7 +169,9 @@ class Treatment:
 
         return pop
 
-    def calculate_initial_medication_coverage_probabilities(self, pop: pd.DataFrame) -> pd.DataFrame:
+    def calculate_initial_medication_coverage_probabilities(
+        self, pop: pd.DataFrame
+    ) -> pd.DataFrame:
         """Determine the probability of each simulant being medicated"""
 
         # Calculate the covariates
@@ -170,7 +182,8 @@ class Treatment:
                 + coefficients.SBP * self.sbp(pop.index)
                 + coefficients.LDLC * self.ldlc(pop.index)
                 + coefficients.AGE * pop["age"]
-                + coefficients.SEX * pop["sex"].map(data_values.BASELINE_MEDICATION_COVERAGE_SEX_MAPPING)
+                + coefficients.SEX
+                * pop["sex"].map(data_values.BASELINE_MEDICATION_COVERAGE_SEX_MAPPING)
             )
         # Calculate probabilities of being medicated
         p_denominator = df.sum(axis=1) + 1
@@ -212,7 +225,10 @@ class Treatment:
             pop_visitors: dataframe subset to simulants visiting the doctor
         """
         currently_medicated = pop_visitors[
-            pop_visitors[data_values.COLUMNS.SBP_MEDICATION].notna()
+            pop_visitors[data_values.COLUMNS.SBP_MEDICATION]
+            != data_values.MEDICATION_RAMP["sbp"][
+                data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT
+            ]
         ].index
         not_currently_medicated = pop_visitors.index.difference(currently_medicated)
         measured_sbp = self.sbp(pop_visitors.index) + get_measurement_error(

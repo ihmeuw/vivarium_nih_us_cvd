@@ -117,8 +117,18 @@ class HealthcareVisits:
         # Schedule followups
         # On medication and/or Post/chronic state 0-6 months out
         on_medication = pop[
-            (pop[data_values.COLUMNS.SBP_MEDICATION].notna())
-            | (pop[data_values.COLUMNS.LDLC_MEDICATION].notna())
+            (
+                pop[data_values.COLUMNS.SBP_MEDICATION]
+                != data_values.MEDICATION_RAMP["sbp"][
+                    data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT
+                ]
+            )
+            | (
+                pop[data_values.COLUMNS.LDLC_MEDICATION]
+                != data_values.MEDICATION_RAMP["ldlc"][
+                    data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT
+                ]
+            )
         ].index
         mask_chronic_is = (
             pop[models.ISCHEMIC_STROKE_MODEL_NAME]
@@ -172,9 +182,8 @@ class HealthcareVisits:
 
         # Missed scheduled (non-emergency) visits (these do not get re-scheduled)
         mask_scheduled_non_emergency = (
-            (pop[data_values.COLUMNS.SCHEDULED_VISIT_DATE] <= event.time)
-            & (~mask_emergency)
-        )
+            pop[data_values.COLUMNS.SCHEDULED_VISIT_DATE] <= event.time
+        ) & (~mask_emergency)
         scheduled_non_emergency = pop[mask_scheduled_non_emergency].index
         pop.loc[scheduled_non_emergency, data_values.COLUMNS.SCHEDULED_VISIT_DATE] = pd.NaT
         visit_missed = scheduled_non_emergency[
@@ -190,7 +199,9 @@ class HealthcareVisits:
         ] = data_values.VISIT_TYPE.SCHEDULED
 
         # Background visits (for those who did not go for another reason or miss their scheduled visit)
-        maybe_background = pop.index.difference(visit_emergency.union(scheduled_non_emergency))
+        maybe_background = pop.index.difference(
+            visit_emergency.union(scheduled_non_emergency)
+        )
         utilization_rate = self.background_utilization_rate(maybe_background)
         visit_background = self.randomness.filter_for_rate(
             maybe_background, utilization_rate
@@ -213,7 +224,12 @@ class HealthcareVisits:
             measured_sbp[measured_sbp >= data_values.SBP_THRESHOLD.LOW].index
         )
         visitors_on_sbp_medication = all_visitors.intersection(
-            pop[pop[data_values.COLUMNS.SBP_MEDICATION].notna()].index
+            pop[
+                pop[data_values.COLUMNS.SBP_MEDICATION]
+                != data_values.MEDICATION_RAMP["sbp"][
+                    data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT
+                ]
+            ].index
         )
         # Schedule those on sbp medication or those not on sbp medication but have a high sbp
         needs_followup = visitors_on_sbp_medication.union(visitors_high_sbp)
