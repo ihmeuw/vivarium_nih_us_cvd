@@ -49,18 +49,18 @@ PIPELINES = __Pipelines()
 ########################
 
 
-class __ComponentPriorities(NamedTuple):
-    """component listenr priorities that require something other than the default (5)"""
+class __TimestepCleanupPriorities(NamedTuple):
+    """component timestep cleanup listener priorities"""
 
     HEALTHCARE_VISITS: int = 5
     TREATMENT: int = 6
 
     @property
     def name(self):
-        return "component_priorities"
+        return "timestep_cleanup_priorities"
 
 
-COMPONENT_PRIORITIES = __ComponentPriorities()
+TIMESTEP_CLEANUP_PRIORITIES = __TimestepCleanupPriorities()
 
 
 #####################################

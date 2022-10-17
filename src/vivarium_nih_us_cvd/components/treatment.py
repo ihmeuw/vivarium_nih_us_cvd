@@ -25,42 +25,29 @@ class Treatment:
 
     def setup(self, builder: Builder) -> None:
         self.randomness = builder.randomness.get_stream(self.name)
-        self.sbp = builder.value.get_value("high_systolic_blood_pressure.exposure")
-        self.ldlc = builder.value.get_value("high_ldl_cholesterol.exposure")
-
-        # Columns
-        self.ischemic_stroke_state_column = models.ISCHEMIC_STROKE_MODEL_NAME
-        self.myocardial_infarction_state_column = models.MYOCARDIAL_INFARCTION_MODEL_NAME
-        self.visit_type_column = data_values.COLUMNS.VISIT_TYPE
-        self.sbp_medication_column = data_values.COLUMNS.SBP_MEDICATION
-        self.ldlc_medication_column = data_values.COLUMNS.LDLC_MEDICATION
-        self.sbp_medication_adherence_type_column = (
-            data_values.COLUMNS.SBP_MEDICATION_ADHERENCE
-        )
-        self.ldlc_medication_adherence_type_column = (
-            data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE
-        )
+        self.sbp = builder.value.get_value(data_values.PIPELINES.SBP_EXPOSURE)
+        self.ldlc = builder.value.get_value(data_values.PIPELINES.LDLC_EXPOSURE)
 
         columns_created = [
-            self.sbp_medication_column,
-            self.ldlc_medication_column,
-            self.sbp_medication_adherence_type_column,
-            self.ldlc_medication_adherence_type_column,
+            data_values.COLUMNS.SBP_MEDICATION,
+            data_values.COLUMNS.LDLC_MEDICATION,
+            data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
+            data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
         ]
         columns_required = [
             "age",
             "sex",
-            self.ischemic_stroke_state_column,
-            self.myocardial_infarction_state_column,
+            models.ISCHEMIC_STROKE_MODEL_NAME,
+            models.MYOCARDIAL_INFARCTION_MODEL_NAME,
         ]
 
         self.population_view = builder.population.get_view(
-            columns_required + columns_created + [self.visit_type_column]
+            columns_required + columns_created + [data_values.COLUMNS.VISIT_TYPE]
         )
 
         values_required = [
-            "high_systolic_blood_pressure.exposure",
-            "high_ldl_cholesterol.exposure",
+            data_values.PIPELINES.SBP_EXPOSURE,
+            data_values.PIPELINES.LDLC_EXPOSURE,
         ]
 
         # Initialize simulants
@@ -75,7 +62,7 @@ class Treatment:
         builder.event.register_listener(
             "time_step__cleanup",
             self.on_time_step_cleanup,
-            priority=data_values.COMPONENT_PRIORITIES.TREATMENT,
+            priority=data_values.TIMESTEP_CLEANUP_PRIORITIES.TREATMENT,
         )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
@@ -95,8 +82,8 @@ class Treatment:
             [
                 "age",
                 "sex",
-                self.ischemic_stroke_state_column,
-                self.myocardial_infarction_state_column,
+                models.ISCHEMIC_STROKE_MODEL_NAME,
+                models.MYOCARDIAL_INFARCTION_MODEL_NAME,
             ]
         ).get(pop_data.index)
 
@@ -104,10 +91,10 @@ class Treatment:
 
         # Send anyone in emergency state to medication ramp
         mask_acute_is = (
-            pop[self.ischemic_stroke_state_column] == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
+            pop[models.ISCHEMIC_STROKE_MODEL_NAME] == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
         )
         mask_acute_mi = (
-            pop[self.myocardial_infarction_state_column]
+            pop[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
             == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
         )
         emergency = pop.index[(mask_acute_is | mask_acute_mi)]
@@ -117,10 +104,10 @@ class Treatment:
         self.population_view.update(
             pop[
                 [
-                    self.sbp_medication_column,
-                    self.sbp_medication_adherence_type_column,
-                    self.ldlc_medication_column,
-                    self.ldlc_medication_adherence_type_column,
+                    data_values.COLUMNS.SBP_MEDICATION,
+                    data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
+                    data_values.COLUMNS.LDLC_MEDICATION,
+                    data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
                 ]
             ]
         )
@@ -128,20 +115,20 @@ class Treatment:
     def initialize_medication_coverage(self, pop: pd.DataFrame) -> pd.DataFrame:
         """Initializes medication coverage and adherence levels"""
         # Initialize adherence levels
-        pop[self.sbp_medication_adherence_type_column] = self.randomness.choice(
+        pop[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE] = self.randomness.choice(
             pop.index,
             choices=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY["sbp"].keys()),
             p=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY["sbp"].values()),
         )
-        pop[self.ldlc_medication_adherence_type_column] = self.randomness.choice(
+        pop[data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE] = self.randomness.choice(
             pop.index,
             choices=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY["ldlc"].keys()),
             p=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY["ldlc"].values()),
         )
 
         # Initialize medication coverage
-        pop[self.sbp_medication_column] = np.nan
-        pop[self.ldlc_medication_column] = np.nan
+        pop[data_values.COLUMNS.SBP_MEDICATION] = np.nan
+        pop[data_values.COLUMNS.LDLC_MEDICATION] = np.nan
         p_medication = self.calculate_medication_coverage_probabilities(pop)
         medicated_states = self.randomness.choice(
             p_medication.index, choices=p_medication.columns, p=np.array(p_medication)
@@ -149,12 +136,12 @@ class Treatment:
         medicated_sbp = medicated_states[medicated_states.isin(["sbp", "both"])].index
         medicated_ldlc = medicated_states[medicated_states.isin(["ldlc", "both"])].index
         # Define what level of medication for the medicated simulants
-        pop.loc[medicated_sbp, self.sbp_medication_column] = self.randomness.choice(
+        pop.loc[medicated_sbp, data_values.COLUMNS.SBP_MEDICATION] = self.randomness.choice(
             medicated_sbp,
             choices=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["sbp"].keys()),
             p=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["sbp"].values()),
         )
-        pop.loc[medicated_ldlc, self.ldlc_medication_column] = self.randomness.choice(
+        pop.loc[medicated_ldlc, data_values.COLUMNS.LDLC_MEDICATION] = self.randomness.choice(
             medicated_ldlc,
             choices=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["ldlc"].keys()),
             p=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["ldlc"].values()),
@@ -162,16 +149,16 @@ class Treatment:
 
         # # Move medicated but non-adherent simulants to lowest level
         sbp_non_adherent = pop[
-            pop[self.sbp_medication_adherence_type_column]
+            pop[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE]
             != data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
         ].index
         ldlc_non_adherent = pop[
-            pop[self.ldlc_medication_adherence_type_column]
+            pop[data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE]
             != data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
         ].index
-        pop.loc[medicated_sbp.intersection(sbp_non_adherent), self.sbp_medication_column] = 1
+        pop.loc[medicated_sbp.intersection(sbp_non_adherent), data_values.COLUMNS.SBP_MEDICATION] = 1
         pop.loc[
-            medicated_ldlc.intersection(ldlc_non_adherent), self.ldlc_medication_column
+            medicated_ldlc.intersection(ldlc_non_adherent), data_values.COLUMNS.LDLC_MEDICATION
         ] = 1
 
         return pop
@@ -209,16 +196,16 @@ class Treatment:
         """Update treatments"""
         pop = self.population_view.subview(
             [
-                self.visit_type_column,
-                self.sbp_medication_column,
-                self.ldlc_medication_column,
-                self.sbp_medication_adherence_type_column,
-                self.ldlc_medication_adherence_type_column,
+                data_values.COLUMNS.VISIT_TYPE,
+                data_values.COLUMNS.SBP_MEDICATION,
+                data_values.COLUMNS.LDLC_MEDICATION,
+                data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
+                data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
             ]
         ).get(event.index, query='alive == "alive"')
 
         visitors = pop[
-            pop[self.visit_type_column].isin(
+            pop[data_values.COLUMNS.VISIT_TYPE].isin(
                 [
                     data_values.VISIT_TYPE.EMERGENCY,
                     data_values.VISIT_TYPE.SCHEDULED,
@@ -233,8 +220,8 @@ class Treatment:
         self.population_view.update(
             pop[
                 [
-                    self.sbp_medication_column,
-                    self.ldlc_medication_column,
+                    data_values.COLUMNS.SBP_MEDICATION,
+                    data_values.COLUMNS.LDLC_MEDICATION,
                 ]
             ]
         )
@@ -268,7 +255,7 @@ class Treatment:
         # If tx prescribed, it must be one_drug_half_dose
         to_prescribe_mid_sbp = mid_sbp.intersection(overcome_therapeutic_inertia)
         pop_not_medicated.loc[
-            to_prescribe_mid_sbp, self.sbp_medication_column
+            to_prescribe_mid_sbp, data_values.COLUMNS.SBP_MEDICATION
         ] = data_values.MEDICATION_RAMP["sbp"][
             data_values.SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE
         ]
@@ -277,7 +264,7 @@ class Treatment:
         # If tx prescribed, apply ramp
         to_prescribe_high_sbp = high_sbp.intersection(overcome_therapeutic_inertia)
         pop_not_medicated.loc[
-            to_prescribe_high_sbp, self.sbp_medication_column
+            to_prescribe_high_sbp, data_values.COLUMNS.SBP_MEDICATION
         ] = self.randomness.choice(
             to_prescribe_high_sbp,
             choices=list(
@@ -308,11 +295,11 @@ class Treatment:
             > data_values.THERAPEUTIC_INERTIA_NO_START
         ]
         adherent = pop_medicated[
-            pop_medicated[self.sbp_medication_adherence_type_column]
+            pop_medicated[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE]
             == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
         ].index
         not_already_max_medicated = pop_medicated[
-            pop_medicated[self.sbp_medication_column]
+            pop_medicated[data_values.COLUMNS.SBP_MEDICATION]
             < max(data_values.MEDICATION_RAMP["sbp"].values())
         ].index
 
@@ -323,8 +310,8 @@ class Treatment:
             .intersection(adherent)
             .intersection(not_already_max_medicated)
         )
-        pop_medicated.loc[medication_change, self.sbp_medication_column] = (
-            pop_medicated[self.sbp_medication_column] + 1
+        pop_medicated.loc[medication_change, data_values.COLUMNS.SBP_MEDICATION] = (
+            pop_medicated[data_values.COLUMNS.SBP_MEDICATION] + 1
         )
 
         return pop_medicated
@@ -336,7 +323,7 @@ class Treatment:
             pop_visitors: dataframe subset to simulants visiting the doctor
         """
         currently_medicated = pop_visitors[
-            pop_visitors[self.sbp_medication_column].notna()
+            pop_visitors[data_values.COLUMNS.SBP_MEDICATION].notna()
         ].index
         not_currently_medicated = pop_visitors.index.difference(currently_medicated)
         measured_sbp = self.sbp(pop_visitors.index) + get_measurement_error(

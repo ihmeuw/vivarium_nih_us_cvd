@@ -72,7 +72,7 @@ class HealthcareVisits:
         builder.event.register_listener(
             "time_step__cleanup",
             self.on_time_step_cleanup,
-            priority=data_values.COMPONENT_PRIORITIES.HEALTHCARE_VISITS,
+            priority=data_values.TIMESTEP_CLEANUP_PRIORITIES.HEALTHCARE_VISITS,
         )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
