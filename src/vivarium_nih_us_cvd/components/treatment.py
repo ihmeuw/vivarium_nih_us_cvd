@@ -219,6 +219,37 @@ class Treatment:
             ]
         )
 
+    def apply_sbp_treatment_ramp(self, pop_visitors: pd.DataFrame) -> pd.DataFrame:
+        """Applies the SBP treatment ramp
+
+        Arguments:
+            pop_visitors: dataframe subset to simulants visiting the doctor
+        """
+        currently_medicated = pop_visitors[
+            pop_visitors[data_values.COLUMNS.SBP_MEDICATION].notna()
+        ].index
+        not_currently_medicated = pop_visitors.index.difference(currently_medicated)
+        measured_sbp = self.sbp(pop_visitors.index) + get_measurement_error(
+            index=pop_visitors.index,
+            mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
+            sd=data_values.MEASUREMENT_ERROR_SD_SBP,
+            randomness=self.randomness,
+        )
+
+        pop_visitors.loc[not_currently_medicated] = self.treat_not_currently_medicated_sbp(
+            pop_not_medicated=pop_visitors.loc[not_currently_medicated],
+            measured_sbp=measured_sbp,
+        )
+        pop_visitors.loc[currently_medicated] = self.treat_currently_medicated_sbp(
+            pop_medicated=pop_visitors.loc[currently_medicated], measured_sbp=measured_sbp
+        )
+
+        return pop_visitors
+
+    def apply_ldlc_treatment_ramp(self, pop_visitors: pd.DataFrame) -> pd.DataFrame:
+        # TODO: [MIC-3375]
+        return pop_visitors
+
     def treat_not_currently_medicated_sbp(
         self, pop_not_medicated: pd.DataFrame, measured_sbp: pd.Series
     ) -> pd.DataFrame:
@@ -308,34 +339,3 @@ class Treatment:
         )
 
         return pop_medicated
-
-    def apply_sbp_treatment_ramp(self, pop_visitors: pd.DataFrame) -> pd.DataFrame:
-        """Applies the SBP treatment ramp
-
-        Arguments:
-            pop_visitors: dataframe subset to simulants visiting the doctor
-        """
-        currently_medicated = pop_visitors[
-            pop_visitors[data_values.COLUMNS.SBP_MEDICATION].notna()
-        ].index
-        not_currently_medicated = pop_visitors.index.difference(currently_medicated)
-        measured_sbp = self.sbp(pop_visitors.index) + get_measurement_error(
-            index=pop_visitors.index,
-            mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
-            sd=data_values.MEASUREMENT_ERROR_SD_SBP,
-            randomness=self.randomness,
-        )
-
-        pop_visitors.loc[not_currently_medicated] = self.treat_not_currently_medicated_sbp(
-            pop_not_medicated=pop_visitors.loc[not_currently_medicated],
-            measured_sbp=measured_sbp,
-        )
-        pop_visitors.loc[currently_medicated] = self.treat_currently_medicated_sbp(
-            pop_medicated=pop_visitors.loc[currently_medicated], measured_sbp=measured_sbp
-        )
-
-        return pop_visitors
-
-    def apply_ldlc_treatment_ramp(self, pop_visitors: pd.DataFrame) -> pd.DataFrame:
-        # TODO: [MIC-3375]
-        return pop_visitors
