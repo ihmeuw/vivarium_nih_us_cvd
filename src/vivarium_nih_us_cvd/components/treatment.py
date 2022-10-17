@@ -98,7 +98,7 @@ class Treatment:
             pop[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
             == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
         )
-        emergency = pop.index[(mask_acute_is | mask_acute_mi)]
+        emergency = pop[(mask_acute_is | mask_acute_mi)].index
         pop.loc[emergency] = self.apply_sbp_treatment_ramp(pop_visitors=pop.loc[emergency])
         pop.loc[emergency] = self.apply_ldlc_treatment_ramp(pop_visitors=pop.loc[emergency])
 
@@ -266,10 +266,10 @@ class Treatment:
 
         # Generate indexes for simulants who overcome therapeutic inertia and
         # who have medium and high (measured) SBP levels
-        overcome_therapeutic_inertia = pop_not_medicated.index[
+        overcome_therapeutic_inertia = pop_not_medicated[
             self.randomness.get_draw(pop_not_medicated.index)
             > data_values.THERAPEUTIC_INERTIA_NO_START
-        ]
+        ].index
         mid_sbp = measured_sbp[
             (measured_sbp >= data_values.SBP_THRESHOLD.LOW)
             & (measured_sbp < data_values.SBP_THRESHOLD.HIGH)
@@ -317,10 +317,10 @@ class Treatment:
         # adherent to their medication, who are not already medicated, and who
         # have low and high (measured) SBP levels
         high_sbp = measured_sbp[measured_sbp >= data_values.SBP_THRESHOLD.HIGH].index
-        overcome_therapeutic_inertia = pop_medicated.index[
+        overcome_therapeutic_inertia = pop_medicated[
             self.randomness.get_draw(pop_medicated.index)
             > data_values.THERAPEUTIC_INERTIA_NO_START
-        ]
+        ].index
         adherent = pop_medicated[
             pop_medicated[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE]
             == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT

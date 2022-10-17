@@ -108,7 +108,7 @@ class HealthcareVisits:
             pop[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
             == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
         )
-        emergency = pop.index[(mask_acute_is | mask_acute_mi)]
+        emergency = pop[(mask_acute_is | mask_acute_mi)].index
         pop.loc[emergency, data_values.COLUMNS.VISIT_TYPE] = data_values.VISIT_TYPE.EMERGENCY
 
         # Schedule followups
@@ -125,7 +125,7 @@ class HealthcareVisits:
             pop[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
             == models.POST_MYOCARDIAL_INFARCTION_STATE_NAME
         )
-        acute_history = pop.index[mask_chronic_is | mask_post_mi]
+        acute_history = pop[mask_chronic_is | mask_post_mi].index
         pop.loc[
             on_medication.union(acute_history), data_values.COLUMNS.SCHEDULED_VISIT_DATE
         ] = self.schedule_followup(
