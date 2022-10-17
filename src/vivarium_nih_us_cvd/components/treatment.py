@@ -70,14 +70,6 @@ class Treatment:
         Anyone initialized in an emergency (acute) state will enter the treatment
         ramps. A burn-in period allows for the observed simulation to start with
         more realistic treatments and scheduled followups.
-
-        This component also initializes scheduled followups because doing so
-        requires medication coverage. All simulants on SBP medication, LDL-C
-        medication, or a history of an acute event (ie intialized in state
-        post-MI or chronic IS) should be initialized with a scheduled followup
-        visit 0-6 months out, uniformly distributed. All simulants initialized
-        in an acute state should bescheduled a followup visit 3-6 months out,
-        uniformly distributed.
         """
         pop = self.population_view.subview(
             [
