@@ -163,9 +163,9 @@ class Treatment:
         """Determine the probability of each simulant being medicated"""
 
         # Calculate the covariates
-        medication_coverage_covariates = {}
+        df = pd.DataFrame()
         for coefficients in data_values.MEDICATION_COVERAGE_COEFFICIENTS:
-            medication_coverage_covariates[coefficients.NAME] = np.exp(
+            df[coefficients.NAME] = np.exp(
                 coefficients.INTERCEPT
                 + coefficients.SBP * self.sbp(pop.index)
                 + coefficients.LDLC * self.ldlc(pop.index)
@@ -173,13 +173,11 @@ class Treatment:
                 + coefficients.SEX * pop["sex"].map(data_values.BASELINE_MEDICATION_COVERAGE_SEX_MAPPING)
             )
         # Calculate probabilities of being medicated
-        p_medication = {}
-        p_denominator = sum(medication_coverage_covariates.values()) + 1
-        for med_type, cov in medication_coverage_covariates.items():
-            p_medication[med_type] = pd.Series(cov / p_denominator, name=med_type)
-        p_medication["none"] = pd.Series(1 / p_denominator, name="none")
+        p_denominator = df.sum(axis=1) + 1
+        df = df.divide(p_denominator, axis=0)
+        df["none"] = 1 / p_denominator
 
-        return pd.concat(p_medication, axis=1)
+        return df
 
     def on_time_step_cleanup(self, event: Event) -> None:
         """Update treatments"""
