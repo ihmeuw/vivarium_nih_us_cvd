@@ -27,8 +27,8 @@ class HealthcareVisits:
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
         self.randomness = builder.randomness.get_stream(self.name)
-        self.sbp = builder.value.get_value("high_systolic_blood_pressure.exposure")
-        self.ldlc = builder.value.get_value("high_ldl_cholesterol.exposure")
+        self.sbp = builder.value.get_value(data_values.PIPELINES.SBP_EXPOSURE)
+        self.ldlc = builder.value.get_value(data_values.PIPELINES.LDLC_EXPOSURE)
 
         # Load data
         utilization_data = builder.data.load(data_keys.POPULATION.HEALTHCARE_UTILIZATION)
@@ -56,8 +56,8 @@ class HealthcareVisits:
         self.population_view = builder.population.get_view(columns_required + columns_created)
 
         values_required = [
-            "high_systolic_blood_pressure.exposure",
-            "high_ldl_cholesterol.exposure",
+            data_values.PIPELINES.SBP_EXPOSURE,
+            data_values.PIPELINES.LDLC_EXPOSURE,
         ]
 
         # Initialize simulants

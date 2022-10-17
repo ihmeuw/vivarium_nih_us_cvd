@@ -25,6 +25,25 @@ class __Columns(NamedTuple):
 COLUMNS = __Columns()
 
 
+##################
+# Pipeline names #
+##################
+
+
+class __Pipelines(NamedTuple):
+    """value pipeline names"""
+
+    SBP_EXPOSURE: str = "high_systolic_blood_pressure.exposure"
+    LDLC_EXPOSURE: str = "high_ldl_cholesterol.exposure"
+
+    @property
+    def name(self):
+        return "pipelines"
+
+
+PIPELINES = __Pipelines()
+
+
 ########################
 # Component priorities #
 ########################
