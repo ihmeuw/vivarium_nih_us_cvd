@@ -212,11 +212,8 @@ class HealthcareVisits:
         visitors_on_sbp_medication = all_visitors.intersection(
             pop[pop[data_values.COLUMNS.SBP_MEDICATION].notna()].index
         )
-        visitors_not_on_sbp_medication = all_visitors.difference(visitors_on_sbp_medication)
         # Schedule those on sbp medication or those not on sbp medication but have a high sbp
-        needs_followup = visitors_on_sbp_medication.union(
-            visitors_not_on_sbp_medication.intersection(visitors_high_sbp)
-        )
+        needs_followup = visitors_on_sbp_medication.union(visitors_high_sbp)
         # Do no re-schedule followups that already exist
         has_followup_already_scheduled = pop[
             (pop[data_values.COLUMNS.SCHEDULED_VISIT_DATE] > event.time)
