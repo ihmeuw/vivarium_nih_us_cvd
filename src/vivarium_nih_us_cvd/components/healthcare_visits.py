@@ -150,16 +150,7 @@ class HealthcareVisits:
         already has a followup visit scheduled for the future, keep that scheduled
         followup and do not schedule a new one or another one.
         """
-        pop = self.population_view.subview(
-            [
-                models.ISCHEMIC_STROKE_MODEL_NAME,
-                models.MYOCARDIAL_INFARCTION_MODEL_NAME,
-                data_values.COLUMNS.VISIT_TYPE,
-                data_values.COLUMNS.SCHEDULED_VISIT_DATE,
-                data_values.COLUMNS.SBP_MEDICATION,
-                data_values.COLUMNS.LDLC_MEDICATION,
-            ]
-        ).get(event.index, query='alive == "alive"')
+        pop = self.population_view.get(event.index, query='alive == "alive"')
         pop[data_values.COLUMNS.VISIT_TYPE] = data_values.VISIT_TYPE.NONE
 
         # Emergency visits
