@@ -122,7 +122,7 @@ class Treatment:
         # Initialize medication coverage
         pop[data_values.COLUMNS.SBP_MEDICATION] = np.nan
         pop[data_values.COLUMNS.LDLC_MEDICATION] = np.nan
-        p_medication = self.calculate_medication_coverage_probabilities(pop)
+        p_medication = self.calculate_initial_medication_coverage_probabilities(pop)
         medicated_states = self.randomness.choice(
             p_medication.index, choices=p_medication.columns, p=np.array(p_medication)
         )
@@ -159,7 +159,7 @@ class Treatment:
 
         return pop
 
-    def calculate_medication_coverage_probabilities(self, pop: pd.DataFrame) -> pd.DataFrame:
+    def calculate_initial_medication_coverage_probabilities(self, pop: pd.DataFrame) -> pd.DataFrame:
         """Determine the probability of each simulant being medicated"""
 
         # Calculate the covariates
