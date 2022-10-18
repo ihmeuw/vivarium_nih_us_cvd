@@ -1,5 +1,4 @@
 import pandas as pd
-import scipy
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData

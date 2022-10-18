@@ -231,6 +231,13 @@ class Treatment:
         Arguments:
             pop_visitors: dataframe subset to simulants visiting the doctor
         """
+        overcome_therapeutic_inertia = pop_visitors[
+            self.randomness.get_draw(
+                pop_visitors.index,
+                additional_key="sbp_therapeutic_inertia",
+            )
+            > data_values.THERAPEUTIC_INERTIA_NO_START
+        ].index
         currently_medicated = pop_visitors[
             pop_visitors[data_values.COLUMNS.SBP_MEDICATION]
             != data_values.MEDICATION_RAMP["sbp"][
@@ -238,6 +245,7 @@ class Treatment:
             ]
         ].index
         not_currently_medicated = pop_visitors.index.difference(currently_medicated)
+
         measured_sbp = self.sbp(pop_visitors.index) + get_measurement_error(
             index=pop_visitors.index,
             mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
@@ -246,61 +254,13 @@ class Treatment:
             additional_key="measured_sbp",
         )
 
-        pop_visitors.loc[not_currently_medicated] = self.treat_not_currently_medicated_sbp(
-            pop_not_medicated=pop_visitors.loc[not_currently_medicated],
-            measured_sbp=measured_sbp,
-        )
-        pop_visitors.loc[currently_medicated] = self.treat_currently_medicated_sbp(
-            pop_medicated=pop_visitors.loc[currently_medicated], measured_sbp=measured_sbp
-        )
-
-        return pop_visitors
-
-    def apply_ldlc_treatment_ramp(self, pop_visitors: pd.DataFrame) -> pd.DataFrame:
-        # TODO: [MIC-3375]
-        return pop_visitors
-
-    def treat_not_currently_medicated_sbp(
-        self, pop_not_medicated: pd.DataFrame, measured_sbp: pd.Series
-    ) -> pd.DataFrame:
-        """Applies the SBP treatment ramp to simulants not already on medication
-
-        Arguments:
-            pop_not_medicated: dataframe of simulants subset to those visiting the doctor and
-                not already medicated
-            measured_sbp: measured blood pressure values
-        """
-
-        # Generate indexes for simulants who overcome therapeutic inertia and
-        # who have medium and high (measured) SBP levels
-        overcome_therapeutic_inertia = pop_not_medicated[
-            self.randomness.get_draw(
-                pop_not_medicated.index,
-                additional_key="not_currently_medicated_sbp_therapeutic_inertia",
-            )
-            > data_values.THERAPEUTIC_INERTIA_NO_START
-        ].index
-        mid_sbp = measured_sbp[
-            (measured_sbp >= data_values.SBP_THRESHOLD.LOW)
-            & (measured_sbp < data_values.SBP_THRESHOLD.HIGH)
-        ].index
+        # Un-medicated patients with sbp >= 140 (who overcome therapeutic inertia)
+        # should start medication
         high_sbp = measured_sbp[measured_sbp >= data_values.SBP_THRESHOLD.HIGH].index
-
-        # Low-SBP patients: do nothing
-
-        # Mid-SBP patients
-        # If tx prescribed, it must be one_drug_half_dose
-        to_prescribe_mid_sbp = mid_sbp.intersection(overcome_therapeutic_inertia)
-        pop_not_medicated.loc[
-            to_prescribe_mid_sbp, data_values.COLUMNS.SBP_MEDICATION
-        ] = data_values.MEDICATION_RAMP["sbp"][
-            data_values.SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE
-        ]
-
-        # High-SBP patients
-        # If tx prescribed, apply ramp
-        to_prescribe_high_sbp = high_sbp.intersection(overcome_therapeutic_inertia)
-        pop_not_medicated.loc[
+        to_prescribe_high_sbp = not_currently_medicated.intersection(high_sbp).intersection(
+            overcome_therapeutic_inertia
+        )
+        pop_visitors.loc[
             to_prescribe_high_sbp, data_values.COLUMNS.SBP_MEDICATION
         ] = self.randomness.choice(
             to_prescribe_high_sbp,
@@ -311,48 +271,36 @@ class Treatment:
             additional_key="high_sbp_first_prescriptions",
         )
 
-        return pop_not_medicated
-
-    def treat_currently_medicated_sbp(
-        self, pop_medicated: pd.DataFrame, measured_sbp: pd.Series
-    ) -> pd.DataFrame:
-        """Applies the SBP treatment ramp to simulants already on medication
-
-        Arguments:
-            pop_medicated: dataframe of simulants subset to those visiting the doctor and
-                who are already on medication
-            measured_sbp: measured blood pressure values
-        """
-
-        # Generate indexes for simulants who overcome therapeutic inertia, are
-        # adherent to their medication, who are not already medicated, and who
-        # have low and high (measured) SBP levels
-        high_sbp = measured_sbp[measured_sbp >= data_values.SBP_THRESHOLD.HIGH].index
-        overcome_therapeutic_inertia = pop_medicated[
-            self.randomness.get_draw(
-                pop_medicated.index,
-                additional_key="currently_medicated_sbp_therapeutic_inertia",
-            )
-            > data_values.THERAPEUTIC_INERTIA_NO_START
+        # Un-medicated patients with sbp [130, 140) and already-medicated
+        # adherent patients with sbp >= 140 should move up the ramp
+        # (all must overcome therapeutic inertia in order to move up)
+        mid_sbp = measured_sbp[
+            (measured_sbp >= data_values.SBP_THRESHOLD.LOW)
+            & (measured_sbp < data_values.SBP_THRESHOLD.HIGH)
         ].index
-        adherent = pop_medicated[
-            pop_medicated[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE]
+        adherent = pop_visitors[
+            pop_visitors[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE]
             == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
         ].index
-        not_already_max_medicated = pop_medicated[
-            pop_medicated[data_values.COLUMNS.SBP_MEDICATION]
+        not_already_max_medicated = pop_visitors[
+            pop_visitors[data_values.COLUMNS.SBP_MEDICATION]
             < max(data_values.MEDICATION_RAMP["sbp"].values())
         ].index
-
-        # High-SBP patients
-        # If tx changed, move up ramp
         medication_change = (
-            high_sbp.intersection(overcome_therapeutic_inertia)
-            .intersection(adherent)
-            .intersection(not_already_max_medicated)
+            (not_currently_medicated.intersection(mid_sbp))
+            .union(
+                currently_medicated.intersection(not_already_max_medicated)
+                .intersection(adherent)
+                .intersection(high_sbp)
+            )
+            .intersection(overcome_therapeutic_inertia)
         )
-        pop_medicated.loc[medication_change, data_values.COLUMNS.SBP_MEDICATION] = (
-            pop_medicated[data_values.COLUMNS.SBP_MEDICATION] + 1
+        pop_visitors.loc[medication_change, data_values.COLUMNS.SBP_MEDICATION] = (
+            pop_visitors[data_values.COLUMNS.SBP_MEDICATION] + 1
         )
 
-        return pop_medicated
+        return pop_visitors
+
+    def apply_ldlc_treatment_ramp(self, pop_visitors: pd.DataFrame) -> pd.DataFrame:
+        # TODO: [MIC-3375]
+        return pop_visitors
