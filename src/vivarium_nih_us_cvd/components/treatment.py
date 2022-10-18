@@ -8,6 +8,14 @@ from vivarium_nih_us_cvd.constants import data_values, models
 from vivarium_nih_us_cvd.utilities import get_measurement_error
 
 
+sbp_treatment_map = {
+    level.VALUE: level.DESCRIPTION for level in data_values.SBP_MEDICATION_LEVEL
+}
+ldlc_treatment_map = {
+    level.VALUE: level.DESCRIPTION for level in data_values.LDLC_MEDICATION_LEVEL
+}
+
+
 class Treatment:
     """Updates treatment coverage"""
 
@@ -128,12 +136,12 @@ class Treatment:
         )
 
         # Initialize medication coverage
-        pop[data_values.COLUMNS.SBP_MEDICATION] = data_values.MEDICATION_RAMP["sbp"][
-            data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT
-        ]
-        pop[data_values.COLUMNS.LDLC_MEDICATION] = data_values.MEDICATION_RAMP["ldlc"][
-            data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT
-        ]
+        pop[
+            data_values.COLUMNS.SBP_MEDICATION
+        ] = data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
+        pop[
+            data_values.COLUMNS.LDLC_MEDICATION
+        ] = data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
         p_medication = self.calculate_initial_medication_coverage_probabilities(pop)
         medicated_states = self.randomness.choice(
             p_medication.index,
@@ -168,11 +176,11 @@ class Treatment:
         ].index
         pop.loc[
             medicated_sbp.intersection(sbp_non_adherent), data_values.COLUMNS.SBP_MEDICATION
-        ] = 1
+        ] = sbp_treatment_map[1]
         pop.loc[
             medicated_ldlc.intersection(ldlc_non_adherent),
             data_values.COLUMNS.LDLC_MEDICATION,
-        ] = 1
+        ] = ldlc_treatment_map[1]
 
         return pop
 
@@ -240,9 +248,7 @@ class Treatment:
         ].index
         currently_medicated = pop_visitors[
             pop_visitors[data_values.COLUMNS.SBP_MEDICATION]
-            != data_values.MEDICATION_RAMP["sbp"][
-                data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT
-            ]
+            != data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
         ].index
         not_currently_medicated = pop_visitors.index.difference(currently_medicated)
 
@@ -283,8 +289,7 @@ class Treatment:
             == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
         ].index
         not_already_max_medicated = pop_visitors[
-            pop_visitors[data_values.COLUMNS.SBP_MEDICATION]
-            < max(data_values.MEDICATION_RAMP["sbp"].values())
+            pop_visitors[data_values.COLUMNS.SBP_MEDICATION] != sbp_treatment_map[max(sbp_treatment_map)]
         ].index
         medication_change = (
             (not_currently_medicated.intersection(mid_sbp))
@@ -296,8 +301,11 @@ class Treatment:
             .intersection(overcome_therapeutic_inertia)
         )
         pop_visitors.loc[medication_change, data_values.COLUMNS.SBP_MEDICATION] = (
-            pop_visitors[data_values.COLUMNS.SBP_MEDICATION] + 1
-        )
+            pop_visitors[data_values.COLUMNS.SBP_MEDICATION].map(
+                {v: k for k, v in sbp_treatment_map.items()}
+            )
+            + 1
+        ).map(sbp_treatment_map)
 
         return pop_visitors
 

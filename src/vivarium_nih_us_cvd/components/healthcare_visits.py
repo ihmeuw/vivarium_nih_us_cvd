@@ -118,15 +118,11 @@ class HealthcareVisits:
         on_medication = pop[
             (
                 pop[data_values.COLUMNS.SBP_MEDICATION]
-                != data_values.MEDICATION_RAMP["sbp"][
-                    data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT
-                ]
+                != data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
             )
             | (
                 pop[data_values.COLUMNS.LDLC_MEDICATION]
-                != data_values.MEDICATION_RAMP["ldlc"][
-                    data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT
-                ]
+                != data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
             )
         ].index
         mask_chronic_is = (
@@ -228,9 +224,7 @@ class HealthcareVisits:
         visitors_on_sbp_medication = all_visitors.intersection(
             pop[
                 pop[data_values.COLUMNS.SBP_MEDICATION]
-                != data_values.MEDICATION_RAMP["sbp"][
-                    data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT
-                ]
+                != data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
             ].index
         )
         # Schedule those on sbp medication or those not on sbp medication but have a high sbp

@@ -116,16 +116,39 @@ class __SBPThreshold(NamedTuple):
 SBP_THRESHOLD = __SBPThreshold()
 
 
+class MedicationRampBaseClass(NamedTuple):
+    """Base class to define medication levels and ramp values"""
+
+    DESCRIPTION: str
+    VALUE: int
+
+    @property
+    def name(self):
+        return "medication_ramp_base_class"
+
+
 class __SBPMedicationLevel(NamedTuple):
     """high sbp medication level"""
 
-    NO_TREATMENT: str = "no_treatment"
-    ONE_DRUG_HALF_DOSE: str = "one_drug_half_dose_efficacy"
-    ONE_DRUG_FULL_DOSE: str = "one_drug_std_dose_efficacy"
-    TWO_DRUGS_HALF_DOSE: str = "two_drug_half_dose_efficacy"
-    TWO_DRUGS_FULL_DOSE: str = "two_drug_std_dose_efficacy"
-    THREE_DRUGS_HALF_DOSE: str = "three_drug_half_dose_efficacy"
-    THREE_DRUGS_FULL_DOSE: str = "three_drug_std_dose_efficacy"
+    NO_TREATMENT: MedicationRampBaseClass = MedicationRampBaseClass("no_treatment", 0)
+    ONE_DRUG_HALF_DOSE: MedicationRampBaseClass = MedicationRampBaseClass(
+        "one_drug_half_dose_efficacy", 1
+    )
+    ONE_DRUG_FULL_DOSE: MedicationRampBaseClass = MedicationRampBaseClass(
+        "one_drug_std_dose_efficacy", 2
+    )
+    TWO_DRUGS_HALF_DOSE: MedicationRampBaseClass = MedicationRampBaseClass(
+        "two_drug_half_dose_efficacy", 3
+    )
+    TWO_DRUGS_FULL_DOSE: MedicationRampBaseClass = MedicationRampBaseClass(
+        "two_drug_std_dose_efficacy", 4
+    )
+    THREE_DRUGS_HALF_DOSE: MedicationRampBaseClass = MedicationRampBaseClass(
+        "three_drug_half_dose_efficacy", 5
+    )
+    THREE_DRUGS_FULL_DOSE: MedicationRampBaseClass = MedicationRampBaseClass(
+        "three_drug_std_dose_efficacy", 6
+    )
 
     @property
     def name(self):
@@ -138,12 +161,12 @@ SBP_MEDICATION_LEVEL = __SBPMedicationLevel()
 class __LDLCMedicationLevel(NamedTuple):
     """high ldl-c medication level"""
 
-    NO_TREATMENT: str = "no_treatment"
-    LOW: str = "low_intensity"
-    MED: str = "medium_intensity"
-    LOW_MED_EZE: str = "low_med_with_eze"
-    HIGH: str = "high_intensity"
-    HIGH_EZE: str = "high_with_eze"
+    NO_TREATMENT: MedicationRampBaseClass = MedicationRampBaseClass("no_treatment", 0)
+    LOW: MedicationRampBaseClass = MedicationRampBaseClass("low_intensity", 1)
+    MED: MedicationRampBaseClass = MedicationRampBaseClass("medium_intensity", 2)
+    LOW_MED_EZE: MedicationRampBaseClass = MedicationRampBaseClass("low_med_with_eze", 3)
+    HIGH: MedicationRampBaseClass = MedicationRampBaseClass("high_intensity", 4)
+    HIGH_EZE: MedicationRampBaseClass = MedicationRampBaseClass("high_with_eze", 5)
 
     @property
     def name(self):
@@ -152,37 +175,17 @@ class __LDLCMedicationLevel(NamedTuple):
 
 LDLC_MEDICATION_LEVEL = __LDLCMedicationLevel()
 
-MEDICATION_RAMP = {
-    "sbp": {
-        SBP_MEDICATION_LEVEL.NO_TREATMENT: 0,
-        SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE: 1,
-        SBP_MEDICATION_LEVEL.ONE_DRUG_FULL_DOSE: 2,
-        SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE: 3,
-        SBP_MEDICATION_LEVEL.TWO_DRUGS_FULL_DOSE: 4,
-        SBP_MEDICATION_LEVEL.THREE_DRUGS_HALF_DOSE: 5,
-        SBP_MEDICATION_LEVEL.THREE_DRUGS_FULL_DOSE: 6,
-    },
-    "ldlc": {
-        LDLC_MEDICATION_LEVEL.NO_TREATMENT: 0,
-        LDLC_MEDICATION_LEVEL.LOW: 1,
-        LDLC_MEDICATION_LEVEL.MED: 2,
-        LDLC_MEDICATION_LEVEL.LOW_MED_EZE: 3,
-        LDLC_MEDICATION_LEVEL.HIGH: 4,
-        LDLC_MEDICATION_LEVEL.HIGH_EZE: 5,
-    },
-}
-
 
 # Define the baseline medication ramp level for simulants who are initialized as medicated
 BASELINE_MEDICATION_LEVEL_PROBABILITY = {
     "sbp": {
-        MEDICATION_RAMP["sbp"][SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE]: 0.57,
-        MEDICATION_RAMP["sbp"][SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE]: 0.43,
+        SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE.DESCRIPTION: 0.57,
+        SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE.DESCRIPTION: 0.43,
     },
     "ldlc": {
-        MEDICATION_RAMP["ldlc"][LDLC_MEDICATION_LEVEL.LOW]: 0.0382,
-        MEDICATION_RAMP["ldlc"][LDLC_MEDICATION_LEVEL.MED]: 0.7194,
-        MEDICATION_RAMP["ldlc"][LDLC_MEDICATION_LEVEL.HIGH]: 0.2424,
+        LDLC_MEDICATION_LEVEL.LOW.DESCRIPTION: 0.0382,
+        LDLC_MEDICATION_LEVEL.MED.DESCRIPTION: 0.7194,
+        LDLC_MEDICATION_LEVEL.HIGH.DESCRIPTION: 0.2424,
     },
 }
 
@@ -191,8 +194,8 @@ BASELINE_MEDICATION_LEVEL_PROBABILITY = {
 FIRST_PRESCRIPTION_LEVEL_PROBABILITY = {
     "sbp": {
         "high": {
-            MEDICATION_RAMP["sbp"][SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE]: 0.55,
-            MEDICATION_RAMP["sbp"][SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE]: 0.45,
+            SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE.DESCRIPTION: 0.55,
+            SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE.DESCRIPTION: 0.45,
         },
     },
 }
