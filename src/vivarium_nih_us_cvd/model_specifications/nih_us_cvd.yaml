@@ -37,10 +37,8 @@ components:
             - Risk("risk_factor.high_systolic_blood_pressure")
             - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
 
-            - HealthcareVisits()
+            - HealthcareUtilization() # Note that this uses Treatment() as a sub-component
             - HealthcareVisitObserver()
-
-            - Treatment()
         
 
 configuration:

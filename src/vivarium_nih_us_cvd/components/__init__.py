@@ -1,5 +1,5 @@
 from .disease import IschemicStroke, MyocardialInfarction
-from .healthcare_visits import HealthcareVisits
+from .healthcare_visits import HealthcareUtilization
 from .observers import (
     ContinuousRiskObserver,
     HealthcareVisitObserver,

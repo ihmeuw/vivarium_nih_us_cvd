@@ -178,13 +178,13 @@ def get_random_variable(draw: int, seeded_distribution: SeededDistribution) -> f
     return distribution.rvs()
 
 
-def get_measurement_error(
+def get_random_value_from_normal_distribution(
     index: pd.Index,
     mean: float,
     sd: float,
     randomness: "RandomnessStream",
     additional_key: str,
 ) -> pd.Series:
-    """Return measurement error assuming normal distribution"""
+    """Return a random value assuming normal distribution"""
     draw = randomness.get_draw(index, additional_key=additional_key)
     return stats.norm(loc=mean, scale=sd).ppf(draw)

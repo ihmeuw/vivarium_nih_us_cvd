@@ -5,7 +5,7 @@ from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 
 from vivarium_nih_us_cvd.constants import data_values, models
-from vivarium_nih_us_cvd.utilities import get_measurement_error
+from vivarium_nih_us_cvd.utilities import get_random_value_from_normal_distribution
 
 
 sbp_treatment_map = {
@@ -252,12 +252,10 @@ class Treatment:
         ].index
         not_currently_medicated = pop_visitors.index.difference(currently_medicated)
 
-        measured_sbp = self.sbp(pop_visitors.index) + get_measurement_error(
+        measured_sbp = self.get_measured_sbp(
             index=pop_visitors.index,
             mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
             sd=data_values.MEASUREMENT_ERROR_SD_SBP,
-            randomness=self.randomness,
-            additional_key="measured_sbp",
         )
 
         # Un-medicated patients with sbp >= 140 (who overcome therapeutic inertia)
@@ -312,3 +310,18 @@ class Treatment:
     def apply_ldlc_treatment_ramp(self, pop_visitors: pd.DataFrame) -> pd.DataFrame:
         # TODO: [MIC-3375]
         return pop_visitors
+
+    def get_measured_sbp(
+        self,
+        index: pd.Index,
+        mean: float,
+        sd: float,
+    ):
+        """Introduce a measurement error to the sbp exposure values"""
+        return self.sbp(index) + get_random_value_from_normal_distribution(
+            index=index,
+            mean=mean,
+            sd=sd,
+            randomness=self.randomness,
+            additional_key="measured_sbp",
+        )

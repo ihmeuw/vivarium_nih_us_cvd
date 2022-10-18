@@ -1,26 +1,36 @@
+from typing import List
+
 import pandas as pd
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 
+from vivarium_nih_us_cvd.components.treatment import Treatment
 from vivarium_nih_us_cvd.constants import data_keys, data_values, models
-from vivarium_nih_us_cvd.utilities import get_measurement_error
 
 
-class HealthcareVisits:
+class HealthcareUtilization:
     """Manages healthcare utilization and scheduling of appointments."""
 
     configuration_defaults = {}
+
+    def __init__(self):
+        self.treatment = self._get_treatment_component()
+        self._sub_components = [self.treatment]
+
+    def __repr__(self):
+        return "HealthcareUtilization"
+
+    def _get_treatment_component(self) -> Treatment:
+        return Treatment()
 
     @property
     def name(self):
         return self.__class__.__name__
 
-    def __init__(self):
-        pass
-
-    def __repr__(self):
-        return "HealthcareVisits"
+    @property
+    def sub_components(self) -> List:
+        return self._sub_components
 
     def setup(self, builder: Builder) -> None:
         self.clock = builder.time.clock()
@@ -209,12 +219,10 @@ class HealthcareVisits:
 
         # Take measurements (required to determine if a followup is required)
         all_visitors = visit_emergency.union(visit_scheduled).union(visit_background)
-        measured_sbp = self.sbp(all_visitors) + get_measurement_error(
+        measured_sbp = self.treatment.get_measured_sbp(
             index=all_visitors,
             mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
             sd=data_values.MEASUREMENT_ERROR_SD_SBP,
-            randomness=self.randomness,
-            additional_key="measured_sbp",
         )
 
         # Schedule followups
