@@ -7,7 +7,6 @@ from vivarium.framework.population import SimulantData
 from vivarium_nih_us_cvd.constants import data_values, models
 from vivarium_nih_us_cvd.utilities import get_random_value_from_normal_distribution
 
-
 sbp_treatment_map = {
     level.VALUE: level.DESCRIPTION for level in data_values.SBP_MEDICATION_LEVEL
 }
@@ -287,7 +286,8 @@ class Treatment:
             == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
         ].index
         not_already_max_medicated = pop_visitors[
-            pop_visitors[data_values.COLUMNS.SBP_MEDICATION] != sbp_treatment_map[max(sbp_treatment_map)]
+            pop_visitors[data_values.COLUMNS.SBP_MEDICATION]
+            != sbp_treatment_map[max(sbp_treatment_map)]
         ].index
         medication_change = (
             (not_currently_medicated.intersection(mid_sbp))
