@@ -140,7 +140,7 @@ class Treatment:
         ] = data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
         pop[
             data_values.COLUMNS.LDLC_MEDICATION
-        ] = data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
+        ] = data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
         p_medication = self.calculate_initial_medication_coverage_probabilities(pop)
         medicated_states = self.randomness.choice(
             p_medication.index,
