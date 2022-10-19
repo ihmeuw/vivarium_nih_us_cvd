@@ -263,21 +263,12 @@ class HealthcareUtilization:
         max_followup: int = data_values.FOLLOWUP_MAX,
     ) -> pd.Series:
         """Schedules followup visits"""
-        return pd.Series(
-            event_time
-            + self.random_time_delta(
-                pd.Series(min_followup, index=index),
-                pd.Series(max_followup, index=index),
+        random_time_delta = pd.to_timedelta(
+            pd.Series(min_followup, index=index)
+            + (pd.Series(max_followup, index=index) - pd.Series(min_followup, index=index))
+            * self.randomness.get_draw(
+                pd.Series(min_followup, index=index).index, additional_key="schedule_followup"
             ),
-            index=index,
-        )
-
-    def random_time_delta(self, start: pd.Series, end: pd.Series) -> pd.Series:
-        """Generate a random time delta for each individual in the start
-        and end series."""
-        return pd.to_timedelta(
-            start
-            + (end - start)
-            * self.randomness.get_draw(start.index, additional_key="schedule_followup"),
             unit="day",
         )
+        return pd.Series(event_time + random_time_delta, index=index)
