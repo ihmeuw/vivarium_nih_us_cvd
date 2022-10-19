@@ -157,7 +157,7 @@ class HealthcareVisitObserver:
 
         self.counter = Counter()
 
-        columns_required = [data_values.VISIT_TYPE_COLUMN]
+        columns_required = [data_values.COLUMNS.VISIT_TYPE]
         self.population_view = builder.population.get_view(columns_required)
 
         builder.event.register_listener("collect_metrics", self.on_collect_metrics)
@@ -174,11 +174,9 @@ class HealthcareVisitObserver:
         new_observations = {}
         groups = self.stratifier.group(pop.index, self.config.include, self.config.exclude)
         for label, group_mask in groups:
-            for visit_type in data_values.VISIT_TYPES:
+            for visit_type in data_values.VISIT_TYPE:
                 key = f"healthcare_visits_{visit_type}_{label}"
-                new_observations[key] = (
-                    pop[group_mask].squeeze().str.contains(visit_type).sum()
-                )
+                new_observations[key] = sum(pop[group_mask].squeeze() == visit_type)
         self.counter.update(new_observations)
 
     def metrics(self, index: "pd.Index", metrics: Dict[str, float]) -> Dict[str, float]:

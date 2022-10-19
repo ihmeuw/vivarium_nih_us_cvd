@@ -9,7 +9,7 @@ from scipy import stats
 from vivarium.framework.randomness import get_hash
 from vivarium_public_health.risks.data_transformations import pivot_categorical
 
-from vivarium_nih_us_cvd.constants import metadata
+from vivarium_nih_us_cvd.constants import data_values, metadata
 
 SeededDistribution = Tuple[str, stats.rv_continuous]
 
@@ -176,3 +176,15 @@ def get_random_variable(draw: int, seeded_distribution: SeededDistribution) -> f
     seed, distribution = seeded_distribution
     np.random.seed(get_hash(f"{seed}_draw_{draw}"))
     return distribution.rvs()
+
+
+def get_random_value_from_normal_distribution(
+    index: pd.Index,
+    mean: float,
+    sd: float,
+    randomness: "RandomnessStream",
+    additional_key: str,
+) -> pd.Series:
+    """Return a random value assuming normal distribution"""
+    draw = randomness.get_draw(index, additional_key=additional_key)
+    return stats.norm(loc=mean, scale=sd).ppf(draw)

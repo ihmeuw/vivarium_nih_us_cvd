@@ -1,21 +1,85 @@
 from typing import NamedTuple
 
-############################
-# Disease Model Parameters #
-############################
-
-# REMISSION_RATE = 0.1
-# MEAN_SOJOURN_TIME = 10
+#######################
+# State table columns #
+#######################
 
 
-################################
-# Healthcare System Parameters #
-################################
+class __Columns(NamedTuple):
+    """column names"""
+
+    VISIT_TYPE: str = "visit_type"
+    SCHEDULED_VISIT_DATE: str = "scheduled_date"
+    SBP_MEDICATION: str = "sbp_medication"
+    SBP_MEDICATION_ADHERENCE: str = "sbp_medication_adherence"
+    LDLC_MEDICATION: str = "ldlc_medication"
+    LDLC_MEDICATION_ADHERENCE: str = "ldlc_medication_adherence"
+    BASELINE_SBP_MEDICATION: str = "baseline_sbp_medication"
+    BASELINE_LDLC_MEDICATION: str = "baseline_ldlc_medication"
+
+    @property
+    def name(self):
+        return "columns"
 
 
-class __VisitTypes(NamedTuple):
-    """visit types to be observed"""
+COLUMNS = __Columns()
 
+
+##################
+# Pipeline names #
+##################
+
+
+class __Pipelines(NamedTuple):
+    """value pipeline names"""
+
+    SBP_EXPOSURE: str = "high_systolic_blood_pressure.exposure"
+    LDLC_EXPOSURE: str = "high_ldl_cholesterol.exposure"
+
+    @property
+    def name(self):
+        return "pipelines"
+
+
+PIPELINES = __Pipelines()
+
+
+########################
+# Component priorities #
+########################
+
+
+class __TimestepCleanupPriorities(NamedTuple):
+    """component timestep cleanup listener priorities"""
+
+    HEALTHCARE_VISITS: int = 5
+    TREATMENT: int = 6
+
+    @property
+    def name(self):
+        return "timestep_cleanup_priorities"
+
+
+TIMESTEP_CLEANUP_PRIORITIES = __TimestepCleanupPriorities()
+
+
+#####################################
+# Healthcare Utilization Parameters #
+#####################################
+
+FOLLOWUP_MIN = 3 * 30  # 3 months
+FOLLOWUP_MAX = 6 * 30  # 6 months
+
+MISS_SCHEDULED_VISIT_PROBABILITY = 0.0868
+
+MEASUREMENT_ERROR_MEAN_SBP = 0  # mmHg
+MEASUREMENT_ERROR_SD_SBP = 2.9  # mmHg
+
+
+class __VisitType(NamedTuple):
+    """healthcare visit types"""
+
+    NONE: str = "none"
     EMERGENCY: str = "emergency"
     SCHEDULED: str = "scheduled"
     MISSED: str = "missed"
@@ -23,46 +87,206 @@ class __VisitTypes(NamedTuple):
 
     @property
     def name(self):
-        return "visit_types"
+        return "visit_type"
 
 
-VISIT_TYPES = __VisitTypes()
-
-VISIT_TYPE_COLUMN = "visit_type"
-SCHEDULED_VISIT_DATE_COLUMN = "scheduled_date"
-MISS_SCHEDULED_VISIT_PROBABILITY_COLUMN = "miss_scheduled_visit_probability"
-
-FOLLOWUP_MIN = 3 * 30  # 3 months
-FOLLOWUP_MAX = 6 * 30  # 6 months
-
-MISS_SCHEDULED_VISIT_PROBABILITY_MIN = 0.05
-MISS_SCHEDULED_VISIT_PROBABILITY_MAX = 0.35
+VISIT_TYPE = __VisitType()
 
 
-##############################
-# Screening Model Parameters #
-##############################
+#########################
+# Medication Parameters #
+#########################
 
-# PROBABILITY_ATTENDING_SCREENING_KEY = "probability_attending_screening"
-# PROBABILITY_ATTENDING_SCREENING_START_MEAN = 0.25
-# PROBABILITY_ATTENDING_SCREENING_START_STDDEV = 0.0025
-# PROBABILITY_ATTENDING_SCREENING_END_MEAN = 0.5
-# PROBABILITY_ATTENDING_SCREENING_END_STDDEV = 0.005
-
-# FIRST_SCREENING_AGE = 21
-# MID_SCREENING_AGE = 30
-# LAST_SCREENING_AGE = 65
+THERAPEUTIC_INERTIA_NO_START = (
+    0.4176  # The chance that a patient will not have medication changed
+)
 
 
-###################################
-# Scale-up Intervention Constants #
-###################################
-# SCALE_UP_START_DT = datetime(2021, 1, 1)
-# SCALE_UP_END_DT = datetime(2030, 1, 1)
-# SCREENING_SCALE_UP_GOAL_COVERAGE = 0.50
-# SCREENING_SCALE_UP_DIFFERENCE = (
-#     SCREENING_SCALE_UP_GOAL_COVERAGE - PROBABILITY_ATTENDING_SCREENING_START_MEAN
-# )
+class __SBPThreshold(NamedTuple):
+    """sbp exposure thresholds"""
+
+    LOW: int = 130
+    HIGH: int = 140
+
+    @property
+    def name(self):
+        return "sbp_threshold"
+
+
+SBP_THRESHOLD = __SBPThreshold()
+
+
+class MedicationRampBaseClass(NamedTuple):
+    """Base class to define medication levels and ramp values"""
+
+    DESCRIPTION: str
+    VALUE: int
+
+    @property
+    def name(self):
+        return "medication_ramp_base_class"
+
+
+class __SBPMedicationLevel(NamedTuple):
+    """high sbp medication level"""
+
+    NO_TREATMENT: MedicationRampBaseClass = MedicationRampBaseClass("no_treatment", 0)
+    ONE_DRUG_HALF_DOSE: MedicationRampBaseClass = MedicationRampBaseClass(
+        "one_drug_half_dose_efficacy", 1
+    )
+    ONE_DRUG_FULL_DOSE: MedicationRampBaseClass = MedicationRampBaseClass(
+        "one_drug_std_dose_efficacy", 2
+    )
+    TWO_DRUGS_HALF_DOSE: MedicationRampBaseClass = MedicationRampBaseClass(
+        "two_drug_half_dose_efficacy", 3
+    )
+    TWO_DRUGS_FULL_DOSE: MedicationRampBaseClass = MedicationRampBaseClass(
+        "two_drug_std_dose_efficacy", 4
+    )
+    THREE_DRUGS_HALF_DOSE: MedicationRampBaseClass = MedicationRampBaseClass(
+        "three_drug_half_dose_efficacy", 5
+    )
+    THREE_DRUGS_FULL_DOSE: MedicationRampBaseClass = MedicationRampBaseClass(
+        "three_drug_std_dose_efficacy", 6
+    )
+
+    @property
+    def name(self):
+        return "sbp_medication_level"
+
+
+SBP_MEDICATION_LEVEL = __SBPMedicationLevel()
+
+
+class __LDLCMedicationLevel(NamedTuple):
+    """high ldl-c medication level"""
+
+    NO_TREATMENT: MedicationRampBaseClass = MedicationRampBaseClass("no_treatment", 0)
+    LOW: MedicationRampBaseClass = MedicationRampBaseClass("low_intensity", 1)
+    MED: MedicationRampBaseClass = MedicationRampBaseClass("medium_intensity", 2)
+    LOW_MED_EZE: MedicationRampBaseClass = MedicationRampBaseClass("low_med_with_eze", 3)
+    HIGH: MedicationRampBaseClass = MedicationRampBaseClass("high_intensity", 4)
+    HIGH_EZE: MedicationRampBaseClass = MedicationRampBaseClass("high_with_eze", 5)
+
+    @property
+    def name(self):
+        return "ldlc_medication_level"
+
+
+LDLC_MEDICATION_LEVEL = __LDLCMedicationLevel()
+
+
+# Define the baseline medication ramp level for simulants who are initialized as medicated
+BASELINE_MEDICATION_LEVEL_PROBABILITY = {
+    "sbp": {
+        SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE.DESCRIPTION: 0.57,
+        SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE.DESCRIPTION: 0.43,
+    },
+    "ldlc": {
+        LDLC_MEDICATION_LEVEL.LOW.DESCRIPTION: 0.0382,
+        LDLC_MEDICATION_LEVEL.MED.DESCRIPTION: 0.7194,
+        LDLC_MEDICATION_LEVEL.HIGH.DESCRIPTION: 0.2424,
+    },
+}
+
+
+# Define first-prescribed medication ramp levels for simulants who overcome therapeutic inertia
+FIRST_PRESCRIPTION_LEVEL_PROBABILITY = {
+    "sbp": {
+        "high": {
+            SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE.DESCRIPTION: 0.55,
+            SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE.DESCRIPTION: 0.45,
+        },
+    },
+}
+
+
+class __MedicationAdherenceType(NamedTuple):
+    """medication adherence types"""
+
+    ADHERENT: str = "adherent"
+    PRIMARY_NON_ADHERENT: str = "primary_non_adherent"
+    SECONDARY_NON_ADHERENT: str = "secondary_non_adherent"
+
+    @property
+    def name(self):
+        return "medication_adherence_type"
+
+
+MEDICATION_ADHERENCE_TYPE = __MedicationAdherenceType()
+
+
+# Define medication adherence level probabilitiies
+MEDICATION_ADHERENCE_TYPE_PROBABILITIY = {
+    "sbp": {
+        MEDICATION_ADHERENCE_TYPE.ADHERENT: 0.7392,
+        MEDICATION_ADHERENCE_TYPE.PRIMARY_NON_ADHERENT: 0.16,
+        MEDICATION_ADHERENCE_TYPE.SECONDARY_NON_ADHERENT: 0.1008,
+    },
+    "ldlc": {
+        MEDICATION_ADHERENCE_TYPE.ADHERENT: 0.6525,
+        MEDICATION_ADHERENCE_TYPE.PRIMARY_NON_ADHERENT: 0.25,
+        MEDICATION_ADHERENCE_TYPE.SECONDARY_NON_ADHERENT: 0.0975,
+    },
+}
+
+
+class __MedicationAdherenceScore(NamedTuple):
+    """adherence scores; used in medication treatment effect calculation"""
+
+    ADHERENT: float = 1.0
+    PRIMARY_NON_ADHERENT: float = 0.0
+    SECONDARY_NON_ADHERENT: float = 0.0
+
+    @property
+    def name(self):
+        return "medication_adherence_score"
+
+
+MEDICATION_ADHERENCE_SCORE = __MedicationAdherenceScore()
+
+
+BASELINE_MEDICATION_COVERAGE_SEX_MAPPING = {
+    # used in medication treatment effect calculation
+    "Female": 2,
+    "Male": 1,
+}
+
+
+class MedicationCoverageCoefficientsBaseClass(NamedTuple):
+    """Base class to define medication coverage coefficients"""
+
+    NAME: str
+    INTERCEPT: float
+    SBP: float
+    LDLC: float
+    AGE: float
+    SEX: float
+
+    @property
+    def name(self):
+        return "medication_coverage_coefficients_base_class"
+
+
+class __MedicationCoveragecoefficients(NamedTuple):
+    """Coefficients used to calculate baseline medication coverage upon initialization"""
+
+    SBP: MedicationCoverageCoefficientsBaseClass = MedicationCoverageCoefficientsBaseClass(
+        "sbp", -6.75, 0.025, -0.0045, 0.05, 0.16
+    )
+    LDLC: MedicationCoverageCoefficientsBaseClass = MedicationCoverageCoefficientsBaseClass(
+        "ldlc", -4.23, -0.0026, -0.005, 0.062, -0.19
+    )
+    BOTH: MedicationCoverageCoefficientsBaseClass = MedicationCoverageCoefficientsBaseClass(
+        "both", -6.26, 0.018, -0.014, 0.069, 0.13
+    )
+
+    @property
+    def name(self):
+        return "medication coverage coefficients"
+
+
+MEDICATION_COVERAGE_COEFFICIENTS = __MedicationCoveragecoefficients()
 
 
 ###################
