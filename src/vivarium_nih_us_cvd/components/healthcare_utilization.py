@@ -36,8 +36,6 @@ class HealthcareUtilization:
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
         self.randomness = builder.randomness.get_stream(self.name)
-        self.sbp = builder.value.get_value(data_values.PIPELINES.SBP_EXPOSURE)
-        self.ldlc = builder.value.get_value(data_values.PIPELINES.LDLC_EXPOSURE)
 
         # Load data
         utilization_data = builder.data.load(data_keys.POPULATION.HEALTHCARE_UTILIZATION)
