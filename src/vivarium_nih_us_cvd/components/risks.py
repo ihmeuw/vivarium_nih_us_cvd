@@ -30,7 +30,6 @@ class Risk(Risk_):
         return exposures
 
 
-# class SBPRisk(Risk_):
 class SBPRisk:
     """Manages gbd SBP exposure and untreated SBP exposure pipelines"""
 

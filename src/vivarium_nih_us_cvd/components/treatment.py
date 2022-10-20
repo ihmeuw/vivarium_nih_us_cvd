@@ -272,8 +272,12 @@ class Treatment:
 
         Arguments:
             pop_visitors: dataframe subset to simulants visiting the doctor
+            exposure_pipeline: the sbp exposure pipeline to use when calculating
+                measured sbp values; defaults to the values adjusted for
+                population treatment effects in gbd data except during 
+                initialization
         """
-        breakpoint()
+
         if not exposure_pipeline:
             exposure_pipeline = self.sbp
         overcome_therapeutic_inertia = pop_visitors[
@@ -358,7 +362,7 @@ class Treatment:
         exposure_pipeline: Optional[Pipeline] = None,
     ):
         """Introduce a measurement error to the sbp exposure values"""
-        breakpoint()
+        
         if not exposure_pipeline:
             exposure_pipeline = self.sbp
         return exposure_pipeline(index) + get_random_value_from_normal_distribution(
