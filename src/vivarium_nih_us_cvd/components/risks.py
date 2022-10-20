@@ -63,7 +63,7 @@ class SBPRisk(Risk_):
             self.exposure_pipeline_name,
             source=self._get_current_exposure,
             requires_columns=[COLUMNS.SBP_MULTIPLIER],
-            requires_values=[self._get_gbd_exposure_pipeline],
+            requires_values=[self.gbd_exposure_pipeline_name],
             preferred_post_processor=get_exposure_post_processor(builder, self.risk),
         )
 
