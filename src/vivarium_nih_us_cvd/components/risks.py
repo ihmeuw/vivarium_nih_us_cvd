@@ -46,8 +46,8 @@ class SBPRisk(Risk_):
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
-        self.gbd_exposure = self._get_gbd_exposure_pipeline(builder)
         super().setup(builder)
+        self.gbd_exposure = self._get_gbd_exposure_pipeline(builder)
 
     def _get_gbd_exposure_pipeline(self, builder: Builder) -> Pipeline:
         return builder.value.register_value_producer(

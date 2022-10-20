@@ -40,6 +40,11 @@ class __Population(NamedTuple):
 POPULATION = __Population()
 
 
+##########
+# Causes #
+##########
+
+
 class __IschemicStroke(NamedTuple):
     PREVALENCE_ACUTE: TargetString = TargetString("sequela.acute_ischemic_stroke.prevalence")
     PREVALENCE_CHRONIC: TargetString = TargetString(
