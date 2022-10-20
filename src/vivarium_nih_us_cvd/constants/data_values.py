@@ -16,6 +16,7 @@ class __Columns(NamedTuple):
     LDLC_MEDICATION_ADHERENCE: str = "ldlc_medication_adherence"
     BASELINE_SBP_MEDICATION: str = "baseline_sbp_medication"
     BASELINE_LDLC_MEDICATION: str = "baseline_ldlc_medication"
+    SBP_MULTIPLIER: str = "sbp_multiplier"
 
     @property
     def name(self):
@@ -33,6 +34,7 @@ COLUMNS = __Columns()
 class __Pipelines(NamedTuple):
     """value pipeline names"""
 
+    SBP_GBD_EXPOSURE: str = "high_systolic_blood_pressure.gbd_exposure"
     SBP_EXPOSURE: str = "high_systolic_blood_pressure.exposure"
     LDLC_EXPOSURE: str = "high_ldl_cholesterol.exposure"
 
@@ -156,6 +158,20 @@ class __SBPMedicationLevel(NamedTuple):
 
 
 SBP_MEDICATION_LEVEL = __SBPMedicationLevel()
+
+
+class __SBPMultiplier(NamedTuple):
+    """gbd SBP multipliers to convert to untreated values"""
+
+    ONE_DRUG: float = 1.051
+    TWO_DRUGS: float = 1.12
+
+    @property
+    def name(self):
+        return "sbp_multiplier"
+
+
+SBP_MULTIPLIER = __SBPMultiplier()
 
 
 class __LDLCMedicationLevel(NamedTuple):

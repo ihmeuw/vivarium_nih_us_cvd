@@ -1,8 +1,11 @@
+from typing import Optional
+
 import numpy as np
 import pandas as pd
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
+from vivarium.framework.values import Pipeline
 
 from vivarium_nih_us_cvd.constants import data_values, models
 from vivarium_nih_us_cvd.utilities import get_random_value_from_normal_distribution
@@ -32,6 +35,7 @@ class Treatment:
 
     def setup(self, builder: Builder) -> None:
         self.randomness = builder.randomness.get_stream(self.name)
+        self.gbd_sbp = builder.value.get_value(data_values.PIPELINES.SBP_GBD_EXPOSURE)
         self.sbp = builder.value.get_value(data_values.PIPELINES.SBP_EXPOSURE)
         self.ldlc = builder.value.get_value(data_values.PIPELINES.LDLC_EXPOSURE)
 
@@ -40,6 +44,7 @@ class Treatment:
             data_values.COLUMNS.LDLC_MEDICATION,
             data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
             data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
+            data_values.COLUMNS.SBP_MULTIPLIER,
         ]
         columns_required_on_initialization = [
             "age",
@@ -55,7 +60,7 @@ class Treatment:
         )
 
         values_required = [
-            data_values.PIPELINES.SBP_EXPOSURE,
+            data_values.PIPELINES.SBP_GBD_EXPOSURE,
             data_values.PIPELINES.LDLC_EXPOSURE,
         ]
 
@@ -65,6 +70,7 @@ class Treatment:
             creates_columns=columns_created,
             requires_columns=columns_required_on_initialization,
             requires_values=values_required,
+            requires_streams=[self.name],
         )
 
         # Register listeners
@@ -91,7 +97,30 @@ class Treatment:
 
         pop = self.initialize_medication_coverage(pop)
 
+        # Generate multiplier columns
+        pop[data_values.COLUMNS.SBP_MULTIPLIER] = 1
+        mask_sbp_adherent = (
+            pop[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE]
+            == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
+        )
+        mask_sbp_one_drug = (
+            pop[data_values.COLUMNS.SBP_MEDICATION]
+            == data_values.SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE.DESCRIPTION
+        )
+        mask_sbp_two_drugs = (
+            pop[data_values.COLUMNS.SBP_MEDICATION]
+            == data_values.SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE.DESCRIPTION
+        )
+        pop.loc[
+            (mask_sbp_adherent) & (mask_sbp_one_drug), data_values.COLUMNS.SBP_MULTIPLIER
+        ] = data_values.SBP_MULTIPLIER.ONE_DRUG
+        pop.loc[
+            (mask_sbp_adherent) & (mask_sbp_two_drugs), data_values.COLUMNS.SBP_MULTIPLIER
+        ] = data_values.SBP_MULTIPLIER.TWO_DRUGS
+
         # Send anyone in emergency state to medication ramp
+        # Note that for initialization we base the measured exposures on
+        # the GBD exposure values
         mask_acute_is = (
             pop[models.ISCHEMIC_STROKE_MODEL_NAME] == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
         )
@@ -101,7 +130,9 @@ class Treatment:
         )
         mask_emergency = mask_acute_is | mask_acute_mi
         pop.loc[mask_emergency] = self.apply_sbp_treatment_ramp(
-            pop_visitors=pop.loc[mask_emergency]
+            pop_visitors=pop.loc[mask_emergency],
+            # TODO: Confirm with Syl that this is acceptable to use gbd sbp for measured sbp on initilaization
+            exposure_pipeline=self.gbd_sbp,
         )
         pop.loc[mask_emergency] = self.apply_ldlc_treatment_ramp(
             pop_visitors=pop.loc[mask_emergency]
@@ -114,6 +145,7 @@ class Treatment:
                     data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
                     data_values.COLUMNS.LDLC_MEDICATION,
                     data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
+                    data_values.COLUMNS.SBP_MULTIPLIER,
                 ]
             ]
         )
@@ -193,7 +225,8 @@ class Treatment:
         for coefficients in data_values.MEDICATION_COVERAGE_COEFFICIENTS:
             df[coefficients.NAME] = np.exp(
                 coefficients.INTERCEPT
-                + coefficients.SBP * self.sbp(pop.index)
+                + coefficients.SBP * self.gbd_sbp(pop.index)
+                # TODO: use gbd_ldlc
                 + coefficients.LDLC * self.ldlc(pop.index)
                 + coefficients.AGE * pop["age"]
                 + coefficients.SEX
@@ -232,12 +265,21 @@ class Treatment:
             ]
         )
 
-    def apply_sbp_treatment_ramp(self, pop_visitors: pd.DataFrame) -> pd.DataFrame:
+    def apply_sbp_treatment_ramp(
+        self, pop_visitors: pd.DataFrame, exposure_pipeline: Optional[Pipeline] = None
+    ) -> pd.DataFrame:
         """Applies the SBP treatment ramp
 
         Arguments:
             pop_visitors: dataframe subset to simulants visiting the doctor
+            exposure_pipeline: the sbp exposure pipeline to use when calculating
+                measured sbp values; defaults to the values adjusted for
+                population treatment effects in gbd data except during 
+                initialization
         """
+
+        if not exposure_pipeline:
+            exposure_pipeline = self.sbp
         overcome_therapeutic_inertia = pop_visitors[
             self.randomness.get_draw(
                 pop_visitors.index,
@@ -255,6 +297,7 @@ class Treatment:
             index=pop_visitors.index,
             mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
             sd=data_values.MEASUREMENT_ERROR_SD_SBP,
+            exposure_pipeline=exposure_pipeline,
         )
 
         # Un-medicated patients with sbp >= 140 (who overcome therapeutic inertia)
@@ -316,9 +359,13 @@ class Treatment:
         index: pd.Index,
         mean: float,
         sd: float,
+        exposure_pipeline: Optional[Pipeline] = None,
     ):
         """Introduce a measurement error to the sbp exposure values"""
-        return self.sbp(index) + get_random_value_from_normal_distribution(
+        
+        if not exposure_pipeline:
+            exposure_pipeline = self.sbp
+        return exposure_pipeline(index) + get_random_value_from_normal_distribution(
             index=index,
             mean=mean,
             sd=sd,
