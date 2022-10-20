@@ -1,0 +1,8 @@
+sbp,sbp_start,sbp_end,one_drug_half_dose_efficacy,one_drug_std_dose_efficacy,two_drug_half_dose_efficacy,two_drug_std_dose_efficacy,three_drug_half_dose_efficacy,three_drug_std_dose_efficacy
+>175,175,,9,11.7,18,22.2,26.9,31.7
+<=175 and >165,165,175,8.3,10.7,16.4,20.3,24.6,29
+<=165 and >155,155,165,7.5,9.7,14.5,18.4,22.2,26.3
+<=155 and >145,145,155,6.7,8.7,13.3,16.5,19.9,23.6
+<=145 and >135,135,145,5.9,7.7,11.7,14.6,17.6,20.9
+<=135 and >125,122,135,5.1,6.7,10.2,12.7,15.2,18.2
+<=125,,125,4.4,5.7,8.6,10.8,12.9,15.5
