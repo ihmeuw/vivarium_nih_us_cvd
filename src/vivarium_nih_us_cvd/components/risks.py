@@ -30,59 +30,15 @@ class Risk(Risk_):
         return exposures
 
 
-class SBPRisk:
+class SBPRisk(Risk_):
     """Manages gbd SBP exposure and untreated SBP exposure pipelines"""
 
-    configuration_defaults = {
-        "risk": {
-            "exposure": "data",
-            "rebinned_exposed": [],
-            "category_thresholds": [],
-        }
-    }
-
     def __init__(self, risk: str):
-        """
-        Parameters
-        ----------
-        risk :
-            the type and name of a risk, specified as "type.name". Type is singular.
-        """
-        self.risk = EntityString(risk)
-        self.configuration_defaults = self._get_configuration_defaults()
-        self.exposure_distribution = self._get_exposure_distribution()
-        self._sub_components = [self.exposure_distribution]
-
-        self._randomness_stream_name = f"initial_{self.risk.name}_propensity"
-        self.propensity_column_name = f"{self.risk.name}_propensity"
-        self.propensity_pipeline_name = f"{self.risk.name}.propensity"
+        super().__init__(risk)
         self.gbd_exposure_pipeline_name = f"{self.risk.name}.gbd_exposure"
-        self.exposure_pipeline_name = f"{self.risk.name}.exposure"
 
     def __repr__(self) -> str:
         return f"Risk({self.risk})"
-
-    ##########################
-    # Initialization methods #
-    ##########################
-
-    def _get_configuration_defaults(self) -> Dict[str, Dict]:
-        return {self.risk.name: Risk.configuration_defaults["risk"]}
-
-    def _get_exposure_distribution(self) -> SimulationDistribution:
-        return SimulationDistribution(self.risk)
-
-    ##############
-    # Properties #
-    ##############
-
-    @property
-    def name(self) -> str:
-        return f"risk.{self.risk}"
-
-    @property
-    def sub_components(self) -> List:
-        return self._sub_components
 
     #################
     # Setup methods #
@@ -90,27 +46,8 @@ class SBPRisk:
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
-        self.randomness = self._get_randomness_stream(builder)
-        self.propensity = self._get_propensity_pipeline(builder)
         self.gbd_exposure = self._get_gbd_exposure_pipeline(builder)
-        self.exposure = self._get_exposure_pipeline(builder)
-        self.population_view = self._get_population_view(builder)
-
-        self._register_simulant_initializer(builder)
-
-    def _get_randomness_stream(self, builder) -> RandomnessStream:
-        return builder.randomness.get_stream(self._randomness_stream_name)
-
-    def _get_propensity_pipeline(self, builder: Builder) -> Pipeline:
-        return builder.value.register_value_producer(
-            self.propensity_pipeline_name,
-            source=lambda index: (
-                self.population_view.subview([self.propensity_column_name])
-                .get(index)
-                .squeeze(axis=1)
-            ),
-            requires_columns=[self.propensity_column_name],
-        )
+        super().setup(builder)
 
     def _get_gbd_exposure_pipeline(self, builder: Builder) -> Pipeline:
         return builder.value.register_value_producer(
@@ -135,24 +72,6 @@ class SBPRisk:
             [self.propensity_column_name, COLUMNS.SBP_MULTIPLIER]
         )
 
-    def _register_simulant_initializer(self, builder: Builder) -> None:
-        builder.population.initializes_simulants(
-            self.on_initialize_simulants,
-            creates_columns=[self.propensity_column_name],
-            requires_streams=[self._randomness_stream_name],
-        )
-
-    ########################
-    # Event-driven methods #
-    ########################
-
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
-        self.population_view.update(
-            pd.Series(
-                self.randomness.get_draw(pop_data.index), name=self.propensity_column_name
-            )
-        )
-
     ##################################
     # Pipeline sources and modifiers #
     ##################################
@@ -172,8 +91,7 @@ class SBPRisk:
 
     def _get_current_exposure(self, index: pd.Index) -> pd.Series:
         """Applies medication multipliers to the raw GBD exposure values"""
-        # TODO: check that this is correct. At this point I seem to already have
-        # a correct self.gbd_exposure as well as a self.exposure
+
         return (
             self.gbd_exposure(index) * self.population_view.get(index)[COLUMNS.SBP_MULTIPLIER]
         )
