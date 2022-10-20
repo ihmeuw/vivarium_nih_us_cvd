@@ -96,14 +96,27 @@ class Treatment:
         ).get(pop_data.index)
 
         pop = self.initialize_medication_coverage(pop)
-        
+
         # Generate multiplier columns
         pop[data_values.COLUMNS.SBP_MULTIPLIER] = 1
-        mask_sbp_adherent = pop[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE] == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
-        mask_sbp_one_drug = pop[data_values.COLUMNS.SBP_MEDICATION] == data_values.SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE.DESCRIPTION
-        mask_sbp_two_drugs = pop[data_values.COLUMNS.SBP_MEDICATION] == data_values.SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE.DESCRIPTION
-        pop.loc[(mask_sbp_adherent) & (mask_sbp_one_drug), data_values.COLUMNS.SBP_MULTIPLIER] = data_values.SBP_MULTIPLIER.ONE_DRUG
-        pop.loc[(mask_sbp_adherent) & (mask_sbp_two_drugs), data_values.COLUMNS.SBP_MULTIPLIER] = data_values.SBP_MULTIPLIER.TWO_DRUGS
+        mask_sbp_adherent = (
+            pop[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE]
+            == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
+        )
+        mask_sbp_one_drug = (
+            pop[data_values.COLUMNS.SBP_MEDICATION]
+            == data_values.SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE.DESCRIPTION
+        )
+        mask_sbp_two_drugs = (
+            pop[data_values.COLUMNS.SBP_MEDICATION]
+            == data_values.SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE.DESCRIPTION
+        )
+        pop.loc[
+            (mask_sbp_adherent) & (mask_sbp_one_drug), data_values.COLUMNS.SBP_MULTIPLIER
+        ] = data_values.SBP_MULTIPLIER.ONE_DRUG
+        pop.loc[
+            (mask_sbp_adherent) & (mask_sbp_two_drugs), data_values.COLUMNS.SBP_MULTIPLIER
+        ] = data_values.SBP_MULTIPLIER.TWO_DRUGS
 
         # Send anyone in emergency state to medication ramp
         # Note that for initialization we base the measured exposures on
@@ -119,7 +132,7 @@ class Treatment:
         pop.loc[mask_emergency] = self.apply_sbp_treatment_ramp(
             pop_visitors=pop.loc[mask_emergency],
             # TODO: Confirm with Syl that this is acceptable to use gbd sbp for measured sbp on initilaization
-            exposure_pipeline = self.gbd_sbp,
+            exposure_pipeline=self.gbd_sbp,
         )
         pop.loc[mask_emergency] = self.apply_ldlc_treatment_ramp(
             pop_visitors=pop.loc[mask_emergency]
@@ -252,7 +265,9 @@ class Treatment:
             ]
         )
 
-    def apply_sbp_treatment_ramp(self, pop_visitors: pd.DataFrame, exposure_pipeline: Optional[Pipeline] = None) -> pd.DataFrame:
+    def apply_sbp_treatment_ramp(
+        self, pop_visitors: pd.DataFrame, exposure_pipeline: Optional[Pipeline] = None
+    ) -> pd.DataFrame:
         """Applies the SBP treatment ramp
 
         Arguments:

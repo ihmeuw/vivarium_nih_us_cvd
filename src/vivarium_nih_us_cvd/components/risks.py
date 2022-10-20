@@ -132,7 +132,9 @@ class SBPRisk:
         )
 
     def _get_population_view(self, builder: Builder) -> PopulationView:
-        return builder.population.get_view([self.propensity_column_name, COLUMNS.SBP_MULTIPLIER])
+        return builder.population.get_view(
+            [self.propensity_column_name, COLUMNS.SBP_MULTIPLIER]
+        )
 
     def _register_simulant_initializer(self, builder: Builder) -> None:
         builder.population.initializes_simulants(
