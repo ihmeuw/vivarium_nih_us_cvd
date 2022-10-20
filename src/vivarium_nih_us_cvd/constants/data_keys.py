@@ -14,11 +14,6 @@ class SourceTarget(NamedTuple):
     target: str
 
 
-##########
-# Causes #
-##########
-
-
 class __Population(NamedTuple):
     LOCATION: str = "population.location"
     STRUCTURE: str = "population.structure"
@@ -38,6 +33,11 @@ class __Population(NamedTuple):
 
 
 POPULATION = __Population()
+
+
+##########
+# Causes #
+##########
 
 
 class __IschemicStroke(NamedTuple):
