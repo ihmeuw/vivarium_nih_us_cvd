@@ -247,19 +247,12 @@ MEDICATION_ADHERENCE_TYPE_PROBABILITIY = {
 }
 
 
-class __MedicationAdherenceScore(NamedTuple):
-    """adherence scores; used in medication treatment effect calculation"""
-
-    ADHERENT: float = 1.0
-    PRIMARY_NON_ADHERENT: float = 0.0
-    SECONDARY_NON_ADHERENT: float = 0.0
-
-    @property
-    def name(self):
-        return "medication_adherence_score"
-
-
-MEDICATION_ADHERENCE_SCORE = __MedicationAdherenceScore()
+MEDICATION_ADHERENCE_SCORE = {
+    # used in medication treatment effect calculation
+    MEDICATION_ADHERENCE_TYPE.ADHERENT: 1.0,
+    MEDICATION_ADHERENCE_TYPE.PRIMARY_NON_ADHERENT: 0.0,
+    MEDICATION_ADHERENCE_TYPE.SECONDARY_NON_ADHERENT: 0.0,
+}
 
 
 BASELINE_MEDICATION_COVERAGE_SEX_MAPPING = {
