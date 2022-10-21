@@ -41,7 +41,7 @@ class ContinuousRiskObserver:
     }
 
     def __init__(self, risk: str):
-        self.risk = self.risk = EntityString(risk)
+        self.risk = EntityString(risk)
         self.configuration_defaults = self._get_configuration_defaults()
 
     def __repr__(self):
@@ -182,3 +182,87 @@ class HealthcareVisitObserver:
     def metrics(self, index: "pd.Index", metrics: Dict[str, float]) -> Dict[str, float]:
         metrics.update(self.counter)
         return metrics
+
+
+class MedicationObserver:
+    """Observes person-time on medication"""
+
+    configuration_defaults = {
+        "observers": {
+            "medication": {
+                "exclude": [],
+                "include": [],
+            }
+        }
+    }
+
+    def __init__(self, risk):
+        self.risk = EntityString(risk)
+        self.configuration_defaults = self._get_configuration_defaults()
+
+    def __repr__(self):
+        return f"MedicationObserver({self.risk})"
+
+    ##########################
+    # Initialization methods #
+    ##########################
+
+    def _get_configuration_defaults(self) -> Dict[str, Dict]:
+        return MedicationObserver.configuration_defaults
+
+    ##############
+    # Properties #
+    ##############
+
+    @property
+    def name(self):
+        return f"medication_observer.{self.risk}"
+
+    #################
+    # Setup methods #
+    #################
+
+    def setup(self, builder: Builder) -> None:
+        self.observation_start_time = get_time_stamp(
+            builder.configuration.time.observation_start
+        )
+        self.config = self._get_stratification_configuration(builder)
+        self.stratifier = builder.components.get_component(ResultsStratifier.name)
+
+        self.counter = Counter()
+
+        columns_required = [data_values.COLUMNS.SBP_MEDICATION]
+        self.population_view = builder.population.get_view(columns_required)
+
+        # The medications get updated at the end of the time step and so we want
+        # to observe the time on each medication at the beginning of each time
+        # step before any changes are made
+        builder.event.register_listener("time_step__prepare", self.on_time_step_prepare)
+        builder.value.register_value_modifier("metrics", self.metrics)
+
+    def _get_stratification_configuration(self, builder: Builder) -> "ConfigTree":
+        return builder.configuration.observers[self.risk]
+
+    def on_time_step_prepare(self, event: "Event"):
+        if event.time < self.observation_start_time:
+            return
+        step_size_in_years = to_years(event.step_size)
+        medications = self.population_view.get(event.index, query='alive == "alive"')[data_values.COLUMNS.SBP_MEDICATION]
+
+        new_observations = {}
+        groups = self.stratifier.group(medications.index, self.config.include, self.config.exclude)
+        for label, group_mask in groups:
+            for med in [med.DESCRIPTION for med in risk_medication_mapping[self.risk]]:
+                key = f"medication_person_time_risk_{self.risk.name}_medication_{med}_{label}"
+                med_mask = medications == med
+                new_observations[key] = len(medications[group_mask & med_mask]) * step_size_in_years
+
+        self.counter.update(new_observations)
+
+    def metrics(self, index: "pd.Index", metrics: Dict[str, float]) -> Dict[str, float]:
+        metrics.update(self.counter)
+        return metrics
+
+risk_medication_mapping = {
+    "risk_factor.high_systolic_blood_pressure": data_values.SBP_MEDICATION_LEVEL
+}
