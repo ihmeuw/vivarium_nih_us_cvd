@@ -1,8 +1,43 @@
-sbp,sbp_start_exclusive,sbp_end_inclusive,one_drug_half_dose_efficacy,one_drug_std_dose_efficacy,two_drug_half_dose_efficacy,two_drug_std_dose_efficacy,three_drug_half_dose_efficacy,three_drug_std_dose_efficacy
->175,175,,9,11.7,18,22.2,26.9,31.7
-<=175 and >165,165,175,8.3,10.7,16.4,20.3,24.6,29
-<=165 and >155,155,165,7.5,9.7,14.5,18.4,22.2,26.3
-<=155 and >145,145,155,6.7,8.7,13.3,16.5,19.9,23.6
-<=145 and >135,135,145,5.9,7.7,11.7,14.6,17.6,20.9
-<=135 and >125,125,135,5.1,6.7,10.2,12.7,15.2,18.2
-<=125,,125,4.4,5.7,8.6,10.8,12.9,15.5
+sbp_start_exclusive,sbp_end_inclusive,sbp_medication,value
+175,,one_drug_half_dose_efficacy,9
+175,,one_drug_std_dose_efficacy,11.7
+175,,two_drug_half_dose_efficacy,18
+175,,two_drug_std_dose_efficacy,22.2
+175,,three_drug_half_dose_efficacy,26.9
+175,,three_drug_std_dose_efficacy,31.7
+165,175,one_drug_half_dose_efficacy,8.3
+165,175,one_drug_std_dose_efficacy,10.7
+165,175,two_drug_half_dose_efficacy,16.4
+165,175,two_drug_std_dose_efficacy,20.3
+165,175,three_drug_half_dose_efficacy,24.6
+165,175,three_drug_std_dose_efficacy,29
+155,165,one_drug_half_dose_efficacy,7.5
+155,165,one_drug_std_dose_efficacy,9.7
+155,165,two_drug_half_dose_efficacy,14.5
+155,165,two_drug_std_dose_efficacy,18.4
+155,165,three_drug_half_dose_efficacy,22.2
+155,165,three_drug_std_dose_efficacy,26.3
+145,155,one_drug_half_dose_efficacy,6.7
+145,155,one_drug_std_dose_efficacy,8.7
+145,155,two_drug_half_dose_efficacy,13.3
+145,155,two_drug_std_dose_efficacy,16.5
+145,155,three_drug_half_dose_efficacy,19.9
+145,155,three_drug_std_dose_efficacy,23.6
+135,145,one_drug_half_dose_efficacy,5.9
+135,145,one_drug_std_dose_efficacy,7.7
+135,145,two_drug_half_dose_efficacy,11.7
+135,145,two_drug_std_dose_efficacy,14.6
+135,145,three_drug_half_dose_efficacy,17.6
+135,145,three_drug_std_dose_efficacy,20.9
+125,135,one_drug_half_dose_efficacy,5.1
+125,135,one_drug_std_dose_efficacy,6.7
+125,135,two_drug_half_dose_efficacy,10.2
+125,135,two_drug_std_dose_efficacy,12.7
+125,135,three_drug_half_dose_efficacy,15.2
+125,135,three_drug_std_dose_efficacy,18.2
+,125,one_drug_half_dose_efficacy,4.4
+,125,one_drug_std_dose_efficacy,5.7
+,125,two_drug_half_dose_efficacy,8.6
+,125,two_drug_std_dose_efficacy,10.8
+,125,three_drug_half_dose_efficacy,12.9
+,125,three_drug_std_dose_efficacy,15.5

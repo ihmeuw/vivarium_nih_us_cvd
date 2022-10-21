@@ -1,6 +1,5 @@
 from typing import Callable
 
-import numpy as np
 import pandas as pd
 from vivarium.framework.engine import Builder
 from vivarium.framework.population.manager import PopulationView
@@ -20,24 +19,13 @@ from vivarium_nih_us_cvd.constants.paths import FILEPATHS
 
 # Format the SBP risk effects file and generate bin edges
 sbp_risk_effects = pd.read_csv(FILEPATHS.SBP_MEDICATION_EFFECTS)
-sbp_risk_effects = sbp_risk_effects.melt(
-    id_vars=["sbp_start_exclusive", "sbp_end_inclusive"],
-    value_vars=[
-        c.DESCRIPTION
-        for c in SBP_MEDICATION_LEVEL
-        if c.DESCRIPTION != SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
-    ],
-    var_name=COLUMNS.SBP_MEDICATION,
-)
 sbp_risk_effects.loc[
-    (sbp_risk_effects["sbp_start_exclusive"].isna()), "sbp_start_exclusive"
-] = -np.inf
+    sbp_risk_effects["sbp_start_exclusive"].isna(), "sbp_start_exclusive"
+] = -float("inf")
 sbp_risk_effects.loc[
-    (sbp_risk_effects["sbp_end_inclusive"].isna()), "sbp_end_inclusive"
-] = np.inf
-sbp_bin_edges = sorted([x for x in sbp_risk_effects["sbp_end_inclusive"].unique()])
-# Need to add on -inf
-sbp_bin_edges = [-np.inf] + sbp_bin_edges
+    sbp_risk_effects["sbp_end_inclusive"].isna(), "sbp_end_inclusive"
+] = float("inf")
+sbp_bin_edges = sorted(set(sbp_risk_effects["sbp_start_exclusive"]).union(set(sbp_risk_effects["sbp_end_inclusive"])))
 
 
 class Risk(Risk_):
