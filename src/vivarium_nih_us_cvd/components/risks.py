@@ -138,17 +138,33 @@ class SBPRisk(Risk_):
             adherence_scores = pop_view[COLUMNS.SBP_MEDICATION_ADHERENCE].map(
                 MEDICATION_ADHERENCE_SCORE
             )
-            df_efficacy = pd.DataFrame({'bin': pd.cut(x=target, bins=sbp_bin_edges, right=True)})
-            df_efficacy["sbp_start_exclusive"] = df_efficacy['bin'].apply(lambda x: x.left)
-            df_efficacy["sbp_end_inclusive"] = df_efficacy['bin'].apply(lambda x: x.right)
+            df_efficacy = pd.DataFrame(
+                {"bin": pd.cut(x=target, bins=sbp_bin_edges, right=True)}
+            )
+            df_efficacy["sbp_start_exclusive"] = df_efficacy["bin"].apply(lambda x: x.left)
+            df_efficacy["sbp_end_inclusive"] = df_efficacy["bin"].apply(lambda x: x.right)
             df_efficacy = pd.concat([df_efficacy, pop_view[COLUMNS.SBP_MEDICATION]], axis=1)
-            df_efficacy = df_efficacy.reset_index().merge(sbp_risk_effects, on=["sbp_start_exclusive", "sbp_end_inclusive", COLUMNS.SBP_MEDICATION], how="left").set_index("index")
+            df_efficacy = (
+                df_efficacy.reset_index()
+                .merge(
+                    sbp_risk_effects,
+                    on=["sbp_start_exclusive", "sbp_end_inclusive", COLUMNS.SBP_MEDICATION],
+                    how="left",
+                )
+                .set_index("index")
+            )
             # Simulants not on treatment mean 0 effect
-            assert set(df_efficacy.loc[df_efficacy["value"].isna(), COLUMNS.SBP_MEDICATION]) == {SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION}
-            df_efficacy.loc[df_efficacy[COLUMNS.SBP_MEDICATION] == SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION, "value"] = 0
+            assert set(
+                df_efficacy.loc[df_efficacy["value"].isna(), COLUMNS.SBP_MEDICATION]
+            ) == {SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION}
+            df_efficacy.loc[
+                df_efficacy[COLUMNS.SBP_MEDICATION]
+                == SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION,
+                "value",
+            ] = 0
             assert df_efficacy["value"].isna().sum() == 0
             treatment_efficacy = df_efficacy["value"]
-            
+
             sbp_decrease = treatment_efficacy * adherence_scores
 
             return target - sbp_decrease
