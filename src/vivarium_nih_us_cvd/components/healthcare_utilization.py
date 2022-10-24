@@ -218,10 +218,10 @@ class HealthcareUtilization:
 
         # Schedule followups
         all_visitors = visit_emergency.union(visit_scheduled).union(visit_background)
-        to_schedule_followup_sbp = self._determine_followups_sbp(
+        to_schedule_followup_sbp = self.determine_followups_sbp(
             visitors=all_visitors, pop_visitors=pop.loc[all_visitors], event_time=event_time
         )
-        to_schedule_followup_ldlc = self._determine_followups_ldlc(
+        to_schedule_followup_ldlc = self.determine_followups_ldlc(
             visitors=all_visitors, pop_visitors=pop.loc[all_visitors], event_time=event_time
         )
         to_schedule_followup = to_schedule_followup_sbp.union(to_schedule_followup_ldlc)
@@ -239,9 +239,10 @@ class HealthcareUtilization:
             ]
         )
 
-    def _determine_followups_sbp(
+    def determine_followups_sbp(
         self, visitors: pd.Index, pop_visitors: pd.DataFrame, event_time: pd.Timestamp
     ) -> pd.Index:
+        """Apply SBP treatment ramp logic to determine who gets scheduled a followup"""
         measured_sbp = self.treatment.get_measured_sbp(
             index=visitors,
             mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
@@ -264,9 +265,10 @@ class HealthcareUtilization:
         ].index
         return needs_followup.difference(has_followup_already_scheduled)
 
-    def _determine_followups_ldlc(
+    def determine_followups_ldlc(
         self, visitors: pd.Index, pop_visitors: pd.DataFrame, event_time: pd.Timestamp
     ) -> pd.Index:
+        """Apply LDL-C treatment ramp logic to determine who gets scheduled a followup"""
         ascvd = self.treatment.get_ascvd(visitors=visitors)
         measured_ldlc = self.treatment.get_measured_ldlc(
             index=visitors,
