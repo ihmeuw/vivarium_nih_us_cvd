@@ -11,7 +11,7 @@ from vivarium_public_health.risks.data_transformations import (
 
 from vivarium_nih_us_cvd.constants.data_values import (
     COLUMNS,
-    MEDICATION_ADHERENCE_SCORE,
+    MEDICATION_ADHERENCE_TYPE,
     RISK_EXPOSURE_LIMITS,
     SBP_MEDICATION_LEVEL,
 )
@@ -123,9 +123,7 @@ class SBPRisk(Risk_):
         def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
             """Determine the exposure decrease as treatment_efficacy * adherence_score"""
             pop_view = self.population_view.get(index)
-            adherence_scores = pop_view[COLUMNS.SBP_MEDICATION_ADHERENCE].map(
-                MEDICATION_ADHERENCE_SCORE
-            )
+            mask_adherence = pop_view[COLUMNS.SBP_MEDICATION_ADHERENCE] == MEDICATION_ADHERENCE_TYPE.ADHERENT
             df_efficacy = pd.DataFrame(
                 {"bin": pd.cut(x=target, bins=sbp_bin_edges, right=True)}
             )
@@ -153,7 +151,7 @@ class SBPRisk(Risk_):
             assert df_efficacy["value"].isna().sum() == 0
             treatment_efficacy = df_efficacy["value"]
 
-            sbp_decrease = treatment_efficacy * adherence_scores
+            sbp_decrease = treatment_efficacy * mask_adherence
 
             return target - sbp_decrease
 
