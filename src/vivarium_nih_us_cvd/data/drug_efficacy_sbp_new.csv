@@ -35,9 +35,9 @@ sbp_start_exclusive,sbp_end_inclusive,sbp_medication,value
 125,135,two_drug_std_dose_efficacy,12.7
 125,135,three_drug_half_dose_efficacy,15.2
 125,135,three_drug_std_dose_efficacy,18.2
-,125,one_drug_half_dose_efficacy,4.4
-,125,one_drug_std_dose_efficacy,5.7
-,125,two_drug_half_dose_efficacy,8.6
-,125,two_drug_std_dose_efficacy,10.8
-,125,three_drug_half_dose_efficacy,12.9
-,125,three_drug_std_dose_efficacy,15.5
+0,125,one_drug_half_dose_efficacy,4.4
+0,125,one_drug_std_dose_efficacy,5.7
+0,125,two_drug_half_dose_efficacy,8.6
+0,125,two_drug_std_dose_efficacy,10.8
+0,125,three_drug_half_dose_efficacy,12.9
+0,125,three_drug_std_dose_efficacy,15.5

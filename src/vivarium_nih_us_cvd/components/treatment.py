@@ -18,21 +18,6 @@ ldlc_treatment_map = {
 }
 
 
-# Format the SBP risk effects file and generate bin edges
-sbp_risk_effects = pd.read_csv(paths.FILEPATHS.SBP_MEDICATION_EFFECTS)
-sbp_risk_effects.loc[
-    sbp_risk_effects["sbp_start_exclusive"].isna(), "sbp_start_exclusive"
-] = -float("inf")
-sbp_risk_effects.loc[
-    sbp_risk_effects["sbp_end_inclusive"].isna(), "sbp_end_inclusive"
-] = float("inf")
-sbp_bin_edges = sorted(
-    set(sbp_risk_effects["sbp_start_exclusive"]).union(
-        set(sbp_risk_effects["sbp_end_inclusive"])
-    )
-)
-
-
 class Treatment:
     """Updates treatment coverage"""
 
@@ -53,6 +38,8 @@ class Treatment:
         self.gbd_sbp = builder.value.get_value(data_values.PIPELINES.SBP_GBD_EXPOSURE)
         self.sbp = builder.value.get_value(data_values.PIPELINES.SBP_EXPOSURE)
         self.ldlc = builder.value.get_value(data_values.PIPELINES.LDLC_EXPOSURE)
+        self.sbp_risk_effects = self._get_sbp_risk_effects()
+        self.sbp_bin_edges = self._get_sbp_bin_edges()
         self.target_modifier = self._get_target_modifier(builder)
         self._register_target_modifier(builder)
 
@@ -97,6 +84,24 @@ class Treatment:
             priority=data_values.TIMESTEP_CLEANUP_PRIORITIES.TREATMENT,
         )
 
+    def _get_sbp_risk_effects(self):
+        """Load and format the SBP risk effects file"""
+        sbp_risk_effects = pd.read_csv(paths.FILEPATHS.SBP_MEDICATION_EFFECTS)
+        # Missingness in the bin end means no upper limit
+        sbp_risk_effects.loc[
+            sbp_risk_effects["sbp_end_inclusive"].isna(), "sbp_end_inclusive"
+        ] = float("inf")
+
+        return sbp_risk_effects
+
+    def _get_sbp_bin_edges(self):
+        """Determine the sbp exposure bin edges for mapping to treatment effects"""
+        return sorted(
+            set(self.sbp_risk_effects["sbp_start_exclusive"]).union(
+                set(self.sbp_risk_effects["sbp_end_inclusive"])
+            )
+        )
+
     def _get_target_modifier(
         self, builder: Builder
     ) -> Callable[[pd.Index, pd.Series], pd.Series]:
@@ -110,7 +115,7 @@ class Treatment:
                 == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
             )
             df_efficacy = pd.DataFrame(
-                {"bin": pd.cut(x=target, bins=sbp_bin_edges, right=True)}
+                {"bin": pd.cut(x=target, bins=self.sbp_bin_edges, right=True)}
             )
             df_efficacy["sbp_start_exclusive"] = df_efficacy["bin"].apply(lambda x: x.left)
             df_efficacy["sbp_end_inclusive"] = df_efficacy["bin"].apply(lambda x: x.right)
@@ -120,7 +125,7 @@ class Treatment:
             df_efficacy = (
                 df_efficacy.reset_index()
                 .merge(
-                    sbp_risk_effects,
+                    self.sbp_risk_effects,
                     on=[
                         "sbp_start_exclusive",
                         "sbp_end_inclusive",
