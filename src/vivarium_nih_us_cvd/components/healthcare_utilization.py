@@ -258,7 +258,7 @@ class HealthcareUtilization:
         )
         # Schedule those on sbp medication or those not on sbp medication but have a high sbp
         needs_followup = visitors_on_sbp_medication.union(visitors_high_sbp)
-        # Do no re-schedule followups that already exist
+        # Do not re-schedule followups that already exist
         has_followup_already_scheduled = pop_visitors[
             (pop_visitors[data_values.COLUMNS.SCHEDULED_VISIT_DATE] > event_time)
         ].index
@@ -267,15 +267,37 @@ class HealthcareUtilization:
     def _determine_followups_ldlc(
         self, visitors: pd.Index, pop_visitors: pd.DataFrame, event_time: pd.Timestamp
     ) -> pd.Index:
-    #     ascvd = self.treatment.get_ascvd(visitors=visitors)
-    #     breakpoint()
-    #     measured_ldlc = self.treatment.get_measured_ldlc(
-    #         index=visitors,
-    #         mean=data_values.MEASUREMENT_ERROR_MEAN_LDLC,
-    #         sd=data_values.MEASUREMENT_ERROR_SD_LDLC,
-    #     )
-
-        return pd.Index([])  # FIXME
+        ascvd = self.treatment.get_ascvd(visitors=visitors)
+        measured_ldlc = self.treatment.get_measured_ldlc(
+            index=visitors,
+            mean=data_values.MEASUREMENT_ERROR_MEAN_LDLC,
+            sd=data_values.MEASUREMENT_ERROR_SD_LDLC,
+        )
+        visitors_high_ascvd = visitors.intersection(
+            ascvd[ascvd >= data_values.ASCVD_THRESHOLD.LOW].index
+        )
+        visitors_high_ldlc = visitors.intersection(
+            measured_ldlc[measured_ldlc >= data_values.LDLC_THRESHOLD.LOW].index
+        )
+        visitors_on_ldlc_medication = visitors.intersection(
+            pop_visitors[
+                pop_visitors[data_values.COLUMNS.LDLC_MEDICATION]
+                != data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
+            ].index
+        )
+        visitors_not_on_ldlc_medication = visitors.difference(visitors_on_ldlc_medication)
+        # Schedule those on ldlc medication and have high ldlc or those not on
+        # ldlc medication but have high ASCVD and ldlc
+        needs_followup = (visitors_on_ldlc_medication.intersection(visitors_high_ldlc)).union(
+            visitors_not_on_ldlc_medication.intersection(visitors_high_ascvd).intersection(
+                visitors_high_ldlc
+            )
+        )
+        # Do not re-schedule followups that already exist
+        has_followup_already_scheduled = pop_visitors[
+            (pop_visitors[data_values.COLUMNS.SCHEDULED_VISIT_DATE] > event_time)
+        ].index
+        return needs_followup.difference(has_followup_already_scheduled)
 
     def schedule_followup(
         self,

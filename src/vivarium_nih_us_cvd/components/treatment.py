@@ -471,7 +471,6 @@ class Treatment:
         exposure_pipeline: Optional[Pipeline] = None,
     ) -> pd.Series:
         """Introduce a measurement error to the ldlc exposure values"""
-        breakpoint()
         if not exposure_pipeline:
             exposure_pipeline = self.ldlc
         return exposure_pipeline(index) + get_random_value_from_normal_distribution(

@@ -109,8 +109,8 @@ THERAPEUTIC_INERTIA_NO_START = (
 class __SBPThreshold(NamedTuple):
     """sbp exposure thresholds"""
 
-    LOW: int = 130
-    HIGH: int = 140
+    LOW: float = 130
+    HIGH: float = 140
 
     @property
     def name(self):
@@ -118,6 +118,32 @@ class __SBPThreshold(NamedTuple):
 
 
 SBP_THRESHOLD = __SBPThreshold()
+
+
+class __ASCVDThreshold(NamedTuple):
+    """ASCVD thresholds"""
+
+    LOW: float = 7.5  # TODO: confirm whether this should be 7.5 or 0.075. NOTE: it ranges from ~[-17.35, 28.97]
+
+    @property
+    def name(self):
+        return "ascvd_threshold"
+
+
+ASCVD_THRESHOLD = __ASCVDThreshold()
+
+
+class __LDLCThreshold(NamedTuple):
+    """ldl-c exposure thresholds"""
+
+    LOW: float = 1.81
+
+    @property
+    def name(self):
+        return "ldlc_threshold"
+
+
+LDLC_THRESHOLD = __LDLCThreshold()
 
 
 class MedicationRampBaseClass(NamedTuple):
