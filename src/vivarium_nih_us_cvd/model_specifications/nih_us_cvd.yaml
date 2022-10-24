@@ -3,12 +3,12 @@ components:
         population:
             - BasePopulation()
             - Mortality()
-        metrics:
-            - MortalityObserver()
-            - DisabilityObserver()
-            - DiseaseObserver("ischemic_stroke")
-            - DiseaseObserver("myocardial_infarction")
-            - DiseaseObserver("angina")
+        # metrics:
+            # - MortalityObserver()
+            # - DisabilityObserver()
+            # - DiseaseObserver("ischemic_stroke")
+            # - DiseaseObserver("myocardial_infarction")
+            # - DiseaseObserver("angina")
         disease:
             - SI("angina")
         risks:
@@ -32,13 +32,13 @@ components:
             - MyocardialInfarction()
 
             - Risk("risk_factor.high_ldl_cholesterol")
-            - ContinuousRiskObserver("risk_factor.high_ldl_cholesterol")
+            # - ContinuousRiskObserver("risk_factor.high_ldl_cholesterol")
             
             - SBPRisk("risk_factor.high_systolic_blood_pressure")
-            - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
+            # - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
 
             - HealthcareUtilization() # Note that this uses Treatment() as a sub-component
-            - HealthcareVisitObserver()
+            # - HealthcareVisitObserver()
         
 
 configuration:
@@ -68,7 +68,7 @@ configuration:
             day: 31
         step_size: 28 # Days
     population:
-        population_size: 50_000
+        population_size: 10_000
         age_start: 7
         age_end: 125
         exit_age: 125

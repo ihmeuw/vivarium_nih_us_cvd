@@ -91,7 +91,7 @@ class HealthcareUtilization:
         SBP medication, LDL-C medication, or a history of an acute event
         (ie intialized in state post-MI or chronic IS) should be initialized with
         a scheduled followup visit 0-6 months out, uniformly distributed. All
-        simulants initialized in an acute state should bescheduled a followup
+        simulants initialized in an acute state should be scheduled a followup
         visit 3-6 months out, uniformly distributed.
         """
         event_time = self.clock() + self.step_size()
@@ -166,6 +166,7 @@ class HealthcareUtilization:
         already has a followup visit scheduled for the future, keep that scheduled
         followup and do not schedule a new one or another one.
         """
+        event_time = event.time
         pop = self.population_view.get(event.index, query='alive == "alive"')
         pop[data_values.COLUMNS.VISIT_TYPE] = data_values.VISIT_TYPE.NONE
 
@@ -185,7 +186,7 @@ class HealthcareUtilization:
 
         # Missed scheduled (non-emergency) visits (these do not get re-scheduled)
         mask_scheduled_non_emergency = (
-            pop[data_values.COLUMNS.SCHEDULED_VISIT_DATE] <= event.time
+            pop[data_values.COLUMNS.SCHEDULED_VISIT_DATE] <= event_time
         ) & (~mask_emergency)
         scheduled_non_emergency = pop[mask_scheduled_non_emergency].index
         pop.loc[scheduled_non_emergency, data_values.COLUMNS.SCHEDULED_VISIT_DATE] = pd.NaT
@@ -215,34 +216,19 @@ class HealthcareUtilization:
             visit_background, data_values.COLUMNS.VISIT_TYPE
         ] = data_values.VISIT_TYPE.BACKGROUND
 
-        # Take measurements (required to determine if a followup is required)
-        all_visitors = visit_emergency.union(visit_scheduled).union(visit_background)
-        measured_sbp = self.treatment.get_measured_sbp(
-            index=all_visitors,
-            mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
-            sd=data_values.MEASUREMENT_ERROR_SD_SBP,
-        )
-
         # Schedule followups
-        visitors_high_sbp = all_visitors.intersection(
-            measured_sbp[measured_sbp >= data_values.SBP_THRESHOLD.LOW].index
+        all_visitors = visit_emergency.union(visit_scheduled).union(visit_background)
+        to_schedule_followup_sbp = self._determine_followups_sbp(
+            visitors=all_visitors, pop_visitors=pop.loc[all_visitors], event_time=event_time
         )
-        visitors_on_sbp_medication = all_visitors.intersection(
-            pop[
-                pop[data_values.COLUMNS.SBP_MEDICATION]
-                != data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
-            ].index
+        to_schedule_followup_ldlc = self._determine_followups_ldlc(
+            visitors=all_visitors, pop_visitors=pop.loc[all_visitors], event_time=event_time
         )
-        # Schedule those on sbp medication or those not on sbp medication but have a high sbp
-        needs_followup = visitors_on_sbp_medication.union(visitors_high_sbp)
-        # Do no re-schedule followups that already exist
-        has_followup_already_scheduled = pop[
-            (pop[data_values.COLUMNS.SCHEDULED_VISIT_DATE] > event.time)
-        ].index
-        to_schedule_followup = needs_followup.difference(has_followup_already_scheduled)
+        to_schedule_followup = to_schedule_followup_sbp.union(to_schedule_followup_ldlc)
+
         pop.loc[
             to_schedule_followup, data_values.COLUMNS.SCHEDULED_VISIT_DATE
-        ] = self.schedule_followup(index=to_schedule_followup, event_time=event.time)
+        ] = self.schedule_followup(index=to_schedule_followup, event_time=event_time)
 
         self.population_view.update(
             pop[
@@ -252,6 +238,44 @@ class HealthcareUtilization:
                 ]
             ]
         )
+
+    def _determine_followups_sbp(
+        self, visitors: pd.Index, pop_visitors: pd.DataFrame, event_time: pd.Timestamp
+    ) -> pd.Index:
+        measured_sbp = self.treatment.get_measured_sbp(
+            index=visitors,
+            mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
+            sd=data_values.MEASUREMENT_ERROR_SD_SBP,
+        )
+        visitors_high_sbp = visitors.intersection(
+            measured_sbp[measured_sbp >= data_values.SBP_THRESHOLD.LOW].index
+        )
+        visitors_on_sbp_medication = visitors.intersection(
+            pop_visitors[
+                pop_visitors[data_values.COLUMNS.SBP_MEDICATION]
+                != data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
+            ].index
+        )
+        # Schedule those on sbp medication or those not on sbp medication but have a high sbp
+        needs_followup = visitors_on_sbp_medication.union(visitors_high_sbp)
+        # Do no re-schedule followups that already exist
+        has_followup_already_scheduled = pop_visitors[
+            (pop_visitors[data_values.COLUMNS.SCHEDULED_VISIT_DATE] > event_time)
+        ].index
+        return needs_followup.difference(has_followup_already_scheduled)
+
+    def _determine_followups_ldlc(
+        self, visitors: pd.Index, pop_visitors: pd.DataFrame, event_time: pd.Timestamp
+    ) -> pd.Index:
+    #     ascvd = self.treatment.get_ascvd(visitors=visitors)
+    #     breakpoint()
+    #     measured_ldlc = self.treatment.get_measured_ldlc(
+    #         index=visitors,
+    #         mean=data_values.MEASUREMENT_ERROR_MEAN_LDLC,
+    #         sd=data_values.MEASUREMENT_ERROR_SD_LDLC,
+    #     )
+
+        return pd.Index([])  # FIXME
 
     def schedule_followup(
         self,
