@@ -260,9 +260,10 @@ class HealthcareUtilization:
         # Schedule those on sbp medication or those not on sbp medication but have a high sbp
         needs_followup = visitors_on_sbp_medication.union(visitors_high_sbp)
         # Do not re-schedule followups that already exist
-        has_followup_already_scheduled = pop_visitors[
-            (pop_visitors[data_values.COLUMNS.SCHEDULED_VISIT_DATE] > event_time)
-        ].index
+        has_followup_already_scheduled = self.determine_already_scheduled_followups(
+            pop_visitors=pop_visitors, event_time=event_time
+        )
+
         return needs_followup.difference(has_followup_already_scheduled)
 
     def determine_followups_ldlc(
@@ -290,16 +291,23 @@ class HealthcareUtilization:
         visitors_not_on_ldlc_medication = visitors.difference(visitors_on_ldlc_medication)
         # Schedule those on ldlc medication and have high ldlc or those not on
         # ldlc medication but have high ASCVD and ldlc
-        needs_followup = (visitors_on_ldlc_medication.intersection(visitors_high_ldlc)).union(
-            visitors_not_on_ldlc_medication.intersection(visitors_high_ascvd).intersection(
-                visitors_high_ldlc
-            )
-        )
+        needs_followup = (
+            visitors_on_ldlc_medication.union(visitors_high_ascvd)
+        ).intersection(visitors_high_ldlc)
         # Do not re-schedule followups that already exist
-        has_followup_already_scheduled = pop_visitors[
+        has_followup_already_scheduled = self.determine_already_scheduled_followups(
+            pop_visitors=pop_visitors, event_time=event_time
+        )
+
+        return needs_followup.difference(has_followup_already_scheduled)
+
+    def determine_already_scheduled_followups(
+        self, pop_visitors: pd.DataFrame, event_time: pd.Timestamp
+    ) -> pd.Index:
+        """Returns simulants who already have a followup scheduled in the future"""
+        return pop_visitors[
             (pop_visitors[data_values.COLUMNS.SCHEDULED_VISIT_DATE] > event_time)
         ].index
-        return needs_followup.difference(has_followup_already_scheduled)
 
     def schedule_followup(
         self,
