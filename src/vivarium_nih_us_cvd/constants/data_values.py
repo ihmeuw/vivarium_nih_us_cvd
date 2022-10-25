@@ -120,6 +120,29 @@ class __SBPThreshold(NamedTuple):
 SBP_THRESHOLD = __SBPThreshold()
 
 
+class __ASCVDCoefficients(NamedTuple):
+    """ACSVD coefficients"""
+
+    INTERCEPT: float = -19.5
+    SBP: float = 0.043
+    AGE: float = 0.266
+    SEX: float = 2.32
+
+    @property
+    def name(self):
+        return "ascvd_coefficients"
+
+
+ASCVD_COEFFICIENTS = __ASCVDCoefficients()
+
+
+ASCVD_SEX_MAPPING = {
+    # used in ASCVD calculation
+    "Female": 0,
+    "Male": 1,
+}
+
+
 class __ASCVDThreshold(NamedTuple):
     """ASCVD thresholds"""
 

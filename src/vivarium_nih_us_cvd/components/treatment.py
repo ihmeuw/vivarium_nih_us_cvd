@@ -457,10 +457,13 @@ class Treatment:
         """Calculate the atherosclerotic cardiovascular disease score"""
         df_visitors = self.population_view.get(visitors)
         return (
-            -19.5
-            + (0.043 * self.sbp(visitors))
-            + (0.266 * df_visitors["age"])
-            + (2.32 * df_visitors["sex"].map({"Male": 1, "Female": 0}))
+            data_values.ASCVD_COEFFICIENTS.INTERCEPT
+            + (data_values.ASCVD_COEFFICIENTS.SBP * self.sbp(visitors))
+            + (data_values.ASCVD_COEFFICIENTS.AGE * df_visitors["age"])
+            + (
+                data_values.ASCVD_COEFFICIENTS.SEX
+                * df_visitors["sex"].map(data_values.ASCVD_SEX_MAPPING)
+            )
         )
 
     def get_measured_ldlc(
