@@ -1,16 +1,11 @@
-from typing import Dict, List
-
 import pandas as pd
 from vivarium.framework.engine import Builder
-from vivarium.framework.population.manager import PopulationView, SimulantData
-from vivarium.framework.randomness import RandomnessStream
+from vivarium.framework.population.manager import PopulationView
 from vivarium.framework.values import Pipeline
 from vivarium_public_health.risks.base_risk import Risk as Risk_
 from vivarium_public_health.risks.data_transformations import (
     get_exposure_post_processor,
 )
-from vivarium_public_health.risks.distributions import SimulationDistribution
-from vivarium_public_health.utilities import EntityString
 
 from vivarium_nih_us_cvd.constants.data_values import COLUMNS, RISK_EXPOSURE_LIMITS
 
@@ -44,7 +39,6 @@ class SBPRisk(Risk_):
     # Setup methods #
     #################
 
-    # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
         self.gbd_exposure = self._get_gbd_exposure_pipeline(builder)
@@ -69,7 +63,10 @@ class SBPRisk(Risk_):
 
     def _get_population_view(self, builder: Builder) -> PopulationView:
         return builder.population.get_view(
-            [self.propensity_column_name, COLUMNS.SBP_MULTIPLIER]
+            [
+                self.propensity_column_name,
+                COLUMNS.SBP_MULTIPLIER,
+            ]
         )
 
     ##################################

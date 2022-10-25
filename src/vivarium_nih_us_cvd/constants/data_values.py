@@ -76,6 +76,8 @@ MISS_SCHEDULED_VISIT_PROBABILITY = 0.0868
 
 MEASUREMENT_ERROR_MEAN_SBP = 0  # mmHg
 MEASUREMENT_ERROR_SD_SBP = 2.9  # mmHg
+MEASUREMENT_ERROR_MEAN_LDLC = 0  # mmol/L
+MEASUREMENT_ERROR_SD_LDLC = 0.08  # mmol/L
 
 
 class __VisitType(NamedTuple):
@@ -107,8 +109,8 @@ THERAPEUTIC_INERTIA_NO_START = (
 class __SBPThreshold(NamedTuple):
     """sbp exposure thresholds"""
 
-    LOW: int = 130
-    HIGH: int = 140
+    LOW: float = 130
+    HIGH: float = 140
 
     @property
     def name(self):
@@ -116,6 +118,55 @@ class __SBPThreshold(NamedTuple):
 
 
 SBP_THRESHOLD = __SBPThreshold()
+
+
+class __ASCVDCoefficients(NamedTuple):
+    """ACSVD coefficients"""
+
+    INTERCEPT: float = -19.5
+    SBP: float = 0.043
+    AGE: float = 0.266
+    SEX: float = 2.32
+
+    @property
+    def name(self):
+        return "ascvd_coefficients"
+
+
+ASCVD_COEFFICIENTS = __ASCVDCoefficients()
+
+
+ASCVD_SEX_MAPPING = {
+    # used in ASCVD calculation
+    "Female": 0,
+    "Male": 1,
+}
+
+
+class __ASCVDThreshold(NamedTuple):
+    """ASCVD thresholds"""
+
+    LOW: float = 7.5  # TODO: confirm whether this should be 7.5 or 0.075. NOTE: it ranges from ~[-17.35, 28.97]
+
+    @property
+    def name(self):
+        return "ascvd_threshold"
+
+
+ASCVD_THRESHOLD = __ASCVDThreshold()
+
+
+class __LDLCThreshold(NamedTuple):
+    """ldl-c exposure thresholds"""
+
+    LOW: float = 1.81
+
+    @property
+    def name(self):
+        return "ldlc_threshold"
+
+
+LDLC_THRESHOLD = __LDLCThreshold()
 
 
 class MedicationRampBaseClass(NamedTuple):
@@ -245,21 +296,6 @@ MEDICATION_ADHERENCE_TYPE_PROBABILITIY = {
         MEDICATION_ADHERENCE_TYPE.SECONDARY_NON_ADHERENT: 0.0975,
     },
 }
-
-
-class __MedicationAdherenceScore(NamedTuple):
-    """adherence scores; used in medication treatment effect calculation"""
-
-    ADHERENT: float = 1.0
-    PRIMARY_NON_ADHERENT: float = 0.0
-    SECONDARY_NON_ADHERENT: float = 0.0
-
-    @property
-    def name(self):
-        return "medication_adherence_score"
-
-
-MEDICATION_ADHERENCE_SCORE = __MedicationAdherenceScore()
 
 
 BASELINE_MEDICATION_COVERAGE_SEX_MAPPING = {
