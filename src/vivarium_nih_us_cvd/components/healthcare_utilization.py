@@ -218,14 +218,20 @@ class HealthcareUtilization:
 
         # Schedule followups
         all_visitors = visit_emergency.union(visit_scheduled).union(visit_background)
-        to_schedule_followup_sbp = self.determine_followups_sbp(
-            visitors=all_visitors, pop_visitors=pop.loc[all_visitors], event_time=event_time
+        needs_followup_sbp = self.determine_followups_sbp(
+            visitors=all_visitors, pop_visitors=pop.loc[all_visitors]
         )
-        to_schedule_followup_ldlc = self.determine_followups_ldlc(
-            visitors=all_visitors, pop_visitors=pop.loc[all_visitors], event_time=event_time
+        needs_followup_ldlc = self.determine_followups_ldlc(
+            visitors=all_visitors, pop_visitors=pop.loc[all_visitors]
         )
-        to_schedule_followup = to_schedule_followup_sbp.union(to_schedule_followup_ldlc)
+        # Do not schedule a followup if one already exists
+        has_followup_already_scheduled = pop[
+            (pop[data_values.COLUMNS.SCHEDULED_VISIT_DATE] > event_time)
+        ].index
 
+        to_schedule_followup = (
+            needs_followup_sbp.union(needs_followup_ldlc)
+        ).difference(has_followup_already_scheduled)
         pop.loc[
             to_schedule_followup, data_values.COLUMNS.SCHEDULED_VISIT_DATE
         ] = self.schedule_followup(index=to_schedule_followup, event_time=event_time)
@@ -240,7 +246,7 @@ class HealthcareUtilization:
         )
 
     def determine_followups_sbp(
-        self, visitors: pd.Index, pop_visitors: pd.DataFrame, event_time: pd.Timestamp
+        self, visitors: pd.Index, pop_visitors: pd.DataFrame
     ) -> pd.Index:
         """Apply SBP treatment ramp logic to determine who gets scheduled a followup"""
         measured_sbp = self.treatment.get_measured_sbp(
@@ -259,14 +265,11 @@ class HealthcareUtilization:
         )
         # Schedule those on sbp medication or those not on sbp medication but have a high sbp
         needs_followup = visitors_on_sbp_medication.union(visitors_high_sbp)
-        # Do not re-schedule followups that already exist
-        has_followup_already_scheduled = pop_visitors[
-            (pop_visitors[data_values.COLUMNS.SCHEDULED_VISIT_DATE] > event_time)
-        ].index
-        return needs_followup.difference(has_followup_already_scheduled)
+
+        return needs_followup
 
     def determine_followups_ldlc(
-        self, visitors: pd.Index, pop_visitors: pd.DataFrame, event_time: pd.Timestamp
+        self, visitors: pd.Index, pop_visitors: pd.DataFrame
     ) -> pd.Index:
         """Apply LDL-C treatment ramp logic to determine who gets scheduled a followup"""
         ascvd = self.treatment.get_ascvd(visitors=visitors)
@@ -287,19 +290,13 @@ class HealthcareUtilization:
                 != data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
             ].index
         )
-        visitors_not_on_ldlc_medication = visitors.difference(visitors_on_ldlc_medication)
         # Schedule those on ldlc medication and have high ldlc or those not on
         # ldlc medication but have high ASCVD and ldlc
-        needs_followup = (visitors_on_ldlc_medication.intersection(visitors_high_ldlc)).union(
-            visitors_not_on_ldlc_medication.intersection(visitors_high_ascvd).intersection(
-                visitors_high_ldlc
-            )
-        )
-        # Do not re-schedule followups that already exist
-        has_followup_already_scheduled = pop_visitors[
-            (pop_visitors[data_values.COLUMNS.SCHEDULED_VISIT_DATE] > event_time)
-        ].index
-        return needs_followup.difference(has_followup_already_scheduled)
+        needs_followup = (
+            visitors_on_ldlc_medication.union(visitors_high_ascvd)
+        ).intersection(visitors_high_ldlc)
+
+        return needs_followup
 
     def schedule_followup(
         self,
