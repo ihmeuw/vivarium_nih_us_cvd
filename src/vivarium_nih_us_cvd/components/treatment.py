@@ -446,9 +446,8 @@ class Treatment:
         mean: float,
         sd: float,
         exposure_pipeline: Optional[Pipeline] = None,
-    ):
+    ) -> pd.Series:
         """Introduce a measurement error to the sbp exposure values"""
-
         if not exposure_pipeline:
             exposure_pipeline = self.sbp
         return exposure_pipeline(index) + get_random_value_from_normal_distribution(
@@ -457,4 +456,35 @@ class Treatment:
             sd=sd,
             randomness=self.randomness,
             additional_key="measured_sbp",
+        )
+
+    def get_ascvd(self, visitors: pd.DataFrame) -> pd.Series:
+        """Calculate the atherosclerotic cardiovascular disease score"""
+        df_visitors = self.population_view.get(visitors)
+        return (
+            data_values.ASCVD_COEFFICIENTS.INTERCEPT
+            + (data_values.ASCVD_COEFFICIENTS.SBP * self.sbp(visitors))
+            + (data_values.ASCVD_COEFFICIENTS.AGE * df_visitors["age"])
+            + (
+                data_values.ASCVD_COEFFICIENTS.SEX
+                * df_visitors["sex"].map(data_values.ASCVD_SEX_MAPPING)
+            )
+        )
+
+    def get_measured_ldlc(
+        self,
+        index: pd.Index,
+        mean: float,
+        sd: float,
+        exposure_pipeline: Optional[Pipeline] = None,
+    ) -> pd.Series:
+        """Introduce a measurement error to the ldlc exposure values"""
+        if not exposure_pipeline:
+            exposure_pipeline = self.ldlc
+        return exposure_pipeline(index) + get_random_value_from_normal_distribution(
+            index=index,
+            mean=mean,
+            sd=sd,
+            randomness=self.randomness,
+            additional_key="measured_ldlc",
         )
