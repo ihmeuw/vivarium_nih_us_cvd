@@ -53,6 +53,8 @@ class Treatment:
         self.gbd_sbp = builder.value.get_value(data_values.PIPELINES.SBP_GBD_EXPOSURE)
         self.sbp = builder.value.get_value(data_values.PIPELINES.SBP_EXPOSURE)
         self.ldlc = builder.value.get_value(data_values.PIPELINES.LDLC_EXPOSURE)
+        self.sbp_risk_effects = self._get_sbp_risk_effects()
+        self.sbp_bin_edges = self._get_sbp_bin_edges()
         self.target_modifier = self._get_target_modifier(builder)
         self._register_target_modifier(builder)
 
@@ -97,6 +99,24 @@ class Treatment:
             priority=data_values.TIMESTEP_CLEANUP_PRIORITIES.TREATMENT,
         )
 
+    def _get_sbp_risk_effects(self):
+        """Load and format the SBP risk effects file"""
+        sbp_risk_effects = pd.read_csv(paths.FILEPATHS.SBP_MEDICATION_EFFECTS)
+        # Missingness in the bin end means no upper limit
+        sbp_risk_effects.loc[
+            sbp_risk_effects["sbp_end_inclusive"].isna(), "sbp_end_inclusive"
+        ] = float("inf")
+
+        return sbp_risk_effects
+
+    def _get_sbp_bin_edges(self):
+        """Determine the sbp exposure bin edges for mapping to treatment effects"""
+        return sorted(
+            set(self.sbp_risk_effects["sbp_start_exclusive"]).union(
+                set(self.sbp_risk_effects["sbp_end_inclusive"])
+            )
+        )
+
     def _get_target_modifier(
         self, builder: Builder
     ) -> Callable[[pd.Index, pd.Series], pd.Series]:
@@ -110,7 +130,7 @@ class Treatment:
                 == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
             )
             df_efficacy = pd.DataFrame(
-                {"bin": pd.cut(x=target, bins=sbp_bin_edges, right=True)}
+                {"bin": pd.cut(x=target, bins=self.sbp_bin_edges, right=True)}
             )
             df_efficacy["sbp_start_exclusive"] = df_efficacy["bin"].apply(lambda x: x.left)
             df_efficacy["sbp_end_inclusive"] = df_efficacy["bin"].apply(lambda x: x.right)
@@ -120,7 +140,7 @@ class Treatment:
             df_efficacy = (
                 df_efficacy.reset_index()
                 .merge(
-                    sbp_risk_effects,
+                    self.sbp_risk_effects,
                     on=[
                         "sbp_start_exclusive",
                         "sbp_end_inclusive",
@@ -441,9 +461,8 @@ class Treatment:
         mean: float,
         sd: float,
         exposure_pipeline: Optional[Pipeline] = None,
-    ):
+    ) -> pd.Series:
         """Introduce a measurement error to the sbp exposure values"""
-
         if not exposure_pipeline:
             exposure_pipeline = self.sbp
         return exposure_pipeline(index) + get_random_value_from_normal_distribution(
@@ -452,4 +471,35 @@ class Treatment:
             sd=sd,
             randomness=self.randomness,
             additional_key="measured_sbp",
+        )
+
+    def get_ascvd(self, visitors: pd.DataFrame) -> pd.Series:
+        """Calculate the atherosclerotic cardiovascular disease score"""
+        df_visitors = self.population_view.get(visitors)
+        return (
+            data_values.ASCVD_COEFFICIENTS.INTERCEPT
+            + (data_values.ASCVD_COEFFICIENTS.SBP * self.sbp(visitors))
+            + (data_values.ASCVD_COEFFICIENTS.AGE * df_visitors["age"])
+            + (
+                data_values.ASCVD_COEFFICIENTS.SEX
+                * df_visitors["sex"].map(data_values.ASCVD_SEX_MAPPING)
+            )
+        )
+
+    def get_measured_ldlc(
+        self,
+        index: pd.Index,
+        mean: float,
+        sd: float,
+        exposure_pipeline: Optional[Pipeline] = None,
+    ) -> pd.Series:
+        """Introduce a measurement error to the ldlc exposure values"""
+        if not exposure_pipeline:
+            exposure_pipeline = self.ldlc
+        return exposure_pipeline(index) + get_random_value_from_normal_distribution(
+            index=index,
+            mean=mean,
+            sd=sd,
+            randomness=self.randomness,
+            additional_key="measured_ldlc",
         )
