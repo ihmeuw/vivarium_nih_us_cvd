@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable, Dict, Optional
 
 import numpy as np
 import pandas as pd
@@ -9,13 +9,6 @@ from vivarium.framework.values import Pipeline
 
 from vivarium_nih_us_cvd.constants import data_values, models, paths
 from vivarium_nih_us_cvd.utilities import get_random_value_from_normal_distribution
-
-sbp_treatment_map = {
-    level.VALUE: level.DESCRIPTION for level in data_values.SBP_MEDICATION_LEVEL
-}
-ldlc_treatment_map = {
-    level.VALUE: level.DESCRIPTION for level in data_values.LDLC_MEDICATION_LEVEL
-}
 
 
 class Treatment:
@@ -38,6 +31,8 @@ class Treatment:
         self.gbd_sbp = builder.value.get_value(data_values.PIPELINES.SBP_GBD_EXPOSURE)
         self.sbp = builder.value.get_value(data_values.PIPELINES.SBP_EXPOSURE)
         self.ldlc = builder.value.get_value(data_values.PIPELINES.LDLC_EXPOSURE)
+        self.sbp_treatment_map = self._get_sbp_treatment_map()
+        self.ldlc_treatment_map = self._get_ldlc_treatment_map()
         self.sbp_risk_effects = self._get_sbp_risk_effects()
         self.sbp_bin_edges = self._get_sbp_bin_edges()
         self.target_modifier = self._get_target_modifier(builder)
@@ -83,6 +78,12 @@ class Treatment:
             self.on_time_step_cleanup,
             priority=data_values.TIMESTEP_CLEANUP_PRIORITIES.TREATMENT,
         )
+
+    def _get_sbp_treatment_map(self) -> Dict[int, str]:
+        return {level.VALUE: level.DESCRIPTION for level in data_values.SBP_MEDICATION_LEVEL}
+
+    def _get_ldlc_treatment_map(self) -> Dict[int, str]:
+        return {level.VALUE: level.DESCRIPTION for level in data_values.LDLC_MEDICATION_LEVEL}
 
     def _get_sbp_risk_effects(self):
         """Load and format the SBP risk effects file"""
@@ -217,11 +218,12 @@ class Treatment:
         mask_emergency = mask_acute_is | mask_acute_mi
         pop.loc[mask_emergency] = self.apply_sbp_treatment_ramp(
             pop_visitors=pop.loc[mask_emergency],
-            # TODO: Confirm with Syl that this is acceptable to use gbd sbp for measured sbp on initilaization
             exposure_pipeline=self.gbd_sbp,
         )
         pop.loc[mask_emergency] = self.apply_ldlc_treatment_ramp(
-            pop_visitors=pop.loc[mask_emergency]
+            pop_visitors=pop.loc[mask_emergency],
+            sbp_pipeline=self.gbd_sbp,
+            # TODO: pass in gbd_ldlc when implementing
         )
 
         self.population_view.update(
@@ -293,11 +295,11 @@ class Treatment:
         ].index
         pop.loc[
             medicated_sbp.intersection(sbp_non_adherent), data_values.COLUMNS.SBP_MEDICATION
-        ] = sbp_treatment_map[1]
+        ] = self.sbp_treatment_map[1]
         pop.loc[
             medicated_ldlc.intersection(ldlc_non_adherent),
             data_values.COLUMNS.LDLC_MEDICATION,
-        ] = ldlc_treatment_map[1]
+        ] = self.ldlc_treatment_map[1]
 
         return pop
 
@@ -363,7 +365,6 @@ class Treatment:
                 population treatment effects in gbd data except during
                 initialization
         """
-
         if not exposure_pipeline:
             exposure_pipeline = self.sbp
         overcome_therapeutic_inertia = pop_visitors[
@@ -371,7 +372,7 @@ class Treatment:
                 pop_visitors.index,
                 additional_key="sbp_therapeutic_inertia",
             )
-            > data_values.THERAPEUTIC_INERTIA_NO_START
+            > data_values.SBP_THERAPEUTIC_INERTIA_NO_START
         ].index
         currently_medicated = pop_visitors[
             pop_visitors[data_values.COLUMNS.SBP_MEDICATION]
@@ -416,7 +417,7 @@ class Treatment:
         ].index
         not_already_max_medicated = pop_visitors[
             pop_visitors[data_values.COLUMNS.SBP_MEDICATION]
-            != sbp_treatment_map[max(sbp_treatment_map)]
+            != self.sbp_treatment_map[max(self.sbp_treatment_map)]
         ].index
         medication_change = (
             (not_currently_medicated.intersection(mid_sbp))
@@ -429,15 +430,154 @@ class Treatment:
         )
         pop_visitors.loc[medication_change, data_values.COLUMNS.SBP_MEDICATION] = (
             pop_visitors[data_values.COLUMNS.SBP_MEDICATION].map(
-                {v: k for k, v in sbp_treatment_map.items()}
+                {v: k for k, v in self.sbp_treatment_map.items()}
             )
             + 1
-        ).map(sbp_treatment_map)
+        ).map(self.sbp_treatment_map)
 
         return pop_visitors
 
-    def apply_ldlc_treatment_ramp(self, pop_visitors: pd.DataFrame) -> pd.DataFrame:
-        # TODO: [MIC-3375]
+    def apply_ldlc_treatment_ramp(
+        self,
+        pop_visitors: pd.DataFrame,
+        ldlc_pipeline: Optional[Pipeline] = None,
+        sbp_pipeline: Optional[Pipeline] = None,
+    ) -> pd.DataFrame:
+        """Applies the LDL-C treatment ramp
+
+        Arguments:
+            pop_visitors: dataframe subset to simulants visiting the doctor
+            ldlc_pipeline: the ldl-c exposure pipeline to use when calculating
+                measured ldl-c values; defaults to the values adjusted for
+                population treatment effects in gbd data except during
+                initialization
+            sbp_pipeline: the sbp exposure pipeline to use when calculating
+                ASCVD; defaults to the values adjusted for population treatment
+                effects in gbd data except during initialization
+        """
+        if not ldlc_pipeline:
+            ldlc_pipeline = self.ldlc
+        if not sbp_pipeline:
+            sbp_pipeline = self.sbp
+        overcome_therapeutic_inertia = pop_visitors[
+            self.randomness.get_draw(
+                pop_visitors.index,
+                additional_key="ldlc_therapeutic_inertia",
+            )
+            > data_values.LDLC_THERAPEUTIC_INERTIA_NO_START
+        ].index
+        currently_medicated = pop_visitors[
+            pop_visitors[data_values.COLUMNS.LDLC_MEDICATION]
+            != data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
+        ].index
+        not_currently_medicated = pop_visitors.index.difference(currently_medicated)
+
+        ascvd = self.get_ascvd(pop_visitors=pop_visitors, sbp_pipeline=sbp_pipeline)
+        measured_ldlc = self.get_measured_ldlc(
+            index=pop_visitors.index,
+            mean=data_values.MEASUREMENT_ERROR_MEAN_LDLC,
+            sd=data_values.MEASUREMENT_ERROR_SD_LDLC,
+            exposure_pipeline=ldlc_pipeline,
+        )
+
+        # Generate other useful helper indexes
+        elevated_ascvd = ascvd[ascvd >= data_values.ASCVD_THRESHOLD.LOW].index
+        high_ascvd = ascvd[ascvd >= data_values.ASCVD_THRESHOLD.HIGH].index
+        mid_ascvd = elevated_ascvd.difference(high_ascvd)
+        elevated_ldlc = measured_ldlc[measured_ldlc >= data_values.LDLC_THRESHOLD.LOW].index
+        high_ldlc = measured_ldlc[measured_ldlc >= data_values.LDLC_THRESHOLD.HIGH].index
+        mid_ldlc = elevated_ldlc.difference(high_ldlc)
+        mask_history_mi = (
+            pop_visitors[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
+            != models.MYOCARDIAL_INFARCTION_SUSCEPTIBLE_STATE_NAME
+        )
+        mask_history_is = (
+            pop_visitors[models.ISCHEMIC_STROKE_MODEL_NAME]
+            != models.ISCHEMIC_STROKE_SUSCEPTIBLE_STATE_NAME
+        )
+        history_mi_or_is = pop_visitors[mask_history_mi | mask_history_is].index
+        no_history_mi_or_is = pop_visitors.index.difference(history_mi_or_is)
+
+        # [Treatment ramp ID E] Simulants who overcome therapeutic inertia, have
+        # elevated LDLC, are not currently medicated, have elevated ASCVD, have
+        # no history of MI or IS, and who have high LDLC or ASCVD
+        to_prescribe_e = (
+            overcome_therapeutic_inertia.intersection(elevated_ldlc)
+            .intersection(not_currently_medicated)
+            .intersection(elevated_ascvd)
+            .intersection(no_history_mi_or_is)
+            .intersection(high_ascvd.union(high_ldlc))
+        )
+        # [Treatment ramp ID F] Simulants who overcome therapeutic inertia, have
+        # elevated LDLC, are not currently medicated, have elevated ASCVD, have
+        # no history of MI or IS, but who do NOT have high LDLC or ASCVD
+        to_prescribe_f = (
+            overcome_therapeutic_inertia.intersection(elevated_ldlc)
+            .intersection(not_currently_medicated)
+            .intersection(elevated_ascvd)
+            .intersection(no_history_mi_or_is)
+            .intersection(mid_ascvd.union(mid_ldlc))
+        )
+        # [Treatment ramp ID D] Simulants who overcome therapeutic inertia, have
+        # elevated LDLC, are not currently medicated, have elevated ASCVD, and
+        # have a history of MI or IS
+        to_prescribe_d = (
+            overcome_therapeutic_inertia.intersection(elevated_ldlc)
+            .intersection(not_currently_medicated)
+            .intersection(elevated_ascvd)
+            .intersection(history_mi_or_is)
+        )
+        # [Treatment ramp ID G] Simulants who overcome therapeutic inertia, have
+        # elevated LDLC, and are currently medicated
+        to_prescribe_g = overcome_therapeutic_inertia.intersection(
+            elevated_ldlc
+        ).intersection(currently_medicated)
+
+        # Prescribe initial medications
+        newly_prescribed = to_prescribe_e.union(to_prescribe_f).union(to_prescribe_d)
+        df_newly_prescribed = pd.DataFrame(index=newly_prescribed)
+        # TODO: CONFIRM THESE LISTS REMAIN ORDERED HERE AND IN randomness.choice
+        df_newly_prescribed.loc[
+            to_prescribe_d,
+            data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_d"].keys(),
+        ] = data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_d"].values()
+        df_newly_prescribed.loc[
+            to_prescribe_e,
+            data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_e"].keys(),
+        ] = data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_e"].values()
+        df_newly_prescribed.loc[
+            to_prescribe_f,
+            data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_f"].keys(),
+        ] = data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_f"].values()
+        pop_visitors.loc[
+            newly_prescribed, data_values.COLUMNS.LDLC_MEDICATION
+        ] = self.randomness.choice(
+            newly_prescribed,
+            choices=df_newly_prescribed.columns,
+            p=np.array(df_newly_prescribed),
+            additional_key="high_ldlc_first_prescriptions",
+        )
+
+        # Change medications
+        # Only move up if adherent and not already at the max ramp level
+        adherent = pop_visitors[
+            pop_visitors[data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE]
+            == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
+        ].index
+        not_already_max_medicated = pop_visitors[
+            pop_visitors[data_values.COLUMNS.LDLC_MEDICATION]
+            != self.ldlc_treatment_map[max(self.ldlc_treatment_map)]
+        ].index
+        medication_change = to_prescribe_g.intersection(adherent).intersection(
+            not_already_max_medicated
+        )
+        pop_visitors.loc[medication_change, data_values.COLUMNS.LDLC_MEDICATION] = (
+            pop_visitors[data_values.COLUMNS.LDLC_MEDICATION].map(
+                {v: k for k, v in self.ldlc_treatment_map.items()}
+            )
+            + 1
+        ).map(self.ldlc_treatment_map)
+
         return pop_visitors
 
     def get_measured_sbp(
@@ -458,16 +598,20 @@ class Treatment:
             additional_key="measured_sbp",
         )
 
-    def get_ascvd(self, visitors: pd.DataFrame) -> pd.Series:
+    def get_ascvd(
+        self, pop_visitors: pd.DataFrame, sbp_pipeline: Optional[Pipeline] = None
+    ) -> pd.Series:
         """Calculate the atherosclerotic cardiovascular disease score"""
-        df_visitors = self.population_view.get(visitors)
+        if not sbp_pipeline:
+            sbp_pipeline = self.sbp
+
         return (
             data_values.ASCVD_COEFFICIENTS.INTERCEPT
-            + (data_values.ASCVD_COEFFICIENTS.SBP * self.sbp(visitors))
-            + (data_values.ASCVD_COEFFICIENTS.AGE * df_visitors["age"])
+            + (data_values.ASCVD_COEFFICIENTS.SBP * sbp_pipeline(pop_visitors.index))
+            + (data_values.ASCVD_COEFFICIENTS.AGE * pop_visitors["age"])
             + (
                 data_values.ASCVD_COEFFICIENTS.SEX
-                * df_visitors["sex"].map(data_values.ASCVD_SEX_MAPPING)
+                * pop_visitors["sex"].map(data_values.ASCVD_SEX_MAPPING)
             )
         )
 
