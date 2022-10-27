@@ -372,7 +372,7 @@ class Treatment:
                 pop_visitors.index,
                 additional_key="sbp_therapeutic_inertia",
             )
-            > data_values.SBP_THERAPEUTIC_INERTIA_NO_START
+            > data_values.SBP_THERAPEUTIC_INERTIA
         ].index
         currently_medicated = pop_visitors[
             pop_visitors[data_values.COLUMNS.SBP_MEDICATION]
@@ -464,7 +464,7 @@ class Treatment:
                 pop_visitors.index,
                 additional_key="ldlc_therapeutic_inertia",
             )
-            > data_values.LDLC_THERAPEUTIC_INERTIA_NO_START
+            > data_values.LDLC_THERAPEUTIC_INERTIA
         ].index
         currently_medicated = pop_visitors[
             pop_visitors[data_values.COLUMNS.LDLC_MEDICATION]

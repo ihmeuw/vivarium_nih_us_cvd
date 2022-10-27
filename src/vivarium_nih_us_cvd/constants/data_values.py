@@ -101,13 +101,9 @@ VISIT_TYPE = __VisitType()
 # Medication Parameters #
 #########################
 
-SBP_THERAPEUTIC_INERTIA_NO_START = (
-    0.4176  # The chance that a patient will not have medication changed
-)
-
-LDLC_THERAPEUTIC_INERTIA_NO_START = (
-    0.194  # The chance that a patient will not have medication changed
-)
+# Therapeutic inertias (probability that a patient will not have their medication changed)
+SBP_THERAPEUTIC_INERTIA = 0.4176
+LDLC_THERAPEUTIC_INERTIA = 0.194
 
 
 class __SBPThreshold(NamedTuple):
