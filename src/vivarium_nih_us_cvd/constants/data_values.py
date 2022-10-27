@@ -101,9 +101,9 @@ VISIT_TYPE = __VisitType()
 # Medication Parameters #
 #########################
 
-THERAPEUTIC_INERTIA_NO_START = (
-    0.4176  # The chance that a patient will not have medication changed
-)
+# Therapeutic inertias (probability that a patient will not have their medication changed)
+SBP_THERAPEUTIC_INERTIA = 0.4176
+LDLC_THERAPEUTIC_INERTIA = 0.194
 
 
 class __SBPThreshold(NamedTuple):
@@ -146,7 +146,8 @@ ASCVD_SEX_MAPPING = {
 class __ASCVDThreshold(NamedTuple):
     """ASCVD thresholds"""
 
-    LOW: float = 7.5  # TODO: confirm whether this should be 7.5 or 0.075. NOTE: it ranges from ~[-17.35, 28.97]
+    LOW: float = 7.5
+    HIGH: float = 20
 
     @property
     def name(self):
@@ -160,6 +161,7 @@ class __LDLCThreshold(NamedTuple):
     """ldl-c exposure thresholds"""
 
     LOW: float = 1.81
+    HIGH: float = 4.91
 
     @property
     def name(self):
@@ -265,6 +267,32 @@ FIRST_PRESCRIPTION_LEVEL_PROBABILITY = {
             SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE.DESCRIPTION: 0.45,
         },
     },
+    "ldlc": {
+        # [Treatment ramp ID D] Simulants who overcome therapeutic inertia, have
+        # elevated LDLC, are not currently medicated, have elevated ASCVD, and
+        # have a history of MI or IS
+        "ramp_id_d": {
+            LDLC_MEDICATION_LEVEL.LOW.DESCRIPTION: 0.06,
+            LDLC_MEDICATION_LEVEL.MED.DESCRIPTION: 0.52,
+            LDLC_MEDICATION_LEVEL.HIGH.DESCRIPTION: 0.42,
+        },
+        # [Treatment ramp ID E] Simulants who overcome therapeutic inertia, have
+        # elevated LDLC, are not currently medicated, have elevated ASCVD, have
+        # no history of MI or IS, and who have high LDLC or ASCVD
+        "ramp_id_e": {
+            LDLC_MEDICATION_LEVEL.LOW.DESCRIPTION: 0.10,
+            LDLC_MEDICATION_LEVEL.MED.DESCRIPTION: 0.66,
+            LDLC_MEDICATION_LEVEL.HIGH.DESCRIPTION: 0.24,
+        },
+        # [Treatment ramp ID F] Simulants who overcome therapeutic inertia, have
+        # elevated LDLC, are not currently medicated, have elevated ASCVD, have
+        # no history of MI or IS, but who do NOT have high LDLC or ASCVD
+        "ramp_id_f": {
+            LDLC_MEDICATION_LEVEL.LOW.DESCRIPTION: 0.14,
+            LDLC_MEDICATION_LEVEL.MED.DESCRIPTION: 0.71,
+            LDLC_MEDICATION_LEVEL.HIGH.DESCRIPTION: 0.15,
+        },
+    },
 }
 
 
@@ -335,7 +363,7 @@ class __MedicationCoveragecoefficients(NamedTuple):
 
     @property
     def name(self):
-        return "medication coverage coefficients"
+        return "medication_coverage_coefficients"
 
 
 MEDICATION_COVERAGE_COEFFICIENTS = __MedicationCoveragecoefficients()
