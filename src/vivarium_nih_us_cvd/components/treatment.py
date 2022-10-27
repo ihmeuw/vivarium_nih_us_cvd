@@ -518,10 +518,7 @@ class Treatment:
         ).difference(low_ldlc)
 
         # Prescribe initial medications
-        df_newly_prescribed = pd.DataFrame(
-            index=to_prescribe_e.union(to_prescribe_f).union(to_prescribe_d)
-        )
-        # TODO: CONFIRM THESE LISTS REMAIN ORDERED HERE AND IN randomness.choice
+        df_newly_prescribed = pd.DataFrame(index=newly_prescribed)
         df_newly_prescribed.loc[
             to_prescribe_d,
             data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_d"].keys(),
@@ -535,9 +532,9 @@ class Treatment:
             data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_f"].keys(),
         ] = data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_f"].values()
         pop_visitors.loc[
-            df_newly_prescribed.index, data_values.COLUMNS.LDLC_MEDICATION
+            newly_prescribed, data_values.COLUMNS.LDLC_MEDICATION
         ] = self.randomness.choice(
-            df_newly_prescribed.index,
+            newly_prescribed,
             choices=df_newly_prescribed.columns,
             p=np.array(df_newly_prescribed),
             additional_key="high_ldlc_first_prescriptions",
