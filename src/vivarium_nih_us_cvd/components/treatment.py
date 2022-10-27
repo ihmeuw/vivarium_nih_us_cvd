@@ -492,7 +492,6 @@ class Treatment:
             != models.ISCHEMIC_STROKE_SUSCEPTIBLE_STATE_NAME
         )
         history_mi_or_is = pop_visitors[mask_history_mi | mask_history_is].index
-        no_history_mi_or_is = pop_visitors.index.difference(history_mi_or_is)
 
         # [Treatment ramp ID E] Simulants who overcome therapeutic inertia, have
         # elevated LDLC, are not currently medicated, have elevated ASCVD, have
@@ -501,7 +500,7 @@ class Treatment:
             overcome_therapeutic_inertia.intersection(elevated_ldlc)
             .intersection(not_currently_medicated)
             .intersection(elevated_ascvd)
-            .intersection(no_history_mi_or_is)
+            .difference(history_mi_or_is)
             .intersection(high_ascvd.union(high_ldlc))
         )
         # [Treatment ramp ID F] Simulants who overcome therapeutic inertia, have
@@ -511,7 +510,7 @@ class Treatment:
             overcome_therapeutic_inertia.intersection(elevated_ldlc)
             .intersection(not_currently_medicated)
             .intersection(elevated_ascvd)
-            .intersection(no_history_mi_or_is)
+            .difference(history_mi_or_is)
             .intersection(mid_ascvd.union(mid_ldlc))
         )
         # [Treatment ramp ID D] Simulants who overcome therapeutic inertia, have
