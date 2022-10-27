@@ -49,7 +49,6 @@ if __name__ == "__main__":
         package_dir={"": "src"},
         packages=find_packages(where="src"),
         include_package_data=True,
-        package_data={"vivarium_nih_us_csv": ["data/drug_efficacy_sbp.csv"]},
         install_requires=install_requirements,
         extras_require={
             "test": test_requirements,
