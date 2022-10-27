@@ -490,8 +490,7 @@ class Treatment:
         )
         history_mi_or_is = pop_visitors[mask_history_mi | mask_history_is].index
         newly_prescribed = (
-            overcome_therapeutic_inertia
-            .difference(currently_medicated)
+            overcome_therapeutic_inertia.difference(currently_medicated)
             .difference(low_ascvd)
             .difference(low_ldlc)
         )
@@ -499,36 +498,29 @@ class Treatment:
         # [Treatment ramp ID D] Simulants who overcome therapeutic inertia, have
         # elevated LDLC, are not currently medicated, have elevated ASCVD, and
         # have a history of MI or IS
-        to_prescribe_d = (
-            newly_prescribed
-            .intersection(history_mi_or_is)
-        )
+        to_prescribe_d = newly_prescribed.intersection(history_mi_or_is)
         # [Treatment ramp ID E] Simulants who overcome therapeutic inertia, have
         # elevated LDLC, are not currently medicated, have elevated ASCVD, have
         # no history of MI or IS, and who have high LDLC or ASCVD
-        to_prescribe_e = (
-            newly_prescribed
-            .difference(to_prescribe_d)
-            .intersection(high_ascvd.union(high_ldlc))
+        to_prescribe_e = newly_prescribed.difference(to_prescribe_d).intersection(
+            high_ascvd.union(high_ldlc)
         )
         # [Treatment ramp ID F] Simulants who overcome therapeutic inertia, have
         # elevated LDLC, are not currently medicated, have elevated ASCVD, have
         # no history of MI or IS, but who do NOT have high LDLC or ASCVD
-        to_prescribe_f = (
-            newly_prescribed
-            .difference(to_prescribe_d)
-            .difference(to_prescribe_e)
+        to_prescribe_f = newly_prescribed.difference(to_prescribe_d).difference(
+            to_prescribe_e
         )
         # [Treatment ramp ID G] Simulants who overcome therapeutic inertia, have
         # elevated LDLC, and are currently medicated
-        to_prescribe_g = (
-            overcome_therapeutic_inertia
-            .intersection(currently_medicated)
-            .difference(low_ldlc)
-        )
+        to_prescribe_g = overcome_therapeutic_inertia.intersection(
+            currently_medicated
+        ).difference(low_ldlc)
 
         # Prescribe initial medications
-        df_newly_prescribed = pd.DataFrame(index=to_prescribe_e.union(to_prescribe_f).union(to_prescribe_d))
+        df_newly_prescribed = pd.DataFrame(
+            index=to_prescribe_e.union(to_prescribe_f).union(to_prescribe_d)
+        )
         # TODO: CONFIRM THESE LISTS REMAIN ORDERED HERE AND IN randomness.choice
         df_newly_prescribed.loc[
             to_prescribe_d,
