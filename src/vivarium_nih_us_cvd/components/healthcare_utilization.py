@@ -246,11 +246,7 @@ class HealthcareUtilization:
     def determine_followups_sbp(self, pop_visitors: pd.DataFrame) -> pd.Index:
         """Apply SBP treatment ramp logic to determine who gets scheduled a followup"""
         visitors = pop_visitors.index
-        measured_sbp = self.treatment.get_measured_sbp(
-            index=visitors,
-            mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
-            sd=data_values.MEASUREMENT_ERROR_SD_SBP,
-        )
+        measured_sbp = self.treatment.get_measured_sbp(index=visitors)
         visitors_high_sbp = visitors.intersection(
             measured_sbp[measured_sbp >= data_values.SBP_THRESHOLD.LOW].index
         )
@@ -269,11 +265,7 @@ class HealthcareUtilization:
         """Apply LDL-C treatment ramp logic to determine who gets scheduled a followup"""
         visitors = pop_visitors.index
         ascvd = self.treatment.get_ascvd(pop_visitors=pop_visitors)
-        measured_ldlc = self.treatment.get_measured_ldlc(
-            index=visitors,
-            mean=data_values.MEASUREMENT_ERROR_MEAN_LDLC,
-            sd=data_values.MEASUREMENT_ERROR_SD_LDLC,
-        )
+        measured_ldlc = self.treatment.get_measured_ldlc(index=visitors)
         visitors_high_ascvd = visitors.intersection(
             ascvd[ascvd >= data_values.ASCVD_THRESHOLD.LOW].index
         )

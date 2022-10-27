@@ -382,8 +382,6 @@ class Treatment:
 
         measured_sbp = self.get_measured_sbp(
             index=pop_visitors.index,
-            mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
-            sd=data_values.MEASUREMENT_ERROR_SD_SBP,
             exposure_pipeline=exposure_pipeline,
         )
 
@@ -475,8 +473,6 @@ class Treatment:
         ascvd = self.get_ascvd(pop_visitors=pop_visitors, sbp_pipeline=sbp_pipeline)
         measured_ldlc = self.get_measured_ldlc(
             index=pop_visitors.index,
-            mean=data_values.MEASUREMENT_ERROR_MEAN_LDLC,
-            sd=data_values.MEASUREMENT_ERROR_SD_LDLC,
             exposure_pipeline=ldlc_pipeline,
         )
 
@@ -583,8 +579,6 @@ class Treatment:
     def get_measured_sbp(
         self,
         index: pd.Index,
-        mean: float,
-        sd: float,
         exposure_pipeline: Optional[Pipeline] = None,
     ) -> pd.Series:
         """Introduce a measurement error to the sbp exposure values"""
@@ -593,8 +587,8 @@ class Treatment:
         
         return (exposure_pipeline(index) + get_random_value_from_normal_distribution(
             index=index,
-            mean=mean,
-            sd=sd,
+            mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
+            sd=data_values.MEASUREMENT_ERROR_SD_SBP,
             randomness=self.randomness,
             additional_key="measured_sbp",
         )).clip(lower=0)
@@ -619,18 +613,16 @@ class Treatment:
     def get_measured_ldlc(
         self,
         index: pd.Index,
-        mean: float,
-        sd: float,
         exposure_pipeline: Optional[Pipeline] = None,
     ) -> pd.Series:
         """Introduce a measurement error to the ldlc exposure values"""
         if not exposure_pipeline:
             exposure_pipeline = self.ldlc
-        
+
         return (exposure_pipeline(index) + get_random_value_from_normal_distribution(
             index=index,
-            mean=mean,
-            sd=sd,
+            mean=data_values.MEASUREMENT_ERROR_MEAN_LDLC,
+            sd=data_values.MEASUREMENT_ERROR_SD_LDLC,
             randomness=self.randomness,
             additional_key="measured_ldlc",
         )).clip(lower=0)
