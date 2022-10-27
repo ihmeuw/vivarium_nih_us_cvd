@@ -1,10 +1,14 @@
 from collections import Counter
 from typing import Dict
 
+import pandas as pd
 from vivarium.framework.engine import Builder
+from vivarium.framework.event import Event
 from vivarium.framework.time import get_time_stamp
 from vivarium_public_health.metrics.stratification import (
     ResultsStratifier as ResultsStratifier_,
+    Source,
+    SourceType,
 )
 from vivarium_public_health.utilities import EntityString, to_years
 
@@ -21,11 +25,24 @@ class ResultsStratifier(ResultsStratifier_):
 
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
-        age_bins = self.age_bins
+
+    def _get_age_bins(self, builder: Builder) -> pd.DataFrame:
+        """Re-define youngest age bin to 7_to_24"""
+        age_bins = super()._get_age_bins(builder)
         age_bins = age_bins[age_bins["age_start"] >= 25.0].reset_index(drop=True)
         age_bins.loc[len(age_bins.index)] = [7.0, 25.0, "7_to_24"]
-        self.age_bins = age_bins.sort_values(["age_start"]).reset_index(drop=True)
-        self.register_stratifications(builder)
+
+        return age_bins.sort_values(["age_start"]).reset_index(drop=True)
+
+    def register_stratifications(self, builder: Builder) -> None:
+        super().register_stratifications(builder)
+
+        self.setup_stratification(
+            builder,
+            name=data_values.COLUMNS.SBP_MEDICATION,
+            sources=[Source(data_values.COLUMNS.SBP_MEDICATION, SourceType.COLUMN)],
+            categories={level.DESCRIPTION for level in data_values.SBP_MEDICATION_LEVEL},
+        )
 
 
 class ContinuousRiskObserver:
@@ -91,7 +108,7 @@ class ContinuousRiskObserver:
     def _get_stratification_configuration(self, builder: Builder) -> "ConfigTree":
         return builder.configuration.observers[self.risk]
 
-    def on_collect_metrics(self, event: "Event"):
+    def on_collect_metrics(self, event: Event):
         if event.time < self.observation_start_time:
             return
         step_size_in_years = to_years(event.step_size)
@@ -100,6 +117,7 @@ class ContinuousRiskObserver:
 
         new_observations = {}
         groups = self.stratifier.group(pop.index, self.config.include, self.config.exclude)
+        breakpoint()
         for label, group_mask in groups:
             key = f"total_exposure_time_risk_{self.risk.name}_{label}"
             new_observations[key] = values[group_mask].sum() * step_size_in_years
@@ -166,7 +184,7 @@ class HealthcareVisitObserver:
     def _get_stratification_configuration(self, builder: Builder) -> "ConfigTree":
         return builder.configuration.observers["visits"]
 
-    def on_collect_metrics(self, event: "Event"):
+    def on_collect_metrics(self, event: Event):
         if event.time < self.observation_start_time:
             return
         pop = self.population_view.get(event.index, query='alive == "alive"')
@@ -196,12 +214,11 @@ class MedicationObserver:
         }
     }
 
-    def __init__(self, risk):
-        self.risk = EntityString(risk)
+    def __init__(self):
         self.configuration_defaults = self._get_configuration_defaults()
 
     def __repr__(self):
-        return f"MedicationObserver({self.risk})"
+        return f"MedicationObserver"
 
     ##########################
     # Initialization methods #
@@ -216,7 +233,7 @@ class MedicationObserver:
 
     @property
     def name(self):
-        return f"medication_observer.{self.risk}"
+        return f"medication_observer"
 
     #################
     # Setup methods #
@@ -228,11 +245,10 @@ class MedicationObserver:
         )
         self.config = self._get_stratification_configuration(builder)
         self.stratifier = builder.components.get_component(ResultsStratifier.name)
+        columns_required = ["alive"]
+        self.population_view = builder.population.get_view(columns_required)
 
         self.counter = Counter()
-
-        columns_required = [data_values.COLUMNS.SBP_MEDICATION]
-        self.population_view = builder.population.get_view(columns_required)
 
         # The medications get updated at the end of the time step and so we want
         # to observe the time on each medication at the beginning of each time
@@ -241,16 +257,16 @@ class MedicationObserver:
         builder.value.register_value_modifier("metrics", self.metrics)
 
     def _get_stratification_configuration(self, builder: Builder) -> "ConfigTree":
-        return builder.configuration.observers[self.risk]
+        return builder.configuration.observers.medication
 
-    def on_time_step_prepare(self, event: "Event"):
+    def on_time_step_prepare(self, event: Event):
         if event.time < self.observation_start_time:
             return
         step_size_in_years = to_years(event.step_size)
         medications = self.population_view.get(event.index, query='alive == "alive"')[data_values.COLUMNS.SBP_MEDICATION]
 
-        new_observations = {}
-        groups = self.stratifier.group(medications.index, self.config.include, self.config.exclude)
+        groups = self.stratifier.group(pop.index, self.config.include, self.config.exclude)
+        breakpoint()
         for label, group_mask in groups:
             for med in [med.DESCRIPTION for med in risk_medication_mapping[self.risk]]:
                 key = f"medication_person_time_risk_{self.risk.name}_medication_{med}_{label}"
@@ -262,7 +278,3 @@ class MedicationObserver:
     def metrics(self, index: "pd.Index", metrics: Dict[str, float]) -> Dict[str, float]:
         metrics.update(self.counter)
         return metrics
-
-risk_medication_mapping = {
-    "risk_factor.high_systolic_blood_pressure": data_values.SBP_MEDICATION_LEVEL
-}
