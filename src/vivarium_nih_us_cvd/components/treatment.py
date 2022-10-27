@@ -584,14 +584,17 @@ class Treatment:
         """Introduce a measurement error to the sbp exposure values"""
         if not exposure_pipeline:
             exposure_pipeline = self.sbp
-        
-        return (exposure_pipeline(index) + get_random_value_from_normal_distribution(
-            index=index,
-            mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
-            sd=data_values.MEASUREMENT_ERROR_SD_SBP,
-            randomness=self.randomness,
-            additional_key="measured_sbp",
-        )).clip(lower=0)
+
+        return (
+            exposure_pipeline(index)
+            + get_random_value_from_normal_distribution(
+                index=index,
+                mean=data_values.MEASUREMENT_ERROR_MEAN_SBP,
+                sd=data_values.MEASUREMENT_ERROR_SD_SBP,
+                randomness=self.randomness,
+                additional_key="measured_sbp",
+            )
+        ).clip(lower=0)
 
     def get_ascvd(
         self, pop_visitors: pd.DataFrame, sbp_pipeline: Optional[Pipeline] = None
@@ -619,10 +622,13 @@ class Treatment:
         if not exposure_pipeline:
             exposure_pipeline = self.ldlc
 
-        return (exposure_pipeline(index) + get_random_value_from_normal_distribution(
-            index=index,
-            mean=data_values.MEASUREMENT_ERROR_MEAN_LDLC,
-            sd=data_values.MEASUREMENT_ERROR_SD_LDLC,
-            randomness=self.randomness,
-            additional_key="measured_ldlc",
-        )).clip(lower=0)
+        return (
+            exposure_pipeline(index)
+            + get_random_value_from_normal_distribution(
+                index=index,
+                mean=data_values.MEASUREMENT_ERROR_MEAN_LDLC,
+                sd=data_values.MEASUREMENT_ERROR_SD_LDLC,
+                randomness=self.randomness,
+                additional_key="measured_ldlc",
+            )
+        ).clip(lower=0)
