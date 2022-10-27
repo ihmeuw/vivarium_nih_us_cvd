@@ -468,7 +468,6 @@ class Treatment:
             pop_visitors[data_values.COLUMNS.LDLC_MEDICATION]
             != data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
         ].index
-        not_currently_medicated = pop_visitors.index.difference(currently_medicated)
 
         ascvd = self.get_ascvd(pop_visitors=pop_visitors, sbp_pipeline=sbp_pipeline)
         measured_ldlc = self.get_measured_ldlc(
@@ -477,12 +476,10 @@ class Treatment:
         )
 
         # Generate other useful helper indexes
-        elevated_ascvd = ascvd[ascvd >= data_values.ASCVD_THRESHOLD.LOW].index
+        low_ascvd = ascvd[ascvd < data_values.ASCVD_THRESHOLD.LOW].index
         high_ascvd = ascvd[ascvd >= data_values.ASCVD_THRESHOLD.HIGH].index
-        mid_ascvd = elevated_ascvd.difference(high_ascvd)
-        elevated_ldlc = measured_ldlc[measured_ldlc >= data_values.LDLC_THRESHOLD.LOW].index
+        low_ldlc = measured_ldlc[measured_ldlc < data_values.LDLC_THRESHOLD.LOW].index
         high_ldlc = measured_ldlc[measured_ldlc >= data_values.LDLC_THRESHOLD.HIGH].index
-        mid_ldlc = elevated_ldlc.difference(high_ldlc)
         mask_history_mi = (
             pop_visitors[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
             != models.MYOCARDIAL_INFARCTION_SUSCEPTIBLE_STATE_NAME
@@ -492,45 +489,46 @@ class Treatment:
             != models.ISCHEMIC_STROKE_SUSCEPTIBLE_STATE_NAME
         )
         history_mi_or_is = pop_visitors[mask_history_mi | mask_history_is].index
+        newly_prescribed = (
+            overcome_therapeutic_inertia
+            .difference(currently_medicated)
+            .difference(low_ascvd)
+            .difference(low_ldlc)
+        )
 
+        # [Treatment ramp ID D] Simulants who overcome therapeutic inertia, have
+        # elevated LDLC, are not currently medicated, have elevated ASCVD, and
+        # have a history of MI or IS
+        to_prescribe_d = (
+            newly_prescribed
+            .intersection(history_mi_or_is)
+        )
         # [Treatment ramp ID E] Simulants who overcome therapeutic inertia, have
         # elevated LDLC, are not currently medicated, have elevated ASCVD, have
         # no history of MI or IS, and who have high LDLC or ASCVD
         to_prescribe_e = (
-            overcome_therapeutic_inertia.intersection(elevated_ldlc)
-            .intersection(not_currently_medicated)
-            .intersection(elevated_ascvd)
-            .difference(history_mi_or_is)
+            newly_prescribed
+            .difference(to_prescribe_d)
             .intersection(high_ascvd.union(high_ldlc))
         )
         # [Treatment ramp ID F] Simulants who overcome therapeutic inertia, have
         # elevated LDLC, are not currently medicated, have elevated ASCVD, have
         # no history of MI or IS, but who do NOT have high LDLC or ASCVD
         to_prescribe_f = (
-            overcome_therapeutic_inertia.intersection(elevated_ldlc)
-            .intersection(not_currently_medicated)
-            .intersection(elevated_ascvd)
-            .difference(history_mi_or_is)
-            .intersection(mid_ascvd.union(mid_ldlc))
-        )
-        # [Treatment ramp ID D] Simulants who overcome therapeutic inertia, have
-        # elevated LDLC, are not currently medicated, have elevated ASCVD, and
-        # have a history of MI or IS
-        to_prescribe_d = (
-            overcome_therapeutic_inertia.intersection(elevated_ldlc)
-            .intersection(not_currently_medicated)
-            .intersection(elevated_ascvd)
-            .intersection(history_mi_or_is)
+            newly_prescribed
+            .difference(to_prescribe_d)
+            .difference(to_prescribe_e)
         )
         # [Treatment ramp ID G] Simulants who overcome therapeutic inertia, have
         # elevated LDLC, and are currently medicated
-        to_prescribe_g = overcome_therapeutic_inertia.intersection(
-            elevated_ldlc
-        ).intersection(currently_medicated)
+        to_prescribe_g = (
+            overcome_therapeutic_inertia
+            .intersection(currently_medicated)
+            .difference(low_ldlc)
+        )
 
         # Prescribe initial medications
-        newly_prescribed = to_prescribe_e.union(to_prescribe_f).union(to_prescribe_d)
-        df_newly_prescribed = pd.DataFrame(index=newly_prescribed)
+        df_newly_prescribed = pd.DataFrame(index=to_prescribe_e.union(to_prescribe_f).union(to_prescribe_d))
         # TODO: CONFIRM THESE LISTS REMAIN ORDERED HERE AND IN randomness.choice
         df_newly_prescribed.loc[
             to_prescribe_d,
@@ -545,9 +543,9 @@ class Treatment:
             data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_f"].keys(),
         ] = data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_f"].values()
         pop_visitors.loc[
-            newly_prescribed, data_values.COLUMNS.LDLC_MEDICATION
+            df_newly_prescribed.index, data_values.COLUMNS.LDLC_MEDICATION
         ] = self.randomness.choice(
-            newly_prescribed,
+            df_newly_prescribed.index,
             choices=df_newly_prescribed.columns,
             p=np.array(df_newly_prescribed),
             additional_key="high_ldlc_first_prescriptions",
