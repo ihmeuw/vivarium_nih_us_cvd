@@ -10,7 +10,6 @@ from vivarium.framework.values import Pipeline
 from vivarium_nih_us_cvd.constants import data_values, models, paths
 from vivarium_nih_us_cvd.utilities import get_random_value_from_normal_distribution
 
-
 # Format the SBP risk effects file and generate bin edges
 sbp_risk_effects = pd.read_csv(paths.FILEPATHS.SBP_MEDICATION_EFFECTS)
 sbp_risk_effects.loc[

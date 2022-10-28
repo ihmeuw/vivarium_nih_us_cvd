@@ -1,5 +1,5 @@
 from collections import Counter
-from typing import Dict
+from typing import Dict, List
 
 import pandas as pd
 from vivarium.framework.engine import Builder
@@ -7,9 +7,8 @@ from vivarium.framework.event import Event
 from vivarium.framework.time import get_time_stamp
 from vivarium_public_health.metrics.stratification import (
     ResultsStratifier as ResultsStratifier_,
-    Source,
-    SourceType,
 )
+from vivarium_public_health.metrics.stratification import Source, SourceType
 from vivarium_public_health.utilities import EntityString, to_years
 
 from vivarium_nih_us_cvd.constants import data_values
@@ -39,9 +38,9 @@ class ResultsStratifier(ResultsStratifier_):
 
         self.setup_stratification(
             builder,
-            name=data_values.COLUMNS.SBP_MEDICATION,
-            sources=[Source(data_values.COLUMNS.SBP_MEDICATION, SourceType.COLUMN)],
-            categories={level.DESCRIPTION for level in data_values.SBP_MEDICATION_LEVEL},
+            name=data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
+            sources=[Source(data_values.COLUMNS.SBP_MEDICATION_ADHERENCE, SourceType.COLUMN)],
+            categories={level for level in data_values.MEDICATION_ADHERENCE_TYPE},
         )
 
 
@@ -117,7 +116,6 @@ class ContinuousRiskObserver:
 
         new_observations = {}
         groups = self.stratifier.group(pop.index, self.config.include, self.config.exclude)
-        breakpoint()
         for label, group_mask in groups:
             key = f"total_exposure_time_risk_{self.risk.name}_{label}"
             new_observations[key] = values[group_mask].sum() * step_size_in_years
@@ -207,18 +205,20 @@ class MedicationObserver:
 
     configuration_defaults = {
         "observers": {
-            "medication": {
+            "sbp_medication": {
                 "exclude": [],
                 "include": [],
             }
         }
     }
 
-    def __init__(self):
+    def __init__(self, risk):
         self.configuration_defaults = self._get_configuration_defaults()
+        self.medication_type = self._get_medication_type(risk)
+        self.medication_levels = self._get_medication_levels(risk)
 
     def __repr__(self):
-        return f"MedicationObserver"
+        return f"MedicationObserver({self.medication_type})"
 
     ##########################
     # Initialization methods #
@@ -227,13 +227,27 @@ class MedicationObserver:
     def _get_configuration_defaults(self) -> Dict[str, Dict]:
         return MedicationObserver.configuration_defaults
 
+    def _get_medication_type(self, risk: str) -> str:
+        mapping = {
+            "risk_factor.high_systolic_blood_pressure": data_values.COLUMNS.SBP_MEDICATION,
+        }
+
+        return mapping[risk]
+
+    def _get_medication_levels(self, risk: str) -> List[str]:
+        mapping = {
+            "risk_factor.high_systolic_blood_pressure": data_values.SBP_MEDICATION_LEVEL,
+        }
+
+        return [level.DESCRIPTION for level in mapping[risk]]
+
     ##############
     # Properties #
     ##############
 
     @property
     def name(self):
-        return f"medication_observer"
+        return f"medication_observer.{self.medication_type}"
 
     #################
     # Setup methods #
@@ -245,7 +259,7 @@ class MedicationObserver:
         )
         self.config = self._get_stratification_configuration(builder)
         self.stratifier = builder.components.get_component(ResultsStratifier.name)
-        columns_required = ["alive"]
+        columns_required = ["alive", self.medication_type]
         self.population_view = builder.population.get_view(columns_required)
 
         self.counter = Counter()
@@ -257,21 +271,27 @@ class MedicationObserver:
         builder.value.register_value_modifier("metrics", self.metrics)
 
     def _get_stratification_configuration(self, builder: Builder) -> "ConfigTree":
-        return builder.configuration.observers.medication
+        return builder.configuration.observers[self.medication_type]
 
     def on_time_step_prepare(self, event: Event):
         if event.time < self.observation_start_time:
             return
         step_size_in_years = to_years(event.step_size)
-        medications = self.population_view.get(event.index, query='alive == "alive"')[data_values.COLUMNS.SBP_MEDICATION]
+        medications = self.population_view.get(event.index, query='alive == "alive"')[
+            self.medication_type
+        ]
 
-        groups = self.stratifier.group(pop.index, self.config.include, self.config.exclude)
-        breakpoint()
+        groups = self.stratifier.group(
+            medications.index, self.config.include, self.config.exclude
+        )
+        new_observations = {}
         for label, group_mask in groups:
-            for med in [med.DESCRIPTION for med in risk_medication_mapping[self.risk]]:
-                key = f"medication_person_time_risk_{self.risk.name}_medication_{med}_{label}"
+            for med in self.medication_levels:
                 med_mask = medications == med
-                new_observations[key] = len(medications[group_mask & med_mask]) * step_size_in_years
+                key = f"{self.medication_type}_person_time_{med}_{label}"
+                new_observations[key] = (
+                    len(medications[group_mask & med_mask]) * step_size_in_years
+                )
 
         self.counter.update(new_observations)
 
