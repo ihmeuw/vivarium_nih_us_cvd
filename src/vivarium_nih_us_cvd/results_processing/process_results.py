@@ -5,7 +5,7 @@ import pandas as pd
 import yaml
 from loguru import logger
 
-from vivarium_nih_us_cvd.constants import results, scenarios
+from vivarium_nih_us_cvd.constants import data_values, results, scenarios
 
 SCENARIO_COLUMN = "scenario"
 GROUPBY_COLUMNS = [results.INPUT_DRAW_COLUMN, SCENARIO_COLUMN]
@@ -35,6 +35,9 @@ def make_measure_data(data):
         transition_count=get_transition_count_measure_data(data, "transition_count"),
         risk_exposure_time=get_risk_exposure_time_data(data, "risk_exposure_time"),
         healthcare_visits=get_healthcare_visit_data(data, "healthcare_visits"),
+        medication_person_time=get_medication_person_time_data(
+            data, "medication_person_time"
+        ),
     )
     return measure_data
 
@@ -48,6 +51,7 @@ class MeasureData(NamedTuple):
     transition_count: pd.DataFrame
     risk_exposure_time: pd.DataFrame
     healthcare_visits: pd.DataFrame
+    medication_person_time: pd.DataFrame
 
     def dump(self, output_dir: Path):
         for key, df in self._asdict().items():
@@ -189,5 +193,17 @@ def get_risk_exposure_time_data(data: pd.DataFrame, measure: str) -> pd.DataFram
 
 
 def get_healthcare_visit_data(data: pd.DataFrame, measure: str) -> pd.DataFrame:
+    data = get_measure_data(data, measure)
+    return sort_data(data)
+
+
+def get_medication_person_time_data(data: pd.DataFrame, measure: str) -> pd.DataFrame:
+    # The medication adherence levels are all the same regardless of medication type
+    replacements = {
+        data_values.COLUMNS.SBP_MEDICATION_ADHERENCE: "medication_adherence",
+        data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE: "medication_adherence",
+    }
+    for to_replace, replace_with in replacements.items():
+        data = data.rename(columns=lambda c: c.replace(to_replace, replace_with))
     data = get_measure_data(data, measure)
     return sort_data(data)

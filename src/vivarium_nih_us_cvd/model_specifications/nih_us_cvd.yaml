@@ -40,6 +40,7 @@ components:
             - HealthcareUtilization() # Note that this uses Treatment() as a sub-component
             - HealthcareVisitObserver()
         
+            - MedicationObserver("risk_factor.high_systolic_blood_pressure")
 
 configuration:
     input_data:
@@ -58,7 +59,7 @@ configuration:
             year: 2021 # Includes two years for burn-in
             month: 1
             day: 1
-        observation_start: # TODO: Implement for all observers (currently only HealthcareVisit)
+        observation_start: # TODO: Implement for all observers (currently only custom observers)
             year: 2023
             month: 1
             day: 1
@@ -77,3 +78,7 @@ configuration:
             - 'age'
             - 'sex'
             - 'year'
+        sbp_medication:
+            include:
+                - 'sbp_medication_adherence'
+        
