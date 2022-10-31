@@ -1,0 +1,6 @@
+medication_category,efficacy,lower_bound,upper_bound
+low_intensity,24.67,22.4,27.19
+medium_intensity,36.2,33.6,39.1
+low_med_with_eze,46.1,43.5,49
+high_intensity,51.25,47.14,55.68
+high_with_eze,61.15,57.04,65.58
