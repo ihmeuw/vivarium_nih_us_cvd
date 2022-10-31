@@ -17,6 +17,7 @@ class __Columns(NamedTuple):
     BASELINE_SBP_MEDICATION: str = "baseline_sbp_medication"
     BASELINE_LDLC_MEDICATION: str = "baseline_ldlc_medication"
     SBP_MULTIPLIER: str = "sbp_multiplier"
+    LDLC_MULTIPLIER: str = "ldlc_multiplier"
 
     @property
     def name(self):
@@ -36,6 +37,7 @@ class __Pipelines(NamedTuple):
 
     SBP_GBD_EXPOSURE: str = "high_systolic_blood_pressure.gbd_exposure"
     SBP_EXPOSURE: str = "high_systolic_blood_pressure.exposure"
+    LDLC_GBD_EXPOSURE: str = "high_ldl_cholesterol.gbd_exposure"
     LDLC_EXPOSURE: str = "high_ldl_cholesterol.exposure"
 
     @property
@@ -227,6 +229,21 @@ class __SBPMultiplier(NamedTuple):
 SBP_MULTIPLIER = __SBPMultiplier()
 
 
+class __LDLCMultiplier(NamedTuple):
+    """gbd LDLC multipliers to convert to untreated values"""
+
+    LOW: float = 1.2467
+    MED: float = 1.362
+    HIGH: float = 1.5125
+
+    @property
+    def name(self):
+        return "ldlc_multiplier"
+
+
+LDLC_MULTIPLIER = __LDLCMultiplier()
+
+
 class __LDLCMedicationLevel(NamedTuple):
     """high ldl-c medication level"""
 
@@ -243,6 +260,35 @@ class __LDLCMedicationLevel(NamedTuple):
 
 
 LDLC_MEDICATION_LEVEL = __LDLCMedicationLevel()
+
+
+class LDLCMedicationEfficacyBaseClass(NamedTuple):
+    """Base class to define ldl-c medication efficacy parameters"""
+
+    MEAN: float
+    LOWER: float
+    UPPER: float
+
+    @property
+    def name(self):
+        return "ldlc_medication_efficacy_base_class"
+
+
+class __LDLCMedicatonEfficacy(NamedTuple):
+    """high ldl-c medication efficacy"""
+
+    LOW: LDLCMedicationEfficacyBaseClass = LDLCMedicationEfficacyBaseClass(24.67, 22.4, 27.19)
+    MED: LDLCMedicationEfficacyBaseClass = LDLCMedicationEfficacyBaseClass(36.2, 33.6, 39.1)
+    LOW_MED_EZE: LDLCMedicationEfficacyBaseClass = LDLCMedicationEfficacyBaseClass(46.1, 43.5, 49)
+    HIGH: LDLCMedicationEfficacyBaseClass = LDLCMedicationEfficacyBaseClass(51.25, 47.14, 55.68)
+    HIGH_EZE: LDLCMedicationEfficacyBaseClass = LDLCMedicationEfficacyBaseClass(61.15, 57.04, 65.58)
+
+    @property
+    def name(self):
+        return "ldlc_medication_efficacy"
+
+
+LDLC_MEDICATION_EFFICACY = __LDLCMedicatonEfficacy()
 
 
 # Define the baseline medication ramp level for simulants who are initialized as medicated
