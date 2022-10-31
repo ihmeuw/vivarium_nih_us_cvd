@@ -29,7 +29,7 @@ from vivarium_inputs.mapping_extension import (
     healthcare_entities,
 )
 
-from vivarium_nih_us_cvd.constants import data_keys
+from vivarium_nih_us_cvd.constants import data_keys, paths
 
 
 def _get_source_key(val: Union[str, data_keys.SourceTarget]) -> str:
@@ -98,6 +98,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.LDL_C.PAF: load_standard_data,
         data_keys.LDL_C.TMRED: load_metadata,
         data_keys.LDL_C.RELATIVE_RISK_SCALAR: load_metadata,
+        data_keys.LDL_C.MEDICATION_EFFECT: load_ldlc_medication_effect,
         # Risk (stystolic blood pressure)
         data_keys.SBP.DISTRIBUTION: load_metadata,
         data_keys.SBP.EXPOSURE_MEAN: load_standard_data,
@@ -471,3 +472,9 @@ def load_healthcare_system_utilization_rate(key: str, location: str) -> pd.DataF
     data = vi_utils.split_interval(data, interval_column="age", split_column_prefix="age")
     data = vi_utils.split_interval(data, interval_column="year", split_column_prefix="year")
     return vi_utils.sort_hierarchical_data(data).droplevel("location")
+
+def load_ldlc_medication_effect(key: str, location: str) -> pd.DataFrame:
+    breakpoint()
+    raw_efficacy = pd.read_csv(paths.FILEPATHS.LDLC_MEDICATION_EFFECTS)
+    draws = [f"draw_{i}" for i in range(1000)]
+    df_zeros[draws] = 0.0
