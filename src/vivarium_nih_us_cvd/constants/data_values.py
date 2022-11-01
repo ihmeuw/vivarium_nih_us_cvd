@@ -1,5 +1,7 @@
 from typing import NamedTuple
 
+from vivarium_nih_us_cvd.utilities import get_norm
+
 #######################
 # State table columns #
 #######################
@@ -17,6 +19,7 @@ class __Columns(NamedTuple):
     BASELINE_SBP_MEDICATION: str = "baseline_sbp_medication"
     BASELINE_LDLC_MEDICATION: str = "baseline_ldlc_medication"
     SBP_MULTIPLIER: str = "sbp_multiplier"
+    LDLC_MULTIPLIER: str = "ldlc_multiplier"
 
     @property
     def name(self):
@@ -36,6 +39,7 @@ class __Pipelines(NamedTuple):
 
     SBP_GBD_EXPOSURE: str = "high_systolic_blood_pressure.gbd_exposure"
     SBP_EXPOSURE: str = "high_systolic_blood_pressure.exposure"
+    LDLC_GBD_EXPOSURE: str = "high_ldl_cholesterol.gbd_exposure"
     LDLC_EXPOSURE: str = "high_ldl_cholesterol.exposure"
 
     @property
@@ -227,6 +231,21 @@ class __SBPMultiplier(NamedTuple):
 SBP_MULTIPLIER = __SBPMultiplier()
 
 
+class __LDLCMultiplier(NamedTuple):
+    """gbd LDLC multipliers to convert to untreated values"""
+
+    LOW: float = 1.2467
+    MED: float = 1.362
+    HIGH: float = 1.5125
+
+    @property
+    def name(self):
+        return "ldlc_multiplier"
+
+
+LDLC_MULTIPLIER = __LDLCMultiplier()
+
+
 class __LDLCMedicationLevel(NamedTuple):
     """high ldl-c medication level"""
 
@@ -243,6 +262,49 @@ class __LDLCMedicationLevel(NamedTuple):
 
 
 LDLC_MEDICATION_LEVEL = __LDLCMedicationLevel()
+
+
+class LDLCMedicationEfficacyBaseClass(NamedTuple):
+    """Base class to define ldl-c medication efficacy parameters"""
+
+    DESCRIPTION: float
+    SEEDED_DISTRIBUTION: tuple
+
+    @property
+    def name(self):
+        return "ldlc_medication_efficacy_base_class"
+
+
+class __LDLCMedicatonEfficacy(NamedTuple):
+    """high ldl-c medication efficacy"""
+
+    LOW: LDLCMedicationEfficacyBaseClass = LDLCMedicationEfficacyBaseClass(
+        LDLC_MEDICATION_LEVEL.LOW.DESCRIPTION,
+        ("ldlc_medication_efficacy_low", get_norm(mean=24.67, sd=1.2224)),
+    )
+    MED: LDLCMedicationEfficacyBaseClass = LDLCMedicationEfficacyBaseClass(
+        LDLC_MEDICATION_LEVEL.MED.DESCRIPTION,
+        ("ldlc_medication_efficacy_med", get_norm(mean=36.2, sd=1.4031)),
+    )
+    HIGH: LDLCMedicationEfficacyBaseClass = LDLCMedicationEfficacyBaseClass(
+        LDLC_MEDICATION_LEVEL.HIGH.DESCRIPTION,
+        ("ldlc_medication_efficacy_high", get_norm(mean=51.25, sd=2.179)),
+    )
+    LOW_MED_EZE: LDLCMedicationEfficacyBaseClass = LDLCMedicationEfficacyBaseClass(
+        LDLC_MEDICATION_LEVEL.LOW_MED_EZE.DESCRIPTION,
+        ("ldlc_medication_efficacy_low_med_eze", get_norm(mean=46.1, sd=1.4031)),
+    )
+    HIGH_EZE: LDLCMedicationEfficacyBaseClass = LDLCMedicationEfficacyBaseClass(
+        LDLC_MEDICATION_LEVEL.HIGH_EZE.DESCRIPTION,
+        ("ldlc_medication_efficacy_high_eze", get_norm(mean=61.15, sd=2.179)),
+    )
+
+    @property
+    def name(self):
+        return "ldlc_medication_efficacy"
+
+
+LDLC_MEDICATION_EFFICACY = __LDLCMedicatonEfficacy()
 
 
 # Define the baseline medication ramp level for simulants who are initialized as medicated

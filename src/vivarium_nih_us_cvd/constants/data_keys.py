@@ -171,6 +171,9 @@ class __HighLDLCholesterol(NamedTuple):
     RELATIVE_RISK_SCALAR: TargetString = TargetString(
         "risk_factor.high_ldl_cholesterol.relative_risk_scalar"
     )
+    MEDICATION_EFFECT: TargetString = TargetString(
+        "risk_factor.high_ldl_cholesterol.medication_effect"
+    )
 
     @property
     def name(self):

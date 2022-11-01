@@ -35,8 +35,11 @@ def make_measure_data(data):
         transition_count=get_transition_count_measure_data(data, "transition_count"),
         risk_exposure_time=get_risk_exposure_time_data(data, "risk_exposure_time"),
         healthcare_visits=get_healthcare_visit_data(data, "healthcare_visits"),
-        medication_person_time=get_medication_person_time_data(
-            data, "medication_person_time"
+        sbp_medication_person_time=get_medication_person_time_data(
+            data, "sbp_medication_person_time"
+        ),
+        ldlc_medication_person_time=get_medication_person_time_data(
+            data, "ldlc_medication_person_time"
         ),
     )
     return measure_data
@@ -51,7 +54,8 @@ class MeasureData(NamedTuple):
     transition_count: pd.DataFrame
     risk_exposure_time: pd.DataFrame
     healthcare_visits: pd.DataFrame
-    medication_person_time: pd.DataFrame
+    sbp_medication_person_time: pd.DataFrame
+    ldlc_medication_person_time: pd.DataFrame
 
     def dump(self, output_dir: Path):
         for key, df in self._asdict().items():

@@ -9,7 +9,7 @@ from scipy import stats
 from vivarium.framework.randomness import get_hash
 from vivarium_public_health.risks.data_transformations import pivot_categorical
 
-from vivarium_nih_us_cvd.constants import data_values, metadata
+from vivarium_nih_us_cvd.constants import metadata
 
 SeededDistribution = Tuple[str, stats.rv_continuous]
 

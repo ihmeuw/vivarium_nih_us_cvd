@@ -45,7 +45,8 @@ RISK_EXPOSURE_TIME_TEMPLATE = (
     "total_exposure_time_risk_{RISK}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
 )
 VISIT_COUNT_TEMPLATE = "healthcare_visits_{VISIT_TYPE}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
-MEDICATION_PERSON_TIME_TEMPLATE = "{MEDICATION_TYPE}_person_time_{MEDICATION}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}_medication_adherence_{MEDICATION_ADHERENCE_LEVEL}"
+SBP_MEDICATION_PERSON_TIME_TEMPLATE = "sbp_medication_person_time_{SBP_MEDICATION}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}_medication_adherence_{MEDICATION_ADHERENCE_LEVEL}"
+LDLC_MEDICATION_PERSON_TIME_TEMPLATE = "ldlc_medication_person_time_{LDLC_MEDICATION}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}_medication_adherence_{MEDICATION_ADHERENCE_LEVEL}"
 
 
 COLUMN_TEMPLATES = {
@@ -57,7 +58,8 @@ COLUMN_TEMPLATES = {
     "transition_count": TRANSITION_COUNT_COLUMN_TEMPLATE,
     "risk_exposure_time": RISK_EXPOSURE_TIME_TEMPLATE,
     "healthcare_visits": VISIT_COUNT_TEMPLATE,
-    "medication_person_time": MEDICATION_PERSON_TIME_TEMPLATE,
+    "sbp_medication_person_time": SBP_MEDICATION_PERSON_TIME_TEMPLATE,
+    "ldlc_medication_person_time": LDLC_MEDICATION_PERSON_TIME_TEMPLATE,
 }
 
 NON_COUNT_TEMPLATES = []
@@ -97,8 +99,8 @@ RISKS = (
     "high_systolic_blood_pressure",
 )
 MEDICATION_ADHERENCE_LEVELS = tuple(x for x in data_values.MEDICATION_ADHERENCE_TYPE)
-MEDICATION_TYPES = (data_values.COLUMNS.SBP_MEDICATION,)
-MEDICATIONS = tuple(x.DESCRIPTION for x in data_values.SBP_MEDICATION_LEVEL)
+SBP_MEDICATIONS = tuple(x.DESCRIPTION for x in data_values.SBP_MEDICATION_LEVEL)
+LDLC_MEDICATIONS = tuple(x.DESCRIPTION for x in data_values.LDLC_MEDICATION_LEVEL)
 
 TEMPLATE_FIELD_MAP = {
     "POP_STATE": POP_STATES,
@@ -112,8 +114,8 @@ TEMPLATE_FIELD_MAP = {
     "RISK": RISKS,
     "VISIT_TYPE": data_values.VISIT_TYPE,
     "MEDICATION_ADHERENCE_LEVEL": MEDICATION_ADHERENCE_LEVELS,
-    "MEDICATION_TYPE": MEDICATION_TYPES,
-    "MEDICATION": MEDICATIONS,
+    "SBP_MEDICATION": SBP_MEDICATIONS,
+    "LDLC_MEDICATION": LDLC_MEDICATIONS,
 }
 
 
