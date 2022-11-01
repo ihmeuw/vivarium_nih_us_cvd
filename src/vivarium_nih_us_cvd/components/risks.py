@@ -2,7 +2,7 @@ import pandas as pd
 from vivarium.framework.engine import Builder
 from vivarium.framework.population.manager import PopulationView
 from vivarium.framework.values import Pipeline
-from vivarium_public_health.risks.base_risk import Risk as Risk_
+from vivarium_public_health.risks.base_risk import Risk
 from vivarium_public_health.risks.data_transformations import (
     get_exposure_post_processor,
 )
@@ -10,7 +10,7 @@ from vivarium_public_health.risks.data_transformations import (
 from vivarium_nih_us_cvd.constants.data_values import COLUMNS, RISK_EXPOSURE_LIMITS
 
 
-class Risk(Risk_):
+class AdjustedRisk(Risk):
     """Manages raw gbd exposure and adjusted/untreated exposure pipelines"""
 
     def __init__(self, risk: str):
@@ -22,7 +22,7 @@ class Risk(Risk_):
         }[self.risk]
 
     def __repr__(self) -> str:
-        return f"Risk({self.risk})"
+        return f"AdjustedRisk({self.risk})"
 
     #################
     # Setup methods #

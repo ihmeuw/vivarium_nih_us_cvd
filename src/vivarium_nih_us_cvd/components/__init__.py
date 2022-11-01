@@ -6,5 +6,5 @@ from .observers import (
     MedicationObserver,
     ResultsStratifier,
 )
-from .risks import Risk
+from .risks import AdjustedRisk
 from .treatment import Treatment

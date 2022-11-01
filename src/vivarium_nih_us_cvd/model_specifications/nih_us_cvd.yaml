@@ -31,10 +31,10 @@ components:
             - IschemicStroke()
             - MyocardialInfarction()
 
-            - Risk("risk_factor.high_ldl_cholesterol")
+            - AdjustedRisk("risk_factor.high_ldl_cholesterol")
             - ContinuousRiskObserver("risk_factor.high_ldl_cholesterol")
             
-            - Risk("risk_factor.high_systolic_blood_pressure")
+            - AdjustedRisk("risk_factor.high_systolic_blood_pressure")
             - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
 
             - HealthcareUtilization() # Note that this uses Treatment() as a sub-component
