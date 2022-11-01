@@ -46,7 +46,9 @@ class ResultsStratifier(ResultsStratifier_):
         self.setup_stratification(
             builder,
             name=data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
-            sources=[Source(data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE, SourceType.COLUMN)],
+            sources=[
+                Source(data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE, SourceType.COLUMN)
+            ],
             categories={level for level in data_values.MEDICATION_ADHERENCE_TYPE},
         )
 
@@ -234,7 +236,9 @@ class MedicationObserver:
     def _get_configuration_defaults(self) -> Dict[str, Dict]:
         return {
             "observers": {
-                self.medication_type: MedicationObserver.configuration_defaults["observers"]["medication"]
+                self.medication_type: MedicationObserver.configuration_defaults["observers"][
+                    "medication"
+                ]
             }
         }
 
