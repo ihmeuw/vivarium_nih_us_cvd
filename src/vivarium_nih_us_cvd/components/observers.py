@@ -43,6 +43,15 @@ class ResultsStratifier(ResultsStratifier_):
             categories={level for level in data_values.MEDICATION_ADHERENCE_TYPE},
         )
 
+        self.setup_stratification(
+            builder,
+            name=data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
+            sources=[
+                Source(data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE, SourceType.COLUMN)
+            ],
+            categories={level for level in data_values.MEDICATION_ADHERENCE_TYPE},
+        )
+
 
 class ContinuousRiskObserver:
     """Observes (continuous) risk exposure-time per group."""
@@ -205,17 +214,17 @@ class MedicationObserver:
 
     configuration_defaults = {
         "observers": {
-            "sbp_medication": {
+            "medication": {
                 "exclude": [],
                 "include": [],
-            }
-        }
+            },
+        },
     }
 
     def __init__(self, risk):
-        self.configuration_defaults = self._get_configuration_defaults()
         self.medication_type = self._get_medication_type(risk)
         self.medication_levels = self._get_medication_levels(risk)
+        self.configuration_defaults = self._get_configuration_defaults()
 
     def __repr__(self):
         return f"MedicationObserver({self.medication_type})"
@@ -225,11 +234,18 @@ class MedicationObserver:
     ##########################
 
     def _get_configuration_defaults(self) -> Dict[str, Dict]:
-        return MedicationObserver.configuration_defaults
+        return {
+            "observers": {
+                self.medication_type: MedicationObserver.configuration_defaults["observers"][
+                    "medication"
+                ]
+            }
+        }
 
     def _get_medication_type(self, risk: str) -> str:
         mapping = {
             "risk_factor.high_systolic_blood_pressure": data_values.COLUMNS.SBP_MEDICATION,
+            "risk_factor.high_ldl_cholesterol": data_values.COLUMNS.LDLC_MEDICATION,
         }
 
         return mapping[risk]
@@ -237,6 +253,7 @@ class MedicationObserver:
     def _get_medication_levels(self, risk: str) -> List[str]:
         mapping = {
             "risk_factor.high_systolic_blood_pressure": data_values.SBP_MEDICATION_LEVEL,
+            "risk_factor.high_ldl_cholesterol": data_values.LDLC_MEDICATION_LEVEL,
         }
 
         return [level.DESCRIPTION for level in mapping[risk]]

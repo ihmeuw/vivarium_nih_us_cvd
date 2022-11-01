@@ -41,6 +41,7 @@ components:
             - HealthcareVisitObserver()
         
             - MedicationObserver("risk_factor.high_systolic_blood_pressure")
+            - MedicationObserver("risk_factor.high_ldl_cholesterol")
 
 configuration:
     input_data:
@@ -81,4 +82,7 @@ configuration:
         sbp_medication:
             include:
                 - 'sbp_medication_adherence'
+        ldlc_medication:
+            include:
+                - 'ldlc_medication_adherence'
         

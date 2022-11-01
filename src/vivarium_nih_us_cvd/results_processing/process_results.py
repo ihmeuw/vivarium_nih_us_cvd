@@ -27,31 +27,35 @@ RENAME_COLUMNS = {
 # TODO [MIC-3219]: - update template
 def make_measure_data(data):
     measure_data = MeasureData(
-        population=get_population_data(data),
-        ylls=get_by_cause_measure_data(data, "ylls"),
-        ylds=get_by_cause_measure_data(data, "ylds"),
-        deaths=get_by_cause_measure_data(data, "deaths"),
-        state_person_time=get_state_person_time_measure_data(data, "state_person_time"),
-        transition_count=get_transition_count_measure_data(data, "transition_count"),
-        risk_exposure_time=get_risk_exposure_time_data(data, "risk_exposure_time"),
-        healthcare_visits=get_healthcare_visit_data(data, "healthcare_visits"),
-        medication_person_time=get_medication_person_time_data(
-            data, "medication_person_time"
+        # population=get_population_data(data),
+        # ylls=get_by_cause_measure_data(data, "ylls"),
+        # ylds=get_by_cause_measure_data(data, "ylds"),
+        # deaths=get_by_cause_measure_data(data, "deaths"),
+        # state_person_time=get_state_person_time_measure_data(data, "state_person_time"),
+        # transition_count=get_transition_count_measure_data(data, "transition_count"),
+        # risk_exposure_time=get_risk_exposure_time_data(data, "risk_exposure_time"),
+        # healthcare_visits=get_healthcare_visit_data(data, "healthcare_visits"),
+        sbp_medication_person_time=get_medication_person_time_data(
+            data, "sbp_medication_person_time"
+        ),
+        ldlc_medication_person_time=get_medication_person_time_data(
+            data, "ldlc_medication_person_time"
         ),
     )
     return measure_data
 
 
 class MeasureData(NamedTuple):
-    population: pd.DataFrame
-    ylls: pd.DataFrame
-    ylds: pd.DataFrame
-    deaths: pd.DataFrame
-    state_person_time: pd.DataFrame
-    transition_count: pd.DataFrame
-    risk_exposure_time: pd.DataFrame
-    healthcare_visits: pd.DataFrame
-    medication_person_time: pd.DataFrame
+    # population: pd.DataFrame
+    # ylls: pd.DataFrame
+    # ylds: pd.DataFrame
+    # deaths: pd.DataFrame
+    # state_person_time: pd.DataFrame
+    # transition_count: pd.DataFrame
+    # risk_exposure_time: pd.DataFrame
+    # healthcare_visits: pd.DataFrame
+    sbp_medication_person_time: pd.DataFrame
+    ldlc_medication_person_time: pd.DataFrame
 
     def dump(self, output_dir: Path):
         for key, df in self._asdict().items():
