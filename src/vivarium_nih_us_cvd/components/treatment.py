@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -30,13 +30,16 @@ class Treatment:
         self.randomness = builder.randomness.get_stream(self.name)
         self.gbd_sbp = builder.value.get_value(data_values.PIPELINES.SBP_GBD_EXPOSURE)
         self.sbp = builder.value.get_value(data_values.PIPELINES.SBP_EXPOSURE)
+        self.gbd_ldlc = builder.value.get_value(data_values.PIPELINES.LDLC_GBD_EXPOSURE)
         self.ldlc = builder.value.get_value(data_values.PIPELINES.LDLC_EXPOSURE)
         self.sbp_treatment_map = self._get_sbp_treatment_map()
         self.ldlc_treatment_map = self._get_ldlc_treatment_map()
-        self.sbp_risk_effects = self._get_sbp_risk_effects()
+        self.sbp_medication_effects = self._get_sbp_medication_effects()
         self.sbp_bin_edges = self._get_sbp_bin_edges()
-        self.target_modifier = self._get_target_modifier(builder)
-        self._register_target_modifier(builder)
+        self.sbp_target_modifier = self._get_sbp_target_modifier(builder)
+        self.ldlc_medication_effects = self._get_ldlc_medication_effects(builder)
+        self.ldlc_target_modifier = self._get_ldlc_target_modifier(builder)
+        self._register_target_modifiers(builder)
 
         columns_created = [
             data_values.COLUMNS.SBP_MEDICATION,
@@ -44,6 +47,7 @@ class Treatment:
             data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
             data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
             data_values.COLUMNS.SBP_MULTIPLIER,
+            data_values.COLUMNS.LDLC_MULTIPLIER,
         ]
         columns_required_on_initialization = [
             "age",
@@ -60,7 +64,7 @@ class Treatment:
 
         values_required = [
             data_values.PIPELINES.SBP_GBD_EXPOSURE,
-            data_values.PIPELINES.LDLC_EXPOSURE,
+            data_values.PIPELINES.LDLC_GBD_EXPOSURE,
         ]
 
         # Initialize simulants
@@ -85,31 +89,32 @@ class Treatment:
     def _get_ldlc_treatment_map(self) -> Dict[int, str]:
         return {level.VALUE: level.DESCRIPTION for level in data_values.LDLC_MEDICATION_LEVEL}
 
-    def _get_sbp_risk_effects(self):
+    def _get_sbp_medication_effects(self) -> pd.DataFrame:
         """Load and format the SBP risk effects file"""
-        sbp_risk_effects = pd.read_csv(paths.FILEPATHS.SBP_MEDICATION_EFFECTS)
+        sbp_medication_effects = pd.read_csv(paths.FILEPATHS.SBP_MEDICATION_EFFECTS)
         # Missingness in the bin end means no upper limit
-        sbp_risk_effects.loc[
-            sbp_risk_effects["sbp_end_inclusive"].isna(), "sbp_end_inclusive"
+        sbp_medication_effects.loc[
+            sbp_medication_effects["sbp_end_inclusive"].isna(), "sbp_end_inclusive"
         ] = float("inf")
+        return sbp_medication_effects
 
-        return sbp_risk_effects
-
-    def _get_sbp_bin_edges(self):
+    def _get_sbp_bin_edges(self) -> List[Union[int, float]]:
         """Determine the sbp exposure bin edges for mapping to treatment effects"""
         return sorted(
-            set(self.sbp_risk_effects["sbp_start_exclusive"]).union(
-                set(self.sbp_risk_effects["sbp_end_inclusive"])
+            set(self.sbp_medication_effects["sbp_start_exclusive"]).union(
+                set(self.sbp_medication_effects["sbp_end_inclusive"])
             )
         )
 
-    def _get_target_modifier(
+    def _get_sbp_target_modifier(
         self, builder: Builder
     ) -> Callable[[pd.Index, pd.Series], pd.Series]:
-        """Apply medication effects"""
+        """Apply sbp medication effects"""
 
         def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
-            """Determine the exposure decrease as treatment_efficacy * adherence_score"""
+            """Determine the (additive) sbp exposure decrease as
+            treatment_efficacy * adherence_score
+            """
             pop_view = self.population_view.get(index)
             mask_adherence = (
                 pop_view[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE]
@@ -126,7 +131,7 @@ class Treatment:
             df_efficacy = (
                 df_efficacy.reset_index()
                 .merge(
-                    self.sbp_risk_effects,
+                    self.sbp_medication_effects,
                     on=[
                         "sbp_start_exclusive",
                         "sbp_end_inclusive",
@@ -156,14 +161,53 @@ class Treatment:
 
         return adjust_target
 
-    def _register_target_modifier(self, builder: Builder) -> None:
+    def _get_ldlc_medication_effects(self, builder: Builder) -> Dict[str, float]:
+        """Format the ldlc medication effects data"""
+        effects = builder.data.load("risk_factor.high_ldl_choldesterol.medication_effect")
+        # convert % to decimal
+        effects["value"] = effects["value"] / 100
+        return dict(zip(effects[data_values.COLUMNS.LDLC_MEDICATION], effects["value"]))
+
+    def _get_ldlc_target_modifier(
+        self, builder: Builder
+    ) -> Callable[[pd.Index, pd.Series], pd.Series]:
+        """Apply ldl-c medication effects"""
+
+        def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
+            """Determine the (multiplicitive) ldl-c exposure decrease as
+            treatment_efficacy * adherence_score
+            """
+            pop_view = self.population_view.get(index)
+            mask_adherence = (
+                pop_view[data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE]
+                == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
+            )
+            treatment_efficacy = pop_view[data_values.COLUMNS.LDLC_MEDICATION].map(self.ldlc_medication_effects)
+            # simulants with no treatment have no efficacy
+            no_meds = pop_view[pop_view[data_values.COLUMNS.LDLC_MEDICATION] == data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION].index
+            treatment_efficacy.loc[no_meds] = 0
+            ldlc_multiplier = (1 - treatment_efficacy * mask_adherence)
+
+            return target * ldlc_multiplier
+
+        return adjust_target
+
+    def _register_target_modifiers(self, builder: Builder) -> None:
         builder.value.register_value_modifier(
             data_values.PIPELINES.SBP_EXPOSURE,
-            modifier=self.target_modifier,
-            # requires_values=[f"{self.risk.name}.exposure"],
+            modifier=self.sbp_target_modifier,
             requires_columns=[
                 data_values.COLUMNS.SBP_MEDICATION,
                 data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
+            ],
+        )
+
+        builder.value.register_value_modifier(
+            data_values.PIPELINES.LDLC_EXPOSURE,
+            modifier=self.ldlc_target_modifier,
+            requires_columns=[
+                data_values.COLUMNS.LDLC_MEDICATION,
+                data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
             ],
         )
 
@@ -205,6 +249,33 @@ class Treatment:
             (mask_sbp_adherent) & (mask_sbp_two_drugs), data_values.COLUMNS.SBP_MULTIPLIER
         ] = data_values.SBP_MULTIPLIER.TWO_DRUGS
 
+        pop[data_values.COLUMNS.LDLC_MULTIPLIER] = 1
+        mask_ldlc_adherent = (
+            pop[data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE]
+            == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
+        )
+        mask_ldlc_low = (
+            pop[data_values.COLUMNS.LDLC_MEDICATION]
+            == data_values.LDLC_MEDICATION_LEVEL.LOW.DESCRIPTION
+        )
+        mask_ldlc_med = (
+            pop[data_values.COLUMNS.LDLC_MEDICATION]
+            == data_values.LDLC_MEDICATION_LEVEL.MED.DESCRIPTION
+        )
+        mask_ldlc_high = (
+            pop[data_values.COLUMNS.LDLC_MEDICATION]
+            == data_values.LDLC_MEDICATION_LEVEL.HIGH.DESCRIPTION
+        )
+        pop.loc[
+            (mask_ldlc_adherent) & (mask_ldlc_low), data_values.COLUMNS.LDLC_MULTIPLIER
+        ] = data_values.LDLC_MULTIPLIER.LOW
+        pop.loc[
+            (mask_ldlc_adherent) & (mask_ldlc_med), data_values.COLUMNS.LDLC_MULTIPLIER
+        ] = data_values.LDLC_MULTIPLIER.MED
+        pop.loc[
+            (mask_ldlc_adherent) & (mask_ldlc_high), data_values.COLUMNS.LDLC_MULTIPLIER
+        ] = data_values.LDLC_MULTIPLIER.HIGH
+
         # Send anyone in emergency state to medication ramp
         # Note that for initialization we base the measured exposures on
         # the GBD exposure values
@@ -222,8 +293,8 @@ class Treatment:
         )
         pop.loc[mask_emergency] = self.apply_ldlc_treatment_ramp(
             pop_visitors=pop.loc[mask_emergency],
+            ldlc_pipeline=self.gbd_ldlc,
             sbp_pipeline=self.gbd_sbp,
-            # TODO: pass in gbd_ldlc when implementing
         )
 
         self.population_view.update(
@@ -234,6 +305,7 @@ class Treatment:
                     data_values.COLUMNS.LDLC_MEDICATION,
                     data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
                     data_values.COLUMNS.SBP_MULTIPLIER,
+                    data_values.COLUMNS.LDLC_MULTIPLIER,
                 ]
             ]
         )
@@ -314,8 +386,7 @@ class Treatment:
             df[coefficients.NAME] = np.exp(
                 coefficients.INTERCEPT
                 + coefficients.SBP * self.gbd_sbp(pop.index)
-                # TODO: use gbd_ldlc
-                + coefficients.LDLC * self.ldlc(pop.index)
+                + coefficients.LDLC * self.gbd_ldlc(pop.index)
                 + coefficients.AGE * pop["age"]
                 + coefficients.SEX
                 * pop["sex"].map(data_values.BASELINE_MEDICATION_COVERAGE_SEX_MAPPING)
