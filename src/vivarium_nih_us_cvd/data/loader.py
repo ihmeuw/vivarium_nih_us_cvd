@@ -14,6 +14,7 @@ for an example.
 """
 from typing import Dict, List, Tuple, Union
 
+import numpy as np
 import pandas as pd
 from gbd_mapping import causes, covariates, risk_factors
 from vivarium.framework.artifact import EntityKey
@@ -29,7 +30,11 @@ from vivarium_inputs.mapping_extension import (
     healthcare_entities,
 )
 
-from vivarium_nih_us_cvd.constants import data_keys, paths
+from vivarium_nih_us_cvd.constants import data_keys, data_values
+from vivarium_nih_us_cvd.utilities import (
+    get_random_value_from_normal_distribution,
+    get_random_variable_draws,
+)
 
 
 def _get_source_key(val: Union[str, data_keys.SourceTarget]) -> str:
@@ -374,7 +379,6 @@ def load_csmr_all_zeros(emr_source: str, location: str) -> pd.DataFrame:
     #       load_ihd_emr(data_keys.IHD.ANGINA_EMR, location) *
     #       person-time
     #     )
-
     draws = [f"draw_{i}" for i in range(1000)]
     df_zeros = load_emr_ihd(emr_source, location)
     df_zeros[draws] = 0.0
@@ -473,8 +477,15 @@ def load_healthcare_system_utilization_rate(key: str, location: str) -> pd.DataF
     data = vi_utils.split_interval(data, interval_column="year", split_column_prefix="year")
     return vi_utils.sort_hierarchical_data(data).droplevel("location")
 
+
 def load_ldlc_medication_effect(key: str, location: str) -> pd.DataFrame:
-    breakpoint()
-    raw_efficacy = pd.read_csv(paths.FILEPATHS.LDLC_MEDICATION_EFFECTS)
     draws = [f"draw_{i}" for i in range(1000)]
-    df_zeros[draws] = 0.0
+    index = pd.Index(
+        [l.DESCRIPTION for l in data_values.LDLC_MEDICATION_EFFICACY],
+        name=data_values.COLUMNS.LDLC_MEDICATION,
+    )
+    df = pd.DataFrame(index=index, columns=draws, dtype=np.float)
+    for med_level, seeded_distribution in data_values.LDLC_MEDICATION_EFFICACY:
+        df.loc[med_level, :] = get_random_variable_draws(1000, seeded_distribution)
+    assert df.notna().values.all()
+    return df

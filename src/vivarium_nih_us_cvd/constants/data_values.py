@@ -1,5 +1,7 @@
 from typing import NamedTuple
 
+from vivarium_nih_us_cvd.utilities import get_norm
+
 #######################
 # State table columns #
 #######################
@@ -265,9 +267,8 @@ LDLC_MEDICATION_LEVEL = __LDLCMedicationLevel()
 class LDLCMedicationEfficacyBaseClass(NamedTuple):
     """Base class to define ldl-c medication efficacy parameters"""
 
-    MEAN: float
-    LOWER: float
-    UPPER: float
+    DESCRIPTION: float
+    SEEDED_DISTRIBUTION: tuple
 
     @property
     def name(self):
@@ -277,11 +278,26 @@ class LDLCMedicationEfficacyBaseClass(NamedTuple):
 class __LDLCMedicatonEfficacy(NamedTuple):
     """high ldl-c medication efficacy"""
 
-    LOW: LDLCMedicationEfficacyBaseClass = LDLCMedicationEfficacyBaseClass(24.67, 22.4, 27.19)
-    MED: LDLCMedicationEfficacyBaseClass = LDLCMedicationEfficacyBaseClass(36.2, 33.6, 39.1)
-    LOW_MED_EZE: LDLCMedicationEfficacyBaseClass = LDLCMedicationEfficacyBaseClass(46.1, 43.5, 49)
-    HIGH: LDLCMedicationEfficacyBaseClass = LDLCMedicationEfficacyBaseClass(51.25, 47.14, 55.68)
-    HIGH_EZE: LDLCMedicationEfficacyBaseClass = LDLCMedicationEfficacyBaseClass(61.15, 57.04, 65.58)
+    LOW: LDLCMedicationEfficacyBaseClass = LDLCMedicationEfficacyBaseClass(
+        LDLC_MEDICATION_LEVEL.LOW.DESCRIPTION,
+        ("ldlc_medication_efficacy_low", get_norm(mean=24.67, sd=1.2224)),
+    )
+    MED: LDLCMedicationEfficacyBaseClass = LDLCMedicationEfficacyBaseClass(
+        LDLC_MEDICATION_LEVEL.MED.DESCRIPTION,
+        ("ldlc_medication_efficacy_med", get_norm(mean=36.2, sd=1.4031)),
+    )
+    HIGH: LDLCMedicationEfficacyBaseClass = LDLCMedicationEfficacyBaseClass(
+        LDLC_MEDICATION_LEVEL.HIGH.DESCRIPTION,
+        ("ldlc_medication_efficacy_high", get_norm(mean=51.25, sd=2.179)),
+    )
+    LOW_MED_EZE: LDLCMedicationEfficacyBaseClass = LDLCMedicationEfficacyBaseClass(
+        LDLC_MEDICATION_LEVEL.LOW_MED_EZE.DESCRIPTION,
+        ("ldlc_medication_efficacy_low_med_eze", get_norm(mean=46.1, sd=1.4031)),
+    )
+    HIGH_EZE: LDLCMedicationEfficacyBaseClass = LDLCMedicationEfficacyBaseClass(
+        LDLC_MEDICATION_LEVEL.HIGH_EZE.DESCRIPTION,
+        ("ldlc_medication_efficacy_high_eze", get_norm(mean=61.15, sd=2.179)),
+    )
 
     @property
     def name(self):
