@@ -163,7 +163,7 @@ class Treatment:
 
     def _get_ldlc_medication_effects(self, builder: Builder) -> Dict[str, float]:
         """Format the ldlc medication effects data"""
-        effects = builder.data.load("risk_factor.high_ldl_choldesterol.medication_effect")
+        effects = builder.data.load("risk_factor.high_ldl_cholesterol.medication_effect")
         # convert % to decimal
         effects["value"] = effects["value"] / 100
         return dict(zip(effects[data_values.COLUMNS.LDLC_MEDICATION], effects["value"]))

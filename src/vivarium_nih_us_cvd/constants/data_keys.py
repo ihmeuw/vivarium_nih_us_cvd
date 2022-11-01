@@ -172,7 +172,7 @@ class __HighLDLCholesterol(NamedTuple):
         "risk_factor.high_ldl_cholesterol.relative_risk_scalar"
     )
     MEDICATION_EFFECT: TargetString = TargetString(
-        "risk_factor.high_ldl_choldesterol.medication_effect"
+        "risk_factor.high_ldl_cholesterol.medication_effect"
     )
 
     @property
