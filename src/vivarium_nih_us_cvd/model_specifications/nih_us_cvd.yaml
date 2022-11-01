@@ -3,7 +3,7 @@ components:
         population:
             - BasePopulation()
             - Mortality()
-        # metrics:
+        metrics:
             - MortalityObserver()
             - DisabilityObserver()
             - DiseaseObserver("ischemic_stroke")
