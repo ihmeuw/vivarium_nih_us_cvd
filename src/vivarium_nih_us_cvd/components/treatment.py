@@ -182,11 +182,16 @@ class Treatment:
                 pop_view[data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE]
                 == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
             )
-            treatment_efficacy = pop_view[data_values.COLUMNS.LDLC_MEDICATION].map(self.ldlc_medication_effects)
+            treatment_efficacy = pop_view[data_values.COLUMNS.LDLC_MEDICATION].map(
+                self.ldlc_medication_effects
+            )
             # simulants with no treatment have no efficacy
-            no_meds = pop_view[pop_view[data_values.COLUMNS.LDLC_MEDICATION] == data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION].index
+            no_meds = pop_view[
+                pop_view[data_values.COLUMNS.LDLC_MEDICATION]
+                == data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
+            ].index
             treatment_efficacy.loc[no_meds] = 0
-            ldlc_multiplier = (1 - treatment_efficacy * mask_adherence)
+            ldlc_multiplier = 1 - treatment_efficacy * mask_adherence
 
             return target * ldlc_multiplier
 
