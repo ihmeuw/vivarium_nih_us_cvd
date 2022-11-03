@@ -12,6 +12,9 @@ components:
         disease:
             - SI("angina")
         risks:
+            - Risk("risk_factor.sbp_medication_adherence")
+            - Risk("risk_factor.ldlc_medication_adherence")
+
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_ischemic_stroke.incidence_rate")
@@ -86,3 +89,13 @@ configuration:
             include:
                 - 'ldlc_medication_adherence'
         
+    baseline_medication_adherence_sbp:
+        category_thresholds: # NOTE: the order here matters
+            - 0.16 # primary non-adherent
+            - 0.1008 # secondary non-adherent
+            - 0.7392 # adherent
+    baseline_medication_adherence_ldlc:
+        category_thresholds: # NOTE: the order here matters
+            - 0.25 # primary non-adherent
+            - 0.0975 # secondary non-adherent
+            - 0.6525 # adherent

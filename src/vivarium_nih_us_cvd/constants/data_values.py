@@ -373,21 +373,6 @@ class __MedicationAdherenceType(NamedTuple):
 MEDICATION_ADHERENCE_TYPE = __MedicationAdherenceType()
 
 
-# Define medication adherence level probabilitiies
-MEDICATION_ADHERENCE_TYPE_PROBABILITIY = {
-    "sbp": {
-        MEDICATION_ADHERENCE_TYPE.ADHERENT: 0.7392,
-        MEDICATION_ADHERENCE_TYPE.PRIMARY_NON_ADHERENT: 0.16,
-        MEDICATION_ADHERENCE_TYPE.SECONDARY_NON_ADHERENT: 0.1008,
-    },
-    "ldlc": {
-        MEDICATION_ADHERENCE_TYPE.ADHERENT: 0.6525,
-        MEDICATION_ADHERENCE_TYPE.PRIMARY_NON_ADHERENT: 0.25,
-        MEDICATION_ADHERENCE_TYPE.SECONDARY_NON_ADHERENT: 0.0975,
-    },
-}
-
-
 BASELINE_MEDICATION_COVERAGE_SEX_MAPPING = {
     # used in medication treatment effect calculation
     "Female": 2,

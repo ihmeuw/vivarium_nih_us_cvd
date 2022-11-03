@@ -104,7 +104,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.LDL_C.TMRED: load_metadata,
         data_keys.LDL_C.RELATIVE_RISK_SCALAR: load_metadata,
         data_keys.LDL_C.MEDICATION_EFFECT: load_ldlc_medication_effect,
-        # Risk (stystolic blood pressure)
+        # Risk (systolic blood pressure)
         data_keys.SBP.DISTRIBUTION: load_metadata,
         data_keys.SBP.EXPOSURE_MEAN: load_standard_data,
         data_keys.SBP.EXPOSURE_SD: load_standard_data,
@@ -113,6 +113,8 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.SBP.PAF: load_standard_data,
         data_keys.SBP.TMRED: load_metadata,
         data_keys.SBP.RELATIVE_RISK_SCALAR: load_metadata,
+        # Risk (ldlc medication adherence)
+        data_keys.LDLC_MEDICATION_ADHERENCE.DISTRIBUTION: load_metadata,
     }
     source_key = _get_source_key(lookup_key)
     data = mapping[lookup_key](source_key, location)
@@ -160,6 +162,7 @@ def load_standard_data(key: str, location: str) -> pd.DataFrame:
 
 
 def load_metadata(key: str, location: str):
+    breakpoint()
     key = EntityKey(key)
     entity = get_entity(key)
     entity_metadata = entity[key.measure]

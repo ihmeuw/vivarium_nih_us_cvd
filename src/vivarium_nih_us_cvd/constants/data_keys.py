@@ -223,6 +223,25 @@ class __HighSBP(NamedTuple):
 SBP = __HighSBP()
 
 
+class __LDLCholesterolMedicationAdherence(NamedTuple):
+    DISTRIBUTION: TargetString = TargetString("risk_factor.ldlc_medication_adherence.distribution")
+
+    @property
+    def name(self):
+        return "ldlc_medication_adherence"
+
+    @property
+    def log_name(self):
+        return self.name.replace("_", " ")
+
+
+LDLC_MEDICATION_ADHERENCE = __LDLCholesterolMedicationAdherence()
+
+
+##################
+# Artifact Items #
+##################
+
 MAKE_ARTIFACT_KEY_GROUPS = [
     POPULATION,
     ISCHEMIC_STROKE,
@@ -230,4 +249,5 @@ MAKE_ARTIFACT_KEY_GROUPS = [
     ANGINA,
     LDL_C,
     SBP,
+    LDLC_MEDICATION_ADHERENCE,
 ]
