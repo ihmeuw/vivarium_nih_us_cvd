@@ -41,6 +41,8 @@ class __Pipelines(NamedTuple):
     SBP_EXPOSURE: str = "high_systolic_blood_pressure.exposure"
     LDLC_GBD_EXPOSURE: str = "high_ldl_cholesterol.gbd_exposure"
     LDLC_EXPOSURE: str = "high_ldl_cholesterol.exposure"
+    SBP_MEDICATION_ADHERENCE_EXPOSURE: str = "sbp_medication_adherence.exposure"
+    LDLC_MEDICATION_ADHERENCE_EXPOSURE: str = "ldlc_medication_adherence.exposure"
 
     @property
     def name(self):
@@ -361,9 +363,9 @@ FIRST_PRESCRIPTION_LEVEL_PROBABILITY = {
 class __MedicationAdherenceType(NamedTuple):
     """medication adherence types"""
 
-    ADHERENT: str = "adherent"
-    PRIMARY_NON_ADHERENT: str = "primary_non_adherent"
-    SECONDARY_NON_ADHERENT: str = "secondary_non_adherent"
+    PRIMARY_NON_ADHERENT: str = "cat1"
+    SECONDARY_NON_ADHERENT: str = "cat2"
+    ADHERENT: str = "cat3"
 
     @property
     def name(self):
@@ -375,15 +377,15 @@ MEDICATION_ADHERENCE_TYPE = __MedicationAdherenceType()
 
 # Define medication adherence level probabilitiies
 MEDICATION_ADHERENCE_TYPE_PROBABILITIY = {
-    "sbp": {
-        MEDICATION_ADHERENCE_TYPE.ADHERENT: 0.7392,
+    "sbp_medication_adherence": {
         MEDICATION_ADHERENCE_TYPE.PRIMARY_NON_ADHERENT: 0.16,
         MEDICATION_ADHERENCE_TYPE.SECONDARY_NON_ADHERENT: 0.1008,
+        MEDICATION_ADHERENCE_TYPE.ADHERENT: 0.7392,
     },
-    "ldlc": {
-        MEDICATION_ADHERENCE_TYPE.ADHERENT: 0.6525,
+    "ldlc_medication_adherence": {
         MEDICATION_ADHERENCE_TYPE.PRIMARY_NON_ADHERENT: 0.25,
         MEDICATION_ADHERENCE_TYPE.SECONDARY_NON_ADHERENT: 0.0975,
+        MEDICATION_ADHERENCE_TYPE.ADHERENT: 0.6525,
     },
 }
 
