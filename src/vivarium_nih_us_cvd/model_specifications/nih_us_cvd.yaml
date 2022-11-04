@@ -90,4 +90,8 @@ configuration:
             include:
                 - 'ldlc_medication_adherence'
     outreach:
-        exposure: 0.0
+        # NOTE: For outreach, we are changing our standard heuristic of categories
+        # being mapped highest to lowest where cat1 is highest risk. Here, an 
+        # outreach.exposure = 0.0 is the highest risk (no outreach means less
+        # likely to take medication) but will map to cat2 (not cat1)
+        exposure: 0

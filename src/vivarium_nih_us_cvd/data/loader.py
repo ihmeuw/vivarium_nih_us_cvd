@@ -511,6 +511,7 @@ def load_medication_adherence_exposure(key: str, location: str) -> pd.DataFrame:
     # Merge on the categorical thresholds
     draws = [f"draw_{i}" for i in range(1000)]
     df = pd.concat([df, pd.DataFrame(columns=draws, dtype=float)])
+    # cat1 is most severe -> catN is least severe (tmrel)
     df.loc[
         df["parameter"] == "cat1", draws
     ] = data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY[key.name][
