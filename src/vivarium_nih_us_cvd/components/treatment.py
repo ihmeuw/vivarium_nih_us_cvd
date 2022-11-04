@@ -28,10 +28,18 @@ class Treatment:
 
     def setup(self, builder: Builder) -> None:
         self.randomness = builder.randomness.get_stream(self.name)
+
         self.gbd_sbp = builder.value.get_value(data_values.PIPELINES.SBP_GBD_EXPOSURE)
         self.sbp = builder.value.get_value(data_values.PIPELINES.SBP_EXPOSURE)
         self.gbd_ldlc = builder.value.get_value(data_values.PIPELINES.LDLC_GBD_EXPOSURE)
         self.ldlc = builder.value.get_value(data_values.PIPELINES.LDLC_EXPOSURE)
+        self.sbp_medication_adherence = builder.value.get_value(
+            data_values.PIPELINES.SBP_MEDICATION_ADHERENCE_EXPOSURE
+        )
+        self.ldlc_medication_adherence = builder.value.get_value(
+            data_values.PIPELINES.LDLC_MEDICATION_ADHERENCE_EXPOSURE
+        )
+
         self.sbp_treatment_map = self._get_sbp_treatment_map()
         self.ldlc_treatment_map = self._get_ldlc_treatment_map()
         self.sbp_medication_effects = self._get_sbp_medication_effects()
@@ -65,6 +73,8 @@ class Treatment:
         values_required = [
             data_values.PIPELINES.SBP_GBD_EXPOSURE,
             data_values.PIPELINES.LDLC_GBD_EXPOSURE,
+            data_values.PIPELINES.SBP_MEDICATION_ADHERENCE_EXPOSURE,
+            data_values.PIPELINES.LDLC_MEDICATION_ADHERENCE_EXPOSURE,
         ]
 
         # Initialize simulants
@@ -231,6 +241,14 @@ class Treatment:
             ]
         ).get(pop_data.index)
 
+        # Generate initial medication adherence columns and initialize coverage
+        breakpoint()
+        pop[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE] = self.sbp_medication_adherence(
+            pop.index
+        )
+        pop[data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE] = self.ldlc_medication_adherence(
+            pop.index
+        )
         pop = self.initialize_medication_coverage(pop)
 
         # Generate multiplier columns
@@ -316,22 +334,7 @@ class Treatment:
         )
 
     def initialize_medication_coverage(self, pop: pd.DataFrame) -> pd.DataFrame:
-        """Initializes medication coverage and adherence levels"""
-        # Initialize adherence levels
-        pop[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE] = self.randomness.choice(
-            pop.index,
-            choices=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY["sbp"].keys()),
-            p=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY["sbp"].values()),
-            additional_key="initialize_sbp_adherence",
-        )
-        pop[data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE] = self.randomness.choice(
-            pop.index,
-            choices=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY["ldlc"].keys()),
-            p=list(data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY["ldlc"].values()),
-            additional_key="initialize_ldlc_adherence",
-        )
-
-        # Initialize medication coverage
+        """Initializes medication coverage"""
         pop[
             data_values.COLUMNS.SBP_MEDICATION
         ] = data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
@@ -362,6 +365,7 @@ class Treatment:
         )
 
         # # Move medicated but non-adherent simulants to lowest level
+        breakpoint()
         sbp_non_adherent = pop[
             pop[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE]
             != data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT

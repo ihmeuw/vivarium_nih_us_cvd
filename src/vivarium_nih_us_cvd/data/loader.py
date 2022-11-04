@@ -114,7 +114,11 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.SBP.TMRED: load_metadata,
         data_keys.SBP.RELATIVE_RISK_SCALAR: load_metadata,
         # Risk (ldlc medication adherence)
-        data_keys.LDLC_MEDICATION_ADHERENCE.DISTRIBUTION: load_metadata,
+        data_keys.LDLC_MEDICATION_ADHERENCE.DISTRIBUTION: load_medication_adherence_distribution,
+        data_keys.LDLC_MEDICATION_ADHERENCE.EXPOSURE: load_medication_adherence_exposure,
+        # Risk (sbp medication adherence)
+        data_keys.SBP_MEDICATION_ADHERENCE.DISTRIBUTION: load_medication_adherence_distribution,
+        data_keys.SBP_MEDICATION_ADHERENCE.EXPOSURE: load_medication_adherence_exposure,
     }
     source_key = _get_source_key(lookup_key)
     data = mapping[lookup_key](source_key, location)
@@ -162,7 +166,6 @@ def load_standard_data(key: str, location: str) -> pd.DataFrame:
 
 
 def load_metadata(key: str, location: str):
-    breakpoint()
     key = EntityKey(key)
     entity = get_entity(key)
     entity_metadata = entity[key.measure]
@@ -492,3 +495,33 @@ def load_ldlc_medication_effect(key: str, location: str) -> pd.DataFrame:
         df.loc[med_level, :] = get_random_variable_draws(1000, seeded_distribution)
     assert df.notna().values.all()
     return df
+
+
+def load_medication_adherence_distribution(key: str, location: str) -> str:
+    return "ordered_polytomous"
+
+
+def load_medication_adherence_exposure(key: str, location: str) -> pd.DataFrame:
+    df_pop_index = pd.DataFrame(index=load_population_structure(key, location).index)
+    # need to add one more level with three options
+    df = pd.concat([df_pop_index] * 3)
+    df["parameter"] = np.repeat(["cat1", "cat2", "cat3"], len(df_pop_index))
+    # Merge on the categorical thresholds
+    draws = [f"draw_{i}" for i in range(1000)]
+    df = pd.concat([df, pd.DataFrame(columns=draws, dtype=float)])
+    df.loc[
+        df["parameter"] == "cat1", draws
+    ] = data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY[key.name][
+        data_values.MEDICATION_ADHERENCE_TYPE.PRIMARY_NON_ADHERENT
+    ]
+    df.loc[
+        df["parameter"] == "cat2", draws
+    ] = data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY[key.name][
+        data_values.MEDICATION_ADHERENCE_TYPE.SECONDARY_NON_ADHERENT
+    ]
+    df.loc[
+        df["parameter"] == "cat3", draws
+    ] = data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY[key.name][
+        data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
+    ]
+    return df.set_index("parameter", append=True)
