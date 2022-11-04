@@ -14,6 +14,7 @@ components:
         risks:
             - Risk("risk_factor.sbp_medication_adherence")
             - Risk("risk_factor.ldlc_medication_adherence")
+            - Risk("risk_factor.outreach")
 
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
@@ -88,3 +89,5 @@ configuration:
         ldlc_medication:
             include:
                 - 'ldlc_medication_adherence'
+    outreach:
+        exposure: 0.0  # cat2

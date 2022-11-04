@@ -43,6 +43,7 @@ class __Pipelines(NamedTuple):
     LDLC_EXPOSURE: str = "high_ldl_cholesterol.exposure"
     SBP_MEDICATION_ADHERENCE_EXPOSURE: str = "sbp_medication_adherence.exposure"
     LDLC_MEDICATION_ADHERENCE_EXPOSURE: str = "ldlc_medication_adherence.exposure"
+    OUTREACH_EXPOSURE: str = "outreach.exposure"
 
     @property
     def name(self):
