@@ -259,6 +259,23 @@ class __SBPMedicationAdherence(NamedTuple):
 SBP_MEDICATION_ADHERENCE = __SBPMedicationAdherence()
 
 
+class __Outreach(NamedTuple):
+    DISTRIBUTION: TargetString = TargetString(
+        "risk_factor.outreach.distribution"
+    )
+
+    @property
+    def name(self):
+        return "outreach"
+
+    @property
+    def log_name(self):
+        return self.name.replace("_", " ")
+
+
+OUTREACH = __Outreach()
+
+
 ##################
 # Artifact Items #
 ##################
@@ -272,4 +289,5 @@ MAKE_ARTIFACT_KEY_GROUPS = [
     SBP,
     LDLC_MEDICATION_ADHERENCE,
     SBP_MEDICATION_ADHERENCE,
+    OUTREACH,
 ]
