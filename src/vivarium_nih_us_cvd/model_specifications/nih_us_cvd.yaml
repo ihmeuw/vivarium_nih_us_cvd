@@ -90,4 +90,4 @@ configuration:
             include:
                 - 'ldlc_medication_adherence'
     outreach:
-        exposure: 0.0  # cat2
+        exposure: 0.0
