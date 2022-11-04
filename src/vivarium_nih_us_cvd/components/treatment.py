@@ -242,7 +242,6 @@ class Treatment:
         ).get(pop_data.index)
 
         # Generate initial medication adherence columns and initialize coverage
-        breakpoint()
         pop[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE] = self.sbp_medication_adherence(
             pop.index
         )
@@ -365,7 +364,6 @@ class Treatment:
         )
 
         # # Move medicated but non-adherent simulants to lowest level
-        breakpoint()
         sbp_non_adherent = pop[
             pop[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE]
             != data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
