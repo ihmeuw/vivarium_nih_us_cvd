@@ -456,23 +456,28 @@ class Treatment:
             pop_visitors[data_values.COLUMNS.SBP_MEDICATION]
             != data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
         ].index
-        not_currently_medicated = pop_visitors.index.difference(currently_medicated)
 
         measured_sbp = self.get_measured_sbp(
             index=pop_visitors.index,
             exposure_pipeline=exposure_pipeline,
         )
 
-        # Un-medicated patients with sbp >= 140 (who overcome therapeutic inertia)
-        # should start medication
+        # Generate other useful helper indexes
+        low_sbp = measured_sbp[measured_sbp < data_values.SBP_THRESHOLD.LOW].index
         high_sbp = measured_sbp[measured_sbp >= data_values.SBP_THRESHOLD.HIGH].index
-        to_prescribe_high_sbp = not_currently_medicated.intersection(high_sbp).intersection(
-            overcome_therapeutic_inertia
-        )
+        newly_prescribed = overcome_therapeutic_inertia.difference(
+            currently_medicated
+        ).difference(low_sbp)
+
+        # [Treatment ramp ID C] Simulants who overcome therapeutic inertia, have
+        # high SBP, and are not currently medicated
+        to_prescribe_c = newly_prescribed.intersection(high_sbp)
+
+        # Prescribe initial medications
         pop_visitors.loc[
-            to_prescribe_high_sbp, data_values.COLUMNS.SBP_MEDICATION
+            to_prescribe_c, data_values.COLUMNS.SBP_MEDICATION
         ] = self.randomness.choice(
-            to_prescribe_high_sbp,
+            to_prescribe_c,
             choices=list(
                 data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["sbp"]["high"].keys()
             ),
@@ -480,13 +485,20 @@ class Treatment:
             additional_key="high_sbp_first_prescriptions",
         )
 
-        # Un-medicated patients with sbp [130, 140) and already-medicated
-        # adherent patients with sbp >= 140 should move up the ramp
-        # (all must overcome therapeutic inertia in order to move up)
-        mid_sbp = measured_sbp[
-            (measured_sbp >= data_values.SBP_THRESHOLD.LOW)
-            & (measured_sbp < data_values.SBP_THRESHOLD.HIGH)
-        ].index
+        # [Treatment ramp ID B] Simulants who overcome therapeutic inertia, have
+        # medium-level SBP, and are not currently medicated
+        to_prescribe_b = newly_prescribed.difference(to_prescribe_c)
+
+        # [Treatment ramp ID D] Simulants who overcome therapeutic inertia, have
+        # high sbp, and are currently medicated
+        to_prescribe_d = overcome_therapeutic_inertia.intersection(
+            currently_medicated
+        ).intersection(high_sbp)
+
+        # Change medications
+        # Only move up if currently untreated (treatment ramp ID B) or currently
+        # treated (treatment ramp ID D) but adherent and not already at the max
+        # ramp level
         adherent = pop_visitors[
             pop_visitors[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE]
             == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
@@ -495,14 +507,8 @@ class Treatment:
             pop_visitors[data_values.COLUMNS.SBP_MEDICATION]
             != self.sbp_treatment_map[max(self.sbp_treatment_map)]
         ].index
-        medication_change = (
-            (not_currently_medicated.intersection(mid_sbp))
-            .union(
-                currently_medicated.intersection(not_already_max_medicated)
-                .intersection(adherent)
-                .intersection(high_sbp)
-            )
-            .intersection(overcome_therapeutic_inertia)
+        medication_change = to_prescribe_b.union(
+            to_prescribe_d.intersection(adherent).intersection(not_already_max_medicated)
         )
         pop_visitors.loc[medication_change, data_values.COLUMNS.SBP_MEDICATION] = (
             pop_visitors[data_values.COLUMNS.SBP_MEDICATION].map(
