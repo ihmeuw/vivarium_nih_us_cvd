@@ -119,6 +119,8 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         # Risk (sbp medication adherence)
         data_keys.SBP_MEDICATION_ADHERENCE.DISTRIBUTION: load_medication_adherence_distribution,
         data_keys.SBP_MEDICATION_ADHERENCE.EXPOSURE: load_medication_adherence_exposure,
+        # Risk (outreach)
+        data_keys.OUTREACH.DISTRIBUTION: load_outreach_distribution,
     }
     source_key = _get_source_key(lookup_key)
     data = mapping[lookup_key](source_key, location)
@@ -509,6 +511,7 @@ def load_medication_adherence_exposure(key: str, location: str) -> pd.DataFrame:
     # Merge on the categorical thresholds
     draws = [f"draw_{i}" for i in range(1000)]
     df = pd.concat([df, pd.DataFrame(columns=draws, dtype=float)])
+    # cat1 is most severe -> catN is least severe (tmrel)
     df.loc[
         df["parameter"] == "cat1", draws
     ] = data_values.MEDICATION_ADHERENCE_TYPE_PROBABILITIY[key.name][
@@ -525,3 +528,7 @@ def load_medication_adherence_exposure(key: str, location: str) -> pd.DataFrame:
         data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
     ]
     return df.set_index("parameter", append=True)
+
+
+def load_outreach_distribution(key: str, location: str) -> str:
+    return "dichotomous"
