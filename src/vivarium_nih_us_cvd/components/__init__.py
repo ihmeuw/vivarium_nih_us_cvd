@@ -1,4 +1,5 @@
 from .disease import IschemicStroke, MyocardialInfarction
+from .effects import OutreachEffect
 from .healthcare_utilization import HealthcareUtilization
 from .observers import (
     ContinuousRiskObserver,

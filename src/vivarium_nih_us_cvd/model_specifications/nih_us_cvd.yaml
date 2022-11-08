@@ -47,6 +47,8 @@ components:
             - MedicationObserver("risk_factor.high_systolic_blood_pressure")
             - MedicationObserver("risk_factor.high_ldl_cholesterol")
 
+            - OutreachEffect()
+
 configuration:
     input_data:
         input_draw_number: 0
@@ -94,4 +96,4 @@ configuration:
         # being mapped highest to lowest where cat1 is highest risk. Here, an 
         # outreach.exposure = 0.0 is the highest risk (no outreach means less
         # likely to take medication) but will map to cat2 (not cat1)
-        exposure: 0
+        exposure: 0.3  # TEST VALUE, WILL GET SCALED UP, 30% go to cat1 (put on outreach, lowest risk)
