@@ -484,6 +484,14 @@ class Treatment:
         # [Treatment ramp ID C] Simulants who overcome therapeutic inertia, have
         # high SBP, and are not currently medicated
         to_prescribe_c = newly_prescribed.intersection(high_sbp)
+        # [Treatment ramp ID B] Simulants who overcome therapeutic inertia, have
+        # medium-level SBP, and are not currently medicated
+        to_prescribe_b = newly_prescribed.difference(to_prescribe_c)
+        # [Treatment ramp ID D] Simulants who overcome therapeutic inertia, have
+        # high sbp, and are currently medicated
+        to_prescribe_d = overcome_therapeutic_inertia.intersection(
+            currently_medicated
+        ).intersection(high_sbp)
 
         # Prescribe initial medications
         pop_visitors.loc[
@@ -496,16 +504,6 @@ class Treatment:
             p=list(data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["sbp"]["high"].values()),
             additional_key="high_sbp_first_prescriptions",
         )
-
-        # [Treatment ramp ID B] Simulants who overcome therapeutic inertia, have
-        # medium-level SBP, and are not currently medicated
-        to_prescribe_b = newly_prescribed.difference(to_prescribe_c)
-
-        # [Treatment ramp ID D] Simulants who overcome therapeutic inertia, have
-        # high sbp, and are currently medicated
-        to_prescribe_d = overcome_therapeutic_inertia.intersection(
-            currently_medicated
-        ).intersection(high_sbp)
 
         # Change medications
         # Only move up if currently untreated (treatment ramp ID B) or currently
@@ -529,11 +527,9 @@ class Treatment:
             + 1
         ).map(self.sbp_treatment_map)
 
-        # Apply outreach intervention to groups 'medication_change'
-        # (b + adherent d), c, and non-adherent d
-        maybe_enroll = medication_change.union(to_prescribe_c).union(
-            to_prescribe_d.difference(adherent)
-        )
+        # Apply outreach intervention to groups b, c, and everyone already
+        # on medication
+        maybe_enroll = to_prescribe_b.union(to_prescribe_c).union(currently_medicated)
         pop_visitors = self.enroll_in_outreach(pop_visitors, maybe_enroll)
 
         return pop_visitors
@@ -663,11 +659,9 @@ class Treatment:
             + 1
         ).map(self.ldlc_treatment_map)
 
-        # Apply outreach intervention to groups 'medication_change'
-        # (adherent g), 'newly_prescribed' (d, e, f), and non-adherent g
-        maybe_enroll = medication_change.union(newly_prescribed).union(
-            to_prescribe_g.difference(adherent)
-        )
+        # Apply outreach intervention to groups 'newly_prescribed' (d, e, f)
+        # and simulants already on medication
+        maybe_enroll = newly_prescribed.union(currently_medicated)
         pop_visitors = self.enroll_in_outreach(pop_visitors, maybe_enroll)
 
         return pop_visitors
