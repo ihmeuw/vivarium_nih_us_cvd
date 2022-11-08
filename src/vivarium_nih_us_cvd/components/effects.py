@@ -92,12 +92,9 @@ class OutreachEffect:
         builder.value.register_value_modifier(
             self.sbp_target_pipeline_name,
             modifier=self.sbp_medication_adherence_target_modifier,
-            # requires_columns=self.columns_required,
-            # requires_values=[],
         )
 
         builder.value.register_value_modifier(
             self.ldlc_target_pipeline_name,
             modifier=self.ldlc_medication_adherence_target_modifier,
-            # requires_columns=self.columns_required,
         )
