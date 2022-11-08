@@ -465,9 +465,11 @@ class Treatment:
         # Generate other useful helper indexes
         low_sbp = measured_sbp[measured_sbp < data_values.SBP_THRESHOLD.LOW].index
         high_sbp = measured_sbp[measured_sbp >= data_values.SBP_THRESHOLD.HIGH].index
-        newly_prescribed = overcome_therapeutic_inertia.difference(currently_medicated).difference(low_sbp)
+        newly_prescribed = overcome_therapeutic_inertia.difference(
+            currently_medicated
+        ).difference(low_sbp)
 
-        # [Treatment ramp ID C] Simulants who overcome therapeutic inertia, have 
+        # [Treatment ramp ID C] Simulants who overcome therapeutic inertia, have
         # high SBP, and are not currently medicated
         to_prescribe_c = newly_prescribed.intersection(high_sbp)
 
@@ -489,7 +491,9 @@ class Treatment:
 
         # [Treatment ramp ID D] Simulants who overcome therapeutic inertia, have
         # high sbp, and are currently medicated
-        to_prescribe_d = overcome_therapeutic_inertia.intersection(currently_medicated).intersection(high_sbp)
+        to_prescribe_d = overcome_therapeutic_inertia.intersection(
+            currently_medicated
+        ).intersection(high_sbp)
 
         # Change medications
         # Only move up if currently untreated (treatment ramp ID B) or currently
@@ -503,7 +507,9 @@ class Treatment:
             pop_visitors[data_values.COLUMNS.SBP_MEDICATION]
             != self.sbp_treatment_map[max(self.sbp_treatment_map)]
         ].index
-        medication_change = to_prescribe_b.union(to_prescribe_d.intersection(adherent).intersection(not_already_max_medicated))
+        medication_change = to_prescribe_b.union(
+            to_prescribe_d.intersection(adherent).intersection(not_already_max_medicated)
+        )
         pop_visitors.loc[medication_change, data_values.COLUMNS.SBP_MEDICATION] = (
             pop_visitors[data_values.COLUMNS.SBP_MEDICATION].map(
                 {v: k for k, v in self.sbp_treatment_map.items()}

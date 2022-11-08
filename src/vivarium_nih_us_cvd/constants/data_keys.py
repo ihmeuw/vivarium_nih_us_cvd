@@ -260,9 +260,7 @@ SBP_MEDICATION_ADHERENCE = __SBPMedicationAdherence()
 
 
 class __Outreach(NamedTuple):
-    DISTRIBUTION: TargetString = TargetString(
-        "risk_factor.outreach.distribution"
-    )
+    DISTRIBUTION: TargetString = TargetString("risk_factor.outreach.distribution")
 
     @property
     def name(self):
