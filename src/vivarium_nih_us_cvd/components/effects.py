@@ -39,12 +39,12 @@ class OutreachEffect:
     def _register_target_modifiers(self, builder: Builder) -> None:
         builder.value.register_value_modifier(
             data_values.PIPELINES.SBP_MEDICATION_ADHERENCE_EXPOSURE,
-            modifier=self._sbp_adherence_modifier,
+            modifier=self._sbp_adherence_modifier(builder),
         )
 
         builder.value.register_value_modifier(
             data_values.PIPELINES.LDLC_MEDICATION_ADHERENCE_EXPOSURE,
-            modifier=self._ldlc_adherence_modifier,
+            modifier=self._ldlc_adherence_modifier(builder),
         )
 
     def _sbp_adherence_modifier(self, builder: Builder) -> Callable[[pd.Index, pd.Series], pd.Series]:
@@ -61,7 +61,6 @@ class OutreachEffect:
 
     def _adjust_target(self, index: pd.Index, target: pd.Series, medication_type: str) -> pd.Series:
         clock_time = self.clock()
-        breakpoint()  # save for next PR
         # Do not adjust target on intialization. We do this because during
         # initialization the Treatment component sets the medication adherence
         # state table columns equal to the medication adherence pipeline values;

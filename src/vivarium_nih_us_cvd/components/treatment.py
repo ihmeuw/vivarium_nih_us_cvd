@@ -329,7 +329,6 @@ class Treatment:
         )
 
         # Enroll in outreach intervention
-        breakpoint()
         maybe_enroll_in_outreach = maybe_enroll_in_outreach_sbp.union(maybe_enroll_in_outreach_ldlc)
         pop.loc[mask_emergency] = self.enroll_in_outreach(pop_visitors=pop.loc[mask_emergency], maybe_enroll=maybe_enroll_in_outreach)
         
@@ -440,7 +439,6 @@ class Treatment:
         pop.loc[visitors], maybe_enroll_in_outreach_ldlc = self.apply_ldlc_treatment_ramp(pop_visitors=pop.loc[visitors])
 
         # Enroll in outreach intervention
-        breakpoint()
         maybe_enroll_in_outreach = maybe_enroll_in_outreach_sbp.union(maybe_enroll_in_outreach_ldlc)
         pop.loc[visitors] = self.enroll_in_outreach(pop_visitors=pop.loc[visitors], maybe_enroll=maybe_enroll_in_outreach)
 
@@ -686,7 +684,6 @@ class Treatment:
         current_outreach = pop_visitors.loc[maybe_enroll, data_values.COLUMNS.OUTREACH]
         new_outreach = self.outreach(maybe_enroll)
         to_enroll = current_outreach[current_outreach != new_outreach].index
-        breakpoint()
         if not to_enroll.empty:
             # Update the outreach column with the new pipeline values. This
             # is then used in OutreachEffect which registers a value modifier
