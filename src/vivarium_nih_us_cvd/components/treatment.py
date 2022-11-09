@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -318,16 +318,23 @@ class Treatment:
             == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
         )
         mask_emergency = mask_acute_is | mask_acute_mi
-        pop.loc[mask_emergency] = self.apply_sbp_treatment_ramp(
+        pop.loc[mask_emergency], maybe_enroll_in_outreach_sbp = self.apply_sbp_treatment_ramp(
             pop_visitors=pop.loc[mask_emergency],
             exposure_pipeline=self.gbd_sbp,
         )
-        pop.loc[mask_emergency] = self.apply_ldlc_treatment_ramp(
+        pop.loc[mask_emergency], maybe_enroll_in_outreach_ldlc = self.apply_ldlc_treatment_ramp(
             pop_visitors=pop.loc[mask_emergency],
             ldlc_pipeline=self.gbd_ldlc,
             sbp_pipeline=self.gbd_sbp,
         )
 
+        # Enroll in outreach intervention
+        breakpoint()
+        maybe_enroll_in_outreach = maybe_enroll_in_outreach_sbp.union(maybe_enroll_in_outreach_ldlc)
+        pop.loc[mask_emergency] = self.enroll_in_outreach(pop_visitors=pop.loc[mask_emergency], maybe_enroll=maybe_enroll_in_outreach)
+        
+        # We update the medication adherence columns and the outreach column here
+        # because self.enroll_in_outreach does not update these during initialization
         self.population_view.update(
             pop[
                 [
@@ -429,23 +436,26 @@ class Treatment:
             )
         ].index
 
-        pop.loc[visitors] = self.apply_sbp_treatment_ramp(pop_visitors=pop.loc[visitors])
-        pop.loc[visitors] = self.apply_ldlc_treatment_ramp(pop_visitors=pop.loc[visitors])
+        pop.loc[visitors], maybe_enroll_in_outreach_sbp = self.apply_sbp_treatment_ramp(pop_visitors=pop.loc[visitors])
+        pop.loc[visitors], maybe_enroll_in_outreach_ldlc = self.apply_ldlc_treatment_ramp(pop_visitors=pop.loc[visitors])
+
+        # Enroll in outreach intervention
+        breakpoint()
+        maybe_enroll_in_outreach = maybe_enroll_in_outreach_sbp.union(maybe_enroll_in_outreach_ldlc)
+        pop.loc[visitors] = self.enroll_in_outreach(pop_visitors=pop.loc[visitors], maybe_enroll=maybe_enroll_in_outreach)
 
         self.population_view.update(
             pop[
                 [
                     data_values.COLUMNS.SBP_MEDICATION,
                     data_values.COLUMNS.LDLC_MEDICATION,
-                    data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
-                    data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
                 ]
             ]
         )
 
     def apply_sbp_treatment_ramp(
         self, pop_visitors: pd.DataFrame, exposure_pipeline: Optional[Pipeline] = None
-    ) -> pd.DataFrame:
+    ) -> Tuple[pd.DataFrame, pd.Index]:
         """Applies the SBP treatment ramp
 
         Arguments:
@@ -527,12 +537,11 @@ class Treatment:
             + 1
         ).map(self.sbp_treatment_map)
 
-        # Apply outreach intervention to groups b, c, and everyone already
-        # on medication
+        # Determine potential new outreach enrollees; applies to groups b, c, and
+        # everyone already on medication
         maybe_enroll = to_prescribe_b.union(to_prescribe_c).union(currently_medicated)
-        pop_visitors = self.enroll_in_outreach(pop_visitors, maybe_enroll)
 
-        return pop_visitors
+        return pop_visitors, maybe_enroll
 
     def apply_ldlc_treatment_ramp(
         self,
@@ -659,12 +668,11 @@ class Treatment:
             + 1
         ).map(self.ldlc_treatment_map)
 
-        # Apply outreach intervention to groups 'newly_prescribed' (d, e, f)
-        # and simulants already on medication
+        # # Determine potential new outreach enrollees; applies to groups
+        # 'newly_prescribed' (d, e, f) and simulants already on medication
         maybe_enroll = newly_prescribed.union(currently_medicated)
-        pop_visitors = self.enroll_in_outreach(pop_visitors, maybe_enroll)
 
-        return pop_visitors
+        return pop_visitors, maybe_enroll
 
     def enroll_in_outreach(
         self, pop_visitors: pd.DataFrame, maybe_enroll: pd.Index

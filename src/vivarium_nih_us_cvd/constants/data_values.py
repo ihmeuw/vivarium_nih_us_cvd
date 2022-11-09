@@ -64,7 +64,6 @@ class __TimestepCleanupPriorities(NamedTuple):
 
     HEALTHCARE_VISITS: int = 5
     TREATMENT: int = 6
-    OUTREACH: int = 7
 
     @property
     def name(self):
