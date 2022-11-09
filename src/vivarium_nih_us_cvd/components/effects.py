@@ -34,28 +34,29 @@ class OutreachEffect:
         self.simulation_start_time = get_time_stamp(builder.configuration.time.start)
         self.randomness = builder.randomness.get_stream(self.name)
         self.exposure = builder.value.get_value(data_values.PIPELINES.OUTREACH_EXPOSURE)
-        self.sbp_medication_adherence_target_modifier = (
-            self._get_sbp_medication_adherence_target_modifier(builder)
-        )
-        self.ldlc_medication_adherence_target_modifier = (
-            self._get_ldlc_medication_adherence_target_modifier(builder)
-        )
         self._register_target_modifiers(builder)
 
-    def _get_sbp_medication_adherence_target_modifier(
-        self, builder: Builder
-    ) -> Callable[[pd.Index, pd.Series], pd.Series]:
+    def _register_target_modifiers(self, builder: Builder) -> None:
+        builder.value.register_value_modifier(
+            data_values.PIPELINES.SBP_MEDICATION_ADHERENCE_EXPOSURE,
+            modifier=self._sbp_adherence_modifier,
+        )
+
+        builder.value.register_value_modifier(
+            data_values.PIPELINES.LDLC_MEDICATION_ADHERENCE_EXPOSURE,
+            modifier=self._ldlc_adherence_modifier,
+        )
+
+    def _sbp_adherence_modifier(self, builder: Builder) -> Callable[[pd.Index, pd.Series], pd.Series]:
         def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
             return self._adjust_target(index=index, target=target, medication_type="sbp")
-
+        
         return adjust_target
 
-    def _get_ldlc_medication_adherence_target_modifier(
-        self, builder: Builder
-    ) -> Callable[[pd.Index, pd.Series], pd.Series]:
+    def _ldlc_adherence_modifier(self, builder: Builder) -> Callable[[pd.Index, pd.Series], pd.Series]:
         def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
             return self._adjust_target(index=index, target=target, medication_type="ldlc")
-
+        
         return adjust_target
 
     def _adjust_target(self, index: pd.Index, target: pd.Series, medication_type: str) -> pd.Series:
@@ -79,14 +80,3 @@ class OutreachEffect:
             target[primary_non_adherent] = adjusted
 
         return target
-
-    def _register_target_modifiers(self, builder: Builder) -> None:
-        builder.value.register_value_modifier(
-            data_values.PIPELINES.SBP_MEDICATION_ADHERENCE_EXPOSURE,
-            modifier=self.sbp_medication_adherence_target_modifier,
-        )
-
-        builder.value.register_value_modifier(
-            data_values.PIPELINES.LDLC_MEDICATION_ADHERENCE_EXPOSURE,
-            modifier=self.ldlc_medication_adherence_target_modifier,
-        )
