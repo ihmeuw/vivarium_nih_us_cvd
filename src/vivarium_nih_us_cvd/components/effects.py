@@ -30,6 +30,8 @@ class OutreachEffect:
     #################
 
     def setup(self, builder: Builder) -> None:
+        self.clock = builder.time.clock()
+        self.simulation_start_time = get_time_stamp(builder.configuration.time.start)
         self.randomness = builder.randomness.get_stream(self.name)
         self.population_view = builder.population.get_view(["age", "sex"])
         self.exposure = builder.value.get_value(data_values.PIPELINES.OUTREACH_EXPOSURE)
@@ -45,9 +47,7 @@ class OutreachEffect:
         self, builder: Builder
     ) -> Callable[[pd.Index, pd.Series], pd.Series]:
         def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
-            return self._adjust_target(
-                index=index, target=target, medication_type="sbp", builder=builder
-            )
+            return self._adjust_target(index=index, target=target, medication_type="sbp")
 
         return adjust_target
 
@@ -55,20 +55,19 @@ class OutreachEffect:
         self, builder: Builder
     ) -> Callable[[pd.Index, pd.Series], pd.Series]:
         def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
-            return self._adjust_target(
-                index=index, target=target, medication_type="ldlc", builder=builder
-            )
+            return self._adjust_target(index=index, target=target, medication_type="ldlc")
 
         return adjust_target
 
-    def _adjust_target(
-        self, index: pd.Index, target: pd.Series, medication_type: str, builder: Builder
-    ) -> pd.Series:
-        clock_time = builder.time.clock()()
-        simulation_start_time = get_time_stamp(builder.configuration.time.start)
+    def _adjust_target(self, index: pd.Index, target: pd.Series, medication_type: str) -> pd.Series:
+        clock_time = self.clock()
         breakpoint()  # save for next PR
-        # Do not adjust target on intialization
-        if clock_time >= simulation_start_time:  # not initialization
+        # Do not adjust target on intialization. We do this because during
+        # initialization the Treatment component sets the medication adherence
+        # state table columns equal to the medication adherence pipeline values;
+        # this modifier implements the outreach intervention treatment effect
+        # which we do want to be active upon initialization
+        if clock_time >= self.simulation_start_time:  # not initialization
             primary_non_adherent = target[
                 target == data_values.MEDICATION_ADHERENCE_TYPE.PRIMARY_NON_ADHERENT
             ].index
