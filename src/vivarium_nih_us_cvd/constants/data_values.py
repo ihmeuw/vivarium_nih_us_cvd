@@ -517,21 +517,3 @@ class ScaleupBaseClass(NamedTuple):
     @property
     def name(self):
         return "scaleup_base_class"
-
-
-class __ScaleupValues(NamedTuple):
-    """Values used to define linear scaleups"""
-
-    OUTREACH_50: ScaleupBaseClass = ScaleupBaseClass(
-        "outreach_50", 2023, 1, 1, 2024, 1, 1, 0.0, 0.5
-    )
-    OUTREACH_100: ScaleupBaseClass = ScaleupBaseClass(
-        "outreach_100", 2023, 1, 1, 2024, 1, 1, 0.0, 1.0
-    )
-
-    @property
-    def name(self):
-        return "scaleup_values"
-
-
-SCALEUP_VALUES = __ScaleupValues()
