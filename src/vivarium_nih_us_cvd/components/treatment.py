@@ -322,16 +322,23 @@ class Treatment:
             pop_visitors=pop.loc[mask_emergency],
             exposure_pipeline=self.gbd_sbp,
         )
-        pop.loc[mask_emergency], maybe_enroll_in_outreach_ldlc = self.apply_ldlc_treatment_ramp(
+        (
+            pop.loc[mask_emergency],
+            maybe_enroll_in_outreach_ldlc,
+        ) = self.apply_ldlc_treatment_ramp(
             pop_visitors=pop.loc[mask_emergency],
             ldlc_pipeline=self.gbd_ldlc,
             sbp_pipeline=self.gbd_sbp,
         )
 
         # Enroll in outreach intervention
-        maybe_enroll_in_outreach = maybe_enroll_in_outreach_sbp.union(maybe_enroll_in_outreach_ldlc)
-        pop.loc[mask_emergency] = self.enroll_in_outreach(pop_visitors=pop.loc[mask_emergency], maybe_enroll=maybe_enroll_in_outreach)
-        
+        maybe_enroll_in_outreach = maybe_enroll_in_outreach_sbp.union(
+            maybe_enroll_in_outreach_ldlc
+        )
+        pop.loc[mask_emergency] = self.enroll_in_outreach(
+            pop_visitors=pop.loc[mask_emergency], maybe_enroll=maybe_enroll_in_outreach
+        )
+
         # We update the medication adherence columns and the outreach column here
         # because self.enroll_in_outreach does not update these during initialization
         self.population_view.update(
@@ -435,12 +442,20 @@ class Treatment:
             )
         ].index
 
-        pop.loc[visitors], maybe_enroll_in_outreach_sbp = self.apply_sbp_treatment_ramp(pop_visitors=pop.loc[visitors])
-        pop.loc[visitors], maybe_enroll_in_outreach_ldlc = self.apply_ldlc_treatment_ramp(pop_visitors=pop.loc[visitors])
+        pop.loc[visitors], maybe_enroll_in_outreach_sbp = self.apply_sbp_treatment_ramp(
+            pop_visitors=pop.loc[visitors]
+        )
+        pop.loc[visitors], maybe_enroll_in_outreach_ldlc = self.apply_ldlc_treatment_ramp(
+            pop_visitors=pop.loc[visitors]
+        )
 
         # Enroll in outreach intervention
-        maybe_enroll_in_outreach = maybe_enroll_in_outreach_sbp.union(maybe_enroll_in_outreach_ldlc)
-        pop.loc[visitors] = self.enroll_in_outreach(pop_visitors=pop.loc[visitors], maybe_enroll=maybe_enroll_in_outreach)
+        maybe_enroll_in_outreach = maybe_enroll_in_outreach_sbp.union(
+            maybe_enroll_in_outreach_ldlc
+        )
+        pop.loc[visitors] = self.enroll_in_outreach(
+            pop_visitors=pop.loc[visitors], maybe_enroll=maybe_enroll_in_outreach
+        )
 
         self.population_view.update(
             pop[
