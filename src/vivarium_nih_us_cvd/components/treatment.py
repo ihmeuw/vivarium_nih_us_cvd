@@ -688,8 +688,12 @@ class Treatment:
             self.population_view.update(pop_visitors[[data_values.COLUMNS.OUTREACH]])
             # With the just-updated outreach column, update the medication
             # adherence columns with pipeline values
-            pop_visitors.loc[to_enroll, data_values.COLUMNS.SBP_MEDICATION_ADHERENCE] = self.sbp_medication_adherence(to_enroll)
-            pop_visitors.loc[to_enroll, data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE] = self.ldlc_medication_adherence(to_enroll)
+            pop_visitors.loc[
+                to_enroll, data_values.COLUMNS.SBP_MEDICATION_ADHERENCE
+            ] = self.sbp_medication_adherence(to_enroll)
+            pop_visitors.loc[
+                to_enroll, data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE
+            ] = self.ldlc_medication_adherence(to_enroll)
             self.population_view.update(
                 pop_visitors[
                     [

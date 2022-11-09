@@ -1,7 +1,8 @@
 from typing import Dict
 
-from vivarium_nih_us_cvd.constants import data_values
 from vivarium_public_health.treatment import LinearScaleUp
+
+from vivarium_nih_us_cvd.constants import data_values
 
 
 class OutreachInterventionScaleUp(LinearScaleUp):
