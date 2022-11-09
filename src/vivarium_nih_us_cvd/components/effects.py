@@ -39,12 +39,12 @@ class OutreachEffect:
     def _register_target_modifiers(self, builder: Builder) -> None:
         builder.value.register_value_modifier(
             data_values.PIPELINES.SBP_MEDICATION_ADHERENCE_EXPOSURE,
-            modifier=self._sbp_adherence_modifier,
+            modifier=self._sbp_adherence_modifier(builder),
         )
 
         builder.value.register_value_modifier(
             data_values.PIPELINES.LDLC_MEDICATION_ADHERENCE_EXPOSURE,
-            modifier=self._ldlc_adherence_modifier,
+            modifier=self._ldlc_adherence_modifier(builder),
         )
 
     def _sbp_adherence_modifier(self, builder: Builder) -> Callable[[pd.Index, pd.Series], pd.Series]:
