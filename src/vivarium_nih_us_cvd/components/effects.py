@@ -12,13 +12,7 @@ class OutreachEffect:
     """A component to model the impact of the outreach risk on medication adherence levels"""
 
     def __init__(self):
-        self.exposure_pipeline_name = data_values.PIPELINES.OUTREACH_EXPOSURE
-        self.sbp_target_pipeline_name = (
-            data_values.PIPELINES.SBP_MEDICATION_ADHERENCE_EXPOSURE
-        )
-        self.ldlc_target_pipeline_name = (
-            data_values.PIPELINES.LDLC_MEDICATION_ADHERENCE_EXPOSURE
-        )
+        pass
 
     def __repr__(self):
         return "OutreachEffect"
@@ -38,7 +32,7 @@ class OutreachEffect:
     def setup(self, builder: Builder) -> None:
         self.randomness = builder.randomness.get_stream(self.name)
         self.population_view = builder.population.get_view(["age", "sex"])
-        self.exposure = builder.value.get_value(self.exposure_pipeline_name)
+        self.exposure = builder.value.get_value(data_values.PIPELINES.OUTREACH_EXPOSURE)
         self.sbp_medication_adherence_target_modifier = (
             self._get_sbp_medication_adherence_target_modifier(builder)
         )
@@ -90,11 +84,11 @@ class OutreachEffect:
 
     def _register_target_modifiers(self, builder: Builder) -> None:
         builder.value.register_value_modifier(
-            self.sbp_target_pipeline_name,
+            data_values.PIPELINES.SBP_MEDICATION_ADHERENCE_EXPOSURE,
             modifier=self.sbp_medication_adherence_target_modifier,
         )
 
         builder.value.register_value_modifier(
-            self.ldlc_target_pipeline_name,
+            data_values.PIPELINES.LDLC_MEDICATION_ADHERENCE_EXPOSURE,
             modifier=self.ldlc_medication_adherence_target_modifier,
         )
