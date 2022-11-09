@@ -33,7 +33,6 @@ class OutreachEffect:
         self.clock = builder.time.clock()
         self.simulation_start_time = get_time_stamp(builder.configuration.time.start)
         self.randomness = builder.randomness.get_stream(self.name)
-        self.population_view = builder.population.get_view(["age", "sex"])
         self.exposure = builder.value.get_value(data_values.PIPELINES.OUTREACH_EXPOSURE)
         self.sbp_medication_adherence_target_modifier = (
             self._get_sbp_medication_adherence_target_modifier(builder)
