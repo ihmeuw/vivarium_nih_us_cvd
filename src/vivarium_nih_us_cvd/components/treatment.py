@@ -447,8 +447,6 @@ class Treatment:
                 [
                     data_values.COLUMNS.SBP_MEDICATION,
                     data_values.COLUMNS.LDLC_MEDICATION,
-                    data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
-                    data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
                 ]
             ]
         )
