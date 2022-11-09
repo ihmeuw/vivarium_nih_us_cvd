@@ -47,19 +47,25 @@ class OutreachEffect:
             modifier=self._ldlc_adherence_modifier(builder),
         )
 
-    def _sbp_adherence_modifier(self, builder: Builder) -> Callable[[pd.Index, pd.Series], pd.Series]:
+    def _sbp_adherence_modifier(
+        self, builder: Builder
+    ) -> Callable[[pd.Index, pd.Series], pd.Series]:
         def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
             return self._adjust_target(index=index, target=target, medication_type="sbp")
-        
+
         return adjust_target
 
-    def _ldlc_adherence_modifier(self, builder: Builder) -> Callable[[pd.Index, pd.Series], pd.Series]:
+    def _ldlc_adherence_modifier(
+        self, builder: Builder
+    ) -> Callable[[pd.Index, pd.Series], pd.Series]:
         def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
             return self._adjust_target(index=index, target=target, medication_type="ldlc")
-        
+
         return adjust_target
 
-    def _adjust_target(self, index: pd.Index, target: pd.Series, medication_type: str) -> pd.Series:
+    def _adjust_target(
+        self, index: pd.Index, target: pd.Series, medication_type: str
+    ) -> pd.Series:
         clock_time = self.clock()
         breakpoint()  # save for next PR
         # Do not adjust target on intialization. We do this because during
