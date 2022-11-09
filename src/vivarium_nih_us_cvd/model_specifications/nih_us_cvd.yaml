@@ -100,3 +100,15 @@ configuration:
         exposure: 0
     intervention:
         scenario: "outreach_50"
+        outreach:
+            date:
+                start:
+                    year: 2021
+                    month: 1
+                    day: 1
+                end:
+                    year: 2022
+                    month: 1
+                    day: 1
+            value:
+                end: 0.5

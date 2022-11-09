@@ -678,6 +678,7 @@ class Treatment:
         current_outreach = pop_visitors.loc[maybe_enroll, data_values.COLUMNS.OUTREACH]
         new_outreach = self.outreach(maybe_enroll)
         to_enroll = current_outreach[current_outreach != new_outreach].index
+        breakpoint()
         if not to_enroll.empty:
             # Update the outreach column with the new pipeline values. This
             # is then used in OutreachEffect which registers a value modifier
