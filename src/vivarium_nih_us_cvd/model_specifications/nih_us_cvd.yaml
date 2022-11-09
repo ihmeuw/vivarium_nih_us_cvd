@@ -48,6 +48,7 @@ components:
             - MedicationObserver("risk_factor.high_ldl_cholesterol")
 
             - OutreachEffect()
+            - OutreachInterventionScaleUp()
 
 configuration:
     input_data:
@@ -97,3 +98,5 @@ configuration:
         # outreach.exposure = 0.0 is the highest risk (no outreach means less
         # likely to take medication) but will map to cat2 (not cat1)
         exposure: 0
+    intervention:
+        scenario: "outreach_50"

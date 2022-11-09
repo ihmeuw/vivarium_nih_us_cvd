@@ -500,3 +500,39 @@ OUTREACH_EFFECTS = {
         "cat1": OUTREACH_EFFECT_LDLC.NO_CHANGE,
     },
 }
+
+
+class ScaleupBaseClass(NamedTuple):
+    """Base class to define scaleup parameters"""
+
+    NAME: str
+    START_YEAR: int
+    START_MONTH: int
+    START_DAY: int
+    END_YEAR: int
+    END_MONTH: int
+    END_DAY: int
+    START_VALUE: float
+    END_VALUE: float
+
+    @property
+    def name(self):
+        return "scaleup_base_class"
+
+
+class __ScaleupValues(NamedTuple):
+    """Values used to define linear scaleups"""
+
+    OUTREACH_50: ScaleupBaseClass = ScaleupBaseClass(
+        "outreach_50", 2023, 1, 1, 2024, 1, 1, 0.0, 0.5
+    )
+    OUTREACH_100: ScaleupBaseClass = ScaleupBaseClass(
+        "outreach_100", 2023, 1, 1, 2024, 1, 1, 0.0, 1.0
+    )
+
+    @property
+    def name(self):
+        return "medication_coverage_coefficients"
+
+
+SCALEUP_VALUES = __ScaleupValues()

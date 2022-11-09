@@ -72,7 +72,6 @@ class OutreachEffect:
     ) -> pd.Series:
         clock_time = builder.time.clock()()
         simulation_start_time = get_time_stamp(builder.configuration.time.start)
-        breakpoint()  # save for next PR
         # Do not adjust target on intialization
         if clock_time >= simulation_start_time:  # not initialization
             primary_non_adherent = target[
