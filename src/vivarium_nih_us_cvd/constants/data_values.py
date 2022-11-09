@@ -499,21 +499,3 @@ OUTREACH_EFFECTS = {
         "cat1": OUTREACH_EFFECT_LDLC.NO_CHANGE,
     },
 }
-
-
-class ScaleupBaseClass(NamedTuple):
-    """Base class to define scaleup parameters"""
-
-    NAME: str
-    START_YEAR: int
-    START_MONTH: int
-    START_DAY: int
-    END_YEAR: int
-    END_MONTH: int
-    END_DAY: int
-    START_VALUE: float
-    END_VALUE: float
-
-    @property
-    def name(self):
-        return "scaleup_base_class"
