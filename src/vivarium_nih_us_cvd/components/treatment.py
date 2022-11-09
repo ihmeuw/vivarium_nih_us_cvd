@@ -333,6 +333,8 @@ class Treatment:
         maybe_enroll_in_outreach = maybe_enroll_in_outreach_sbp.union(maybe_enroll_in_outreach_ldlc)
         pop.loc[mask_emergency] = self.enroll_in_outreach(pop_visitors=pop.loc[mask_emergency], maybe_enroll=maybe_enroll_in_outreach)
         
+        # We update the medication adherence columns and the outreach column here
+        # because self.enroll_in_outreach does not update these during initialization
         self.population_view.update(
             pop[
                 [
