@@ -532,7 +532,7 @@ class __ScaleupValues(NamedTuple):
 
     @property
     def name(self):
-        return "medication_coverage_coefficients"
+        return "scaleup_values"
 
 
 SCALEUP_VALUES = __ScaleupValues()
