@@ -49,6 +49,7 @@ components:
 
             - OutreachEffect()
             - OutreachInterventionScaleUp("risk_factor.outreach")
+            - InterventionObserver("risk_factor.outreach")
 
 configuration:
     input_data:

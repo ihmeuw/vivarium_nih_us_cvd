@@ -5,6 +5,7 @@ from .interventions import OutreachInterventionScaleUp
 from .observers import (
     ContinuousRiskObserver,
     HealthcareVisitObserver,
+    InterventionObserver,
     MedicationObserver,
     ResultsStratifier,
 )
