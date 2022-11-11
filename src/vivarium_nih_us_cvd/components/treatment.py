@@ -332,7 +332,6 @@ class Treatment:
         )
 
         # Enroll in outreach intervention
-        breakpoint()
         maybe_enroll_in_outreach = maybe_enroll_in_outreach_sbp.union(
             maybe_enroll_in_outreach_ldlc
         )
@@ -451,7 +450,6 @@ class Treatment:
         )
 
         # Enroll in outreach intervention
-        breakpoint()
         maybe_enroll_in_outreach = maybe_enroll_in_outreach_sbp.union(
             maybe_enroll_in_outreach_ldlc
         )
