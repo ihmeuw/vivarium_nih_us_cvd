@@ -20,6 +20,7 @@ class __Columns(NamedTuple):
     BASELINE_LDLC_MEDICATION: str = "baseline_ldlc_medication"
     SBP_MULTIPLIER: str = "sbp_multiplier"
     LDLC_MULTIPLIER: str = "ldlc_multiplier"
+    OUTREACH: str = "outreach"
 
     @property
     def name(self):
@@ -446,5 +447,55 @@ RISK_EXPOSURE_LIMITS = {
     "high_systolic_blood_pressure": {
         "minimum": 50,
         "maximum": 300,
+    },
+}
+
+
+#######################
+# Outreach Parameters #
+#######################
+
+
+class __OutreachEffectSBP(NamedTuple):
+    """outreach effect on sbp medication primary_non_adherent levels"""
+
+    TO_ADHERENT: float = 0.4455
+    TO_SECONDARY_NON_ADHERENT: float = 0.0608
+    NO_CHANGE: float = 0.4937
+
+    @property
+    def name(self):
+        return "sbp_multiplier"
+
+
+OUTREACH_EFFECT_SBP = __OutreachEffectSBP()
+
+
+class __OutreachEffectLDLC(NamedTuple):
+    """outreach effect on ldlc medication primary_non_adherent levels"""
+
+    TO_ADHERENT: float = 0.4653
+    TO_SECONDARY_NON_ADHERENT: float = 0.0695
+    NO_CHANGE: float = 0.4652
+
+    @property
+    def name(self):
+        return "sbp_multiplier"
+
+
+OUTREACH_EFFECT_LDLC = __OutreachEffectLDLC()
+
+
+# Define the outreach effects on primary_non_adherence (cat 1) levels
+OUTREACH_EFFECTS = {
+    "sbp": {
+        "cat3": OUTREACH_EFFECT_SBP.TO_ADHERENT,
+        "cat2": OUTREACH_EFFECT_SBP.TO_SECONDARY_NON_ADHERENT,
+        "cat1": OUTREACH_EFFECT_SBP.NO_CHANGE,
+    },
+    "ldlc": {
+        "cat3": OUTREACH_EFFECT_LDLC.TO_ADHERENT,
+        "cat2": OUTREACH_EFFECT_LDLC.TO_SECONDARY_NON_ADHERENT,
+        "cat1": OUTREACH_EFFECT_LDLC.NO_CHANGE,
     },
 }
