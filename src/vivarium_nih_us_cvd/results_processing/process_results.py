@@ -195,7 +195,9 @@ def get_medication_person_time_data(data: pd.DataFrame, measure: str) -> pd.Data
         data = data.rename(columns=lambda c: c.replace(to_replace, replace_with))
     data = get_measure_data(data, measure)
     # Map medication adherence categories to descriptions
-    data["medication_adherence"] = data["medication_adherence"].map(data_values.MEDICATION_ADHERENCE_CATEGORY_MAPPING)
+    data["medication_adherence"] = data["medication_adherence"].map(
+        data_values.MEDICATION_ADHERENCE_CATEGORY_MAPPING
+    )
     return sort_data(data)
 
 

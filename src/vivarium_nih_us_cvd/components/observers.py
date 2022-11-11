@@ -238,12 +238,11 @@ class CategoricalColumnObserver:
     def _get_configuration_defaults(self) -> Dict[str, Dict]:
         return {
             "observers": {
-                f"{self.field}": CategoricalColumnObserver.configuration_defaults["observers"][
-                    "field"
-                ]
+                f"{self.field}": CategoricalColumnObserver.configuration_defaults[
+                    "observers"
+                ]["field"]
             }
         }
-
 
     ##############
     # Properties #
@@ -279,9 +278,13 @@ class CategoricalColumnObserver:
 
     def _get_categories(self) -> List[str]:
         mapping = {
-            data_values.COLUMNS.SBP_MEDICATION: [level.DESCRIPTION for level in data_values.SBP_MEDICATION_LEVEL],
-            data_values.COLUMNS.LDLC_MEDICATION: [level.DESCRIPTION for level in data_values.LDLC_MEDICATION_LEVEL],
-            data_values.COLUMNS.OUTREACH: list(data_values.INTERVENTION_CATEGORY_MAPPING)
+            data_values.COLUMNS.SBP_MEDICATION: [
+                level.DESCRIPTION for level in data_values.SBP_MEDICATION_LEVEL
+            ],
+            data_values.COLUMNS.LDLC_MEDICATION: [
+                level.DESCRIPTION for level in data_values.LDLC_MEDICATION_LEVEL
+            ],
+            data_values.COLUMNS.OUTREACH: list(data_values.INTERVENTION_CATEGORY_MAPPING),
         }
 
         return mapping[self.field]
@@ -289,7 +292,7 @@ class CategoricalColumnObserver:
     def _get_population_view(self, builder: Builder) -> PopulationView:
         columns_required = ["alive", self.field]
         return builder.population.get_view(columns_required)
-    
+
     def _register_time_step_prepare_listener(self, builder: Builder) -> None:
         # In order to get an accurate representation of person time we need to look at
         # the state table before anything happens.
@@ -300,7 +303,7 @@ class CategoricalColumnObserver:
             self.metrics_pipeline_name,
             modifier=self.metrics,
         )
-    
+
     ########################
     # Event-driven methods #
     ########################
@@ -309,7 +312,9 @@ class CategoricalColumnObserver:
         if event.time < self.observation_start_time:
             return
         step_size_in_years = to_years(event.step_size)
-        exposures = self.population_view.get(event.index, query='alive == "alive"')[self.field]
+        exposures = self.population_view.get(event.index, query='alive == "alive"')[
+            self.field
+        ]
         groups = self.stratifier.group(
             exposures.index, self.config.include, self.config.exclude
         )
