@@ -11,9 +11,6 @@ from vivarium_nih_us_cvd.constants import data_values
 class OutreachEffect:
     """A component to model the impact of the outreach risk on medication adherence levels"""
 
-    def __init__(self):
-        pass
-
     def __repr__(self):
         return "OutreachEffect"
 
@@ -39,29 +36,19 @@ class OutreachEffect:
     def _register_target_modifiers(self, builder: Builder) -> None:
         builder.value.register_value_modifier(
             data_values.PIPELINES.SBP_MEDICATION_ADHERENCE_EXPOSURE,
-            modifier=self._sbp_adherence_modifier(builder),
+            modifier=self._sbp_adherence_modifier,
         )
 
         builder.value.register_value_modifier(
             data_values.PIPELINES.LDLC_MEDICATION_ADHERENCE_EXPOSURE,
-            modifier=self._ldlc_adherence_modifier(builder),
+            modifier=self._ldlc_adherence_modifier,
         )
 
-    def _sbp_adherence_modifier(
-        self, builder: Builder
-    ) -> Callable[[pd.Index, pd.Series], pd.Series]:
-        def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
-            return self._adjust_target(index=index, target=target, medication_type="sbp")
+    def _sbp_adherence_modifier(self, index: pd.Index, target: pd.Series) -> pd.Series:
+        return self._adjust_target(index=index, target=target, medication_type="sbp")
 
-        return adjust_target
-
-    def _ldlc_adherence_modifier(
-        self, builder: Builder
-    ) -> Callable[[pd.Index, pd.Series], pd.Series]:
-        def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
-            return self._adjust_target(index=index, target=target, medication_type="ldlc")
-
-        return adjust_target
+    def _ldlc_adherence_modifier(self, index: pd.Index, target: pd.Series) -> pd.Series:
+        return self._adjust_target(index=index, target=target, medication_type="ldlc")
 
     def _adjust_target(
         self, index: pd.Index, target: pd.Series, medication_type: str
