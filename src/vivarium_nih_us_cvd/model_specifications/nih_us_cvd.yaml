@@ -44,12 +44,12 @@ components:
             - HealthcareUtilization() # Note that this uses Treatment() as a sub-component
             - HealthcareVisitObserver()
         
-            - MedicationObserver("risk_factor.high_systolic_blood_pressure")
-            - MedicationObserver("risk_factor.high_ldl_cholesterol")
+            - CategoricalColumnObserver("sbp_medication")
+            - CategoricalColumnObserver("ldlc_medication")
 
             - OutreachEffect()
             - OutreachInterventionScaleUp("risk_factor.outreach")
-            - InterventionObserver("risk_factor.outreach")
+            - CategoricalColumnObserver("outreach")
 
 configuration:
     input_data:

@@ -28,18 +28,21 @@ RENAME_COLUMNS = {
 def make_measure_data(data):
     measure_data = MeasureData(
         population=get_population_data(data),
-        ylls=get_by_cause_measure_data(data, "ylls"),
-        ylds=get_by_cause_measure_data(data, "ylds"),
-        deaths=get_by_cause_measure_data(data, "deaths"),
-        state_person_time=get_state_person_time_measure_data(data, "state_person_time"),
+        ylls=get_measure_data(data, "ylls"),
+        ylds=get_measure_data(data, "ylds"),
+        deaths=get_measure_data(data, "deaths"),
+        state_person_time=get_measure_data(data, "state_person_time"),
         transition_count=get_transition_count_measure_data(data, "transition_count"),
-        risk_exposure_time=get_risk_exposure_time_data(data, "risk_exposure_time"),
-        healthcare_visits=get_healthcare_visit_data(data, "healthcare_visits"),
+        risk_exposure_time=get_measure_data(data, "risk_exposure_time"),
+        healthcare_visits=get_measure_data(data, "healthcare_visits"),
         sbp_medication_person_time=get_medication_person_time_data(
             data, "sbp_medication_person_time"
         ),
         ldlc_medication_person_time=get_medication_person_time_data(
             data, "ldlc_medication_person_time"
+        ),
+        outreach_intervention_person_time=get_intervention_person_time_data(
+            data, "outreach_intervention_person_time"
         ),
     )
     return measure_data
@@ -56,6 +59,7 @@ class MeasureData(NamedTuple):
     healthcare_visits: pd.DataFrame
     sbp_medication_person_time: pd.DataFrame
     ldlc_medication_person_time: pd.DataFrame
+    outreach_intervention_person_time: pd.DataFrame
 
     def dump(self, output_dir: Path):
         for key, df in self._asdict().items():
@@ -173,30 +177,10 @@ def get_measure_data(data: pd.DataFrame, measure: str) -> pd.DataFrame:
     return sort_data(data)
 
 
-def get_by_cause_measure_data(data: pd.DataFrame, measure: str) -> pd.DataFrame:
-    data = get_measure_data(data, measure)
-    return sort_data(data)
-
-
-def get_state_person_time_measure_data(data: pd.DataFrame, measure: str) -> pd.DataFrame:
-    data = get_measure_data(data, measure)
-    return sort_data(data)
-
-
 def get_transition_count_measure_data(data: pd.DataFrame, measure: str) -> pd.DataFrame:
     # Oops, edge case.
     # SDB - why drop 2041?
     data = data.drop(columns=[c for c in data.columns if "event_count" in c and "2041" in c])
-    data = get_measure_data(data, measure)
-    return sort_data(data)
-
-
-def get_risk_exposure_time_data(data: pd.DataFrame, measure: str) -> pd.DataFrame:
-    data = get_measure_data(data, measure)
-    return sort_data(data)
-
-
-def get_healthcare_visit_data(data: pd.DataFrame, measure: str) -> pd.DataFrame:
     data = get_measure_data(data, measure)
     return sort_data(data)
 
@@ -210,4 +194,13 @@ def get_medication_person_time_data(data: pd.DataFrame, measure: str) -> pd.Data
     for to_replace, replace_with in replacements.items():
         data = data.rename(columns=lambda c: c.replace(to_replace, replace_with))
     data = get_measure_data(data, measure)
+    # Map medication adherence categories to descriptions
+    data["medication_adherence"] = data["medication_adherence"].map(data_values.MEDICATION_ADHERENCE_CATEGORY_MAPPING)
+    return sort_data(data)
+
+
+def get_intervention_person_time_data(data: pd.DataFrame, measure: str) -> pd.DataFrame:
+    data = get_measure_data(data, measure)
+    # Map intervention categories to yes/no
+    data["intervention"] = data["intervention"].map(data_values.INTERVENTION_CATEGORY_MAPPING)
     return sort_data(data)
