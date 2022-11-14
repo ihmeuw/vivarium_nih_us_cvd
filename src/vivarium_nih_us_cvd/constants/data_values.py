@@ -377,6 +377,13 @@ class __MedicationAdherenceType(NamedTuple):
 MEDICATION_ADHERENCE_TYPE = __MedicationAdherenceType()
 
 
+MEDICATION_ADHERENCE_CATEGORY_MAPPING = {
+    MEDICATION_ADHERENCE_TYPE.ADHERENT: "adherent",
+    MEDICATION_ADHERENCE_TYPE.SECONDARY_NON_ADHERENT: "secondary_non_adherent",
+    MEDICATION_ADHERENCE_TYPE.PRIMARY_NON_ADHERENT: "primary_non_adherent",
+}
+
+
 # Define medication adherence level probabilitiies
 MEDICATION_ADHERENCE_TYPE_PROBABILITIY = {
     "sbp_medication_adherence": {
@@ -498,4 +505,9 @@ OUTREACH_EFFECTS = {
         "cat2": OUTREACH_EFFECT_LDLC.TO_SECONDARY_NON_ADHERENT,
         "cat1": OUTREACH_EFFECT_LDLC.NO_CHANGE,
     },
+}
+
+INTERVENTION_CATEGORY_MAPPING = {
+    "cat2": "no",
+    "cat1": "yes",
 }

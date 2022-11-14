@@ -45,8 +45,11 @@ RISK_EXPOSURE_TIME_TEMPLATE = (
     "total_exposure_time_risk_{RISK}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
 )
 VISIT_COUNT_TEMPLATE = "healthcare_visits_{VISIT_TYPE}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
-SBP_MEDICATION_PERSON_TIME_TEMPLATE = "sbp_medication_person_time_{SBP_MEDICATION}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}_medication_adherence_{MEDICATION_ADHERENCE_LEVEL}"
-LDLC_MEDICATION_PERSON_TIME_TEMPLATE = "ldlc_medication_person_time_{LDLC_MEDICATION}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}_medication_adherence_{MEDICATION_ADHERENCE_LEVEL}"
+SBP_MEDICATION_PERSON_TIME_TEMPLATE = "sbp_medication_{SBP_MEDICATION}_person_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}_medication_adherence_{MEDICATION_ADHERENCE}"
+LDLC_MEDICATION_PERSON_TIME_TEMPLATE = "ldlc_medication_{LDLC_MEDICATION}_person_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}_medication_adherence_{MEDICATION_ADHERENCE}"
+OUTREACH_INTERVENTION_PERSON_TIME_TEMPLATE = (
+    "outreach_{INTERVENTION}_person_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
+)
 
 
 COLUMN_TEMPLATES = {
@@ -60,6 +63,7 @@ COLUMN_TEMPLATES = {
     "healthcare_visits": VISIT_COUNT_TEMPLATE,
     "sbp_medication_person_time": SBP_MEDICATION_PERSON_TIME_TEMPLATE,
     "ldlc_medication_person_time": LDLC_MEDICATION_PERSON_TIME_TEMPLATE,
+    "outreach_intervention_person_time": OUTREACH_INTERVENTION_PERSON_TIME_TEMPLATE,
 }
 
 NON_COUNT_TEMPLATES = []
@@ -98,9 +102,10 @@ RISKS = (
     "high_ldl_cholesterol",
     "high_systolic_blood_pressure",
 )
-MEDICATION_ADHERENCE_LEVELS = tuple(x for x in data_values.MEDICATION_ADHERENCE_TYPE)
+MEDICATION_ADHERENCES = tuple(x for x in data_values.MEDICATION_ADHERENCE_TYPE)
 SBP_MEDICATIONS = tuple(x.DESCRIPTION for x in data_values.SBP_MEDICATION_LEVEL)
 LDLC_MEDICATIONS = tuple(x.DESCRIPTION for x in data_values.LDLC_MEDICATION_LEVEL)
+INTERVENTIONS = ("cat1", "cat2")
 
 TEMPLATE_FIELD_MAP = {
     "POP_STATE": POP_STATES,
@@ -113,9 +118,10 @@ TEMPLATE_FIELD_MAP = {
     "TRANSITION": models.TRANSITIONS,
     "RISK": RISKS,
     "VISIT_TYPE": data_values.VISIT_TYPE,
-    "MEDICATION_ADHERENCE_LEVEL": MEDICATION_ADHERENCE_LEVELS,
+    "MEDICATION_ADHERENCE": MEDICATION_ADHERENCES,
     "SBP_MEDICATION": SBP_MEDICATIONS,
     "LDLC_MEDICATION": LDLC_MEDICATIONS,
+    "INTERVENTION": INTERVENTIONS,
 }
 
 

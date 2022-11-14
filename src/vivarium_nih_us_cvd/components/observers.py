@@ -2,8 +2,10 @@ from collections import Counter
 from typing import Dict, List
 
 import pandas as pd
+from vivarium.config_tree import ConfigTree
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
+from vivarium.framework.population import PopulationView
 from vivarium.framework.time import get_time_stamp
 from vivarium_public_health.metrics.stratification import (
     ResultsStratifier as ResultsStratifier_,
@@ -209,25 +211,25 @@ class HealthcareVisitObserver:
         return metrics
 
 
-class MedicationObserver:
-    """Observes person-time on medication"""
+class CategoricalColumnObserver:
+    """Observes person-time of a categorical state table column"""
 
     configuration_defaults = {
         "observers": {
-            "medication": {
+            "column": {
                 "exclude": [],
                 "include": [],
-            },
-        },
+            }
+        }
     }
 
-    def __init__(self, risk):
-        self.medication_type = self._get_medication_type(risk)
-        self.medication_levels = self._get_medication_levels(risk)
+    def __init__(self, column):
+        self.column = column
         self.configuration_defaults = self._get_configuration_defaults()
+        self.metrics_pipeline_name = "metrics"
 
     def __repr__(self):
-        return f"MedicationObserver({self.medication_type})"
+        return f"PersonTimeObserver({self.column})"
 
     ##########################
     # Initialization methods #
@@ -236,27 +238,11 @@ class MedicationObserver:
     def _get_configuration_defaults(self) -> Dict[str, Dict]:
         return {
             "observers": {
-                self.medication_type: MedicationObserver.configuration_defaults["observers"][
-                    "medication"
-                ]
+                f"{self.column}": CategoricalColumnObserver.configuration_defaults[
+                    "observers"
+                ]["column"]
             }
         }
-
-    def _get_medication_type(self, risk: str) -> str:
-        mapping = {
-            "risk_factor.high_systolic_blood_pressure": data_values.COLUMNS.SBP_MEDICATION,
-            "risk_factor.high_ldl_cholesterol": data_values.COLUMNS.LDLC_MEDICATION,
-        }
-
-        return mapping[risk]
-
-    def _get_medication_levels(self, risk: str) -> List[str]:
-        mapping = {
-            "risk_factor.high_systolic_blood_pressure": data_values.SBP_MEDICATION_LEVEL,
-            "risk_factor.high_ldl_cholesterol": data_values.LDLC_MEDICATION_LEVEL,
-        }
-
-        return [level.DESCRIPTION for level in mapping[risk]]
 
     ##############
     # Properties #
@@ -264,7 +250,7 @@ class MedicationObserver:
 
     @property
     def name(self):
-        return f"medication_observer.{self.medication_type}"
+        return f"person_time_observer.{self.column}"
 
     #################
     # Setup methods #
@@ -275,43 +261,75 @@ class MedicationObserver:
             builder.configuration.time.observation_start
         )
         self.config = self._get_stratification_configuration(builder)
-        self.stratifier = builder.components.get_component(ResultsStratifier.name)
-        columns_required = ["alive", self.medication_type]
-        self.population_view = builder.population.get_view(columns_required)
+        self.stratifier = self._get_stratifier(builder)
+        self.categories = self._get_categories()
+        self.population_view = self._get_population_view(builder)
 
-        self.counter = Counter()
+        self.counts = Counter()
 
-        # The medications get updated at the end of the time step and so we want
-        # to observe the time on each medication at the beginning of each time
-        # step before any changes are made
+        self._register_time_step_prepare_listener(builder)
+        self._register_metrics_modifier(builder)
+
+    def _get_stratification_configuration(self, builder: Builder) -> ConfigTree:
+        return builder.configuration.observers[self.column]
+
+    def _get_stratifier(self, builder: Builder) -> ResultsStratifier:
+        return builder.components.get_component(ResultsStratifier.name)
+
+    def _get_categories(self) -> List[str]:
+        mapping = {
+            data_values.COLUMNS.SBP_MEDICATION: [
+                level.DESCRIPTION for level in data_values.SBP_MEDICATION_LEVEL
+            ],
+            data_values.COLUMNS.LDLC_MEDICATION: [
+                level.DESCRIPTION for level in data_values.LDLC_MEDICATION_LEVEL
+            ],
+            data_values.COLUMNS.OUTREACH: list(data_values.INTERVENTION_CATEGORY_MAPPING),
+        }
+
+        return mapping[self.column]
+
+    def _get_population_view(self, builder: Builder) -> PopulationView:
+        columns_required = ["alive", self.column]
+        return builder.population.get_view(columns_required)
+
+    def _register_time_step_prepare_listener(self, builder: Builder) -> None:
+        # In order to get an accurate representation of person time we need to look at
+        # the state table before anything happens.
         builder.event.register_listener("time_step__prepare", self.on_time_step_prepare)
-        builder.value.register_value_modifier("metrics", self.metrics)
 
-    def _get_stratification_configuration(self, builder: Builder) -> "ConfigTree":
-        return builder.configuration.observers[self.medication_type]
+    def _register_metrics_modifier(self, builder: Builder) -> None:
+        builder.value.register_value_modifier(
+            self.metrics_pipeline_name,
+            modifier=self.metrics,
+        )
+
+    ########################
+    # Event-driven methods #
+    ########################
 
     def on_time_step_prepare(self, event: Event):
         if event.time < self.observation_start_time:
             return
         step_size_in_years = to_years(event.step_size)
-        medications = self.population_view.get(event.index, query='alive == "alive"')[
-            self.medication_type
+        exposures = self.population_view.get(event.index, query='alive == "alive"')[
+            self.column
         ]
-
         groups = self.stratifier.group(
-            medications.index, self.config.include, self.config.exclude
+            exposures.index, self.config.include, self.config.exclude
         )
-        new_observations = {}
         for label, group_mask in groups:
-            for med in self.medication_levels:
-                med_mask = medications == med
-                key = f"{self.medication_type}_person_time_{med}_{label}"
-                new_observations[key] = (
-                    len(medications[group_mask & med_mask]) * step_size_in_years
-                )
+            for category in self.categories:
+                category_in_group_mask = group_mask & (exposures == category)
+                person_time_in_group = category_in_group_mask.sum() * step_size_in_years
+                key = f"{self.column}_{category}_person_time_{label}"
+                new_observations = {key: person_time_in_group}
+                self.counts.update(new_observations)
 
-        self.counter.update(new_observations)
+    ##################################
+    # Pipeline sources and modifiers #
+    ##################################
 
-    def metrics(self, index: "pd.Index", metrics: Dict[str, float]) -> Dict[str, float]:
-        metrics.update(self.counter)
+    def metrics(self, index: pd.Index, metrics: Dict) -> Dict:
+        metrics.update(self.counts)
         return metrics

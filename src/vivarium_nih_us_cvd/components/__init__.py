@@ -3,9 +3,9 @@ from .effects import OutreachEffect
 from .healthcare_utilization import HealthcareUtilization
 from .interventions import LinearScaleUp
 from .observers import (
+    CategoricalColumnObserver,
     ContinuousRiskObserver,
     HealthcareVisitObserver,
-    MedicationObserver,
     ResultsStratifier,
 )
 from .risks import AdjustedRisk
