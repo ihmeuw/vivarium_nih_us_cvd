@@ -47,7 +47,9 @@ RISK_EXPOSURE_TIME_TEMPLATE = (
 VISIT_COUNT_TEMPLATE = "healthcare_visits_{VISIT_TYPE}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
 SBP_MEDICATION_PERSON_TIME_TEMPLATE = "sbp_medication_{SBP_MEDICATION}_person_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}_medication_adherence_{MEDICATION_ADHERENCE}"
 LDLC_MEDICATION_PERSON_TIME_TEMPLATE = "ldlc_medication_{LDLC_MEDICATION}_person_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}_medication_adherence_{MEDICATION_ADHERENCE}"
-OUTREACH_INTERVENTION_PERSON_TIME_TEMPLATE = "outreach_{INTERVENTION}_person_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
+OUTREACH_INTERVENTION_PERSON_TIME_TEMPLATE = (
+    "outreach_{INTERVENTION}_person_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
+)
 
 
 COLUMN_TEMPLATES = {

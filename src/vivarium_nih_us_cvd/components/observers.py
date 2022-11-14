@@ -10,7 +10,6 @@ from vivarium.framework.time import get_time_stamp
 from vivarium_public_health.metrics.stratification import (
     ResultsStratifier as ResultsStratifier_,
 )
-from vivarium_public_health.metrics.risk import CategoricalRiskObserver
 from vivarium_public_health.metrics.stratification import Source, SourceType
 from vivarium_public_health.utilities import EntityString, to_years
 
@@ -239,12 +238,11 @@ class CategoricalColumnObserver:
     def _get_configuration_defaults(self) -> Dict[str, Dict]:
         return {
             "observers": {
-                f"{self.field}": CategoricalColumnObserver.configuration_defaults["observers"][
-                    "field"
-                ]
+                f"{self.field}": CategoricalColumnObserver.configuration_defaults[
+                    "observers"
+                ]["field"]
             }
         }
-
 
     ##############
     # Properties #
@@ -280,9 +278,13 @@ class CategoricalColumnObserver:
 
     def _get_categories(self) -> List[str]:
         mapping = {
-            data_values.COLUMNS.SBP_MEDICATION: [level.DESCRIPTION for level in data_values.SBP_MEDICATION_LEVEL],
-            data_values.COLUMNS.LDLC_MEDICATION: [level.DESCRIPTION for level in data_values.LDLC_MEDICATION_LEVEL],
-            data_values.COLUMNS.OUTREACH: list(data_values.INTERVENTION_CATEGORY_MAPPING)
+            data_values.COLUMNS.SBP_MEDICATION: [
+                level.DESCRIPTION for level in data_values.SBP_MEDICATION_LEVEL
+            ],
+            data_values.COLUMNS.LDLC_MEDICATION: [
+                level.DESCRIPTION for level in data_values.LDLC_MEDICATION_LEVEL
+            ],
+            data_values.COLUMNS.OUTREACH: list(data_values.INTERVENTION_CATEGORY_MAPPING),
         }
 
         return mapping[self.field]
@@ -290,7 +292,7 @@ class CategoricalColumnObserver:
     def _get_population_view(self, builder: Builder) -> PopulationView:
         columns_required = ["alive", self.field]
         return builder.population.get_view(columns_required)
-    
+
     def _register_time_step_prepare_listener(self, builder: Builder) -> None:
         # In order to get an accurate representation of person time we need to look at
         # the state table before anything happens.
@@ -301,7 +303,7 @@ class CategoricalColumnObserver:
             self.metrics_pipeline_name,
             modifier=self.metrics,
         )
-    
+
     ########################
     # Event-driven methods #
     ########################
@@ -310,7 +312,9 @@ class CategoricalColumnObserver:
         if event.time < self.observation_start_time:
             return
         step_size_in_years = to_years(event.step_size)
-        exposures = self.population_view.get(event.index, query='alive == "alive"')[self.field]
+        exposures = self.population_view.get(event.index, query='alive == "alive"')[
+            self.field
+        ]
         groups = self.stratifier.group(
             exposures.index, self.config.include, self.config.exclude
         )
@@ -328,92 +332,4 @@ class CategoricalColumnObserver:
 
     def metrics(self, index: pd.Index, metrics: Dict) -> Dict:
         metrics.update(self.counts)
-        return metrics
-
-
-class InterventionObserver:
-    """Observes person-time in interventions"""
-
-    configuration_defaults = {
-        "observers": {
-            "intervention": {
-                "exclude": [],
-                "include": [],
-            }
-        }
-    }
-
-    def __init__(self, risk):
-        self.intervention_type = self._get_intervention_type(risk)
-        self.configuration_defaults = InterventionObserver.configuration_defaults
-
-    def __repr__(self):
-        return f"InterventionObserver({self.intervention_type})"
-
-    ##########################
-    # Initialization methods #
-    ##########################
-
-    def _get_intervention_type(self, risk: str) -> str:
-        mapping = {
-            "risk_factor.outreach": data_values.COLUMNS.OUTREACH,
-        }
-
-        return mapping[risk]
-
-    ##############
-    # Properties #
-    ##############
-
-    @property
-    def name(self):
-        return f"intervention_observer.{self.intervention_type}"
-
-    #################
-    # Setup methods #
-    #################
-
-    def setup(self, builder: Builder) -> None:
-
-        self.observation_start_time = get_time_stamp(
-            builder.configuration.time.observation_start
-        )
-        self.config = builder.configuration.observers["intervention"]
-        self.stratifier = builder.components.get_component(ResultsStratifier.name)
-        columns_required = ["alive", self.intervention_type]
-        self.population_view = builder.population.get_view(columns_required)
-
-        self.counter = Counter()
-
-        # The interventions get updated at the end of the time step and so we want
-        # to observe the time on each at the beginning of each time
-        # step before any changes are made
-        builder.event.register_listener("time_step__prepare", self.on_time_step_prepare)
-        builder.value.register_value_modifier("metrics", self.metrics)
-
-    def on_time_step_prepare(self, event: Event):
-        if event.time < self.observation_start_time:
-            return
-        step_size_in_years = to_years(event.step_size)
-        interventions = self.population_view.get(event.index, query='alive == "alive"')[
-            self.intervention_type
-        ]
-        # For the dichotomous interventions column, we are mapping no
-        # intervention as "cat2" and intervened as "cat1" (this is
-        # backwards from the standard heuristic of highest risk maps
-        # to "cat1")
-        intervention_mask = interventions == "cat1"
-        groups = self.stratifier.group(
-            interventions.index, self.config.include, self.config.exclude
-        )
-        new_observations = {}
-        for label, group_mask in groups:
-            key = f"{self.intervention_type}_person_time_{label}"
-            new_observations[key] = (
-                len(interventions[group_mask & intervention_mask]) * step_size_in_years
-            )
-        self.counter.update(new_observations)
-
-    def metrics(self, index: "pd.Index", metrics: Dict[str, float]) -> Dict[str, float]:
-        metrics.update(self.counter)
         return metrics

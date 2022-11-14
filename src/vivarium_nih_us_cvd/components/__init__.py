@@ -6,7 +6,6 @@ from .observers import (
     CategoricalColumnObserver,
     ContinuousRiskObserver,
     HealthcareVisitObserver,
-    InterventionObserver,
     ResultsStratifier,
 )
 from .risks import AdjustedRisk
