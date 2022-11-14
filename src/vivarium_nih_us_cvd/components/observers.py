@@ -216,20 +216,20 @@ class CategoricalColumnObserver:
 
     configuration_defaults = {
         "observers": {
-            "field": {
+            "column": {
                 "exclude": [],
                 "include": [],
             }
         }
     }
 
-    def __init__(self, field):
-        self.field = field
+    def __init__(self, column):
+        self.column = column
         self.configuration_defaults = self._get_configuration_defaults()
         self.metrics_pipeline_name = "metrics"
 
     def __repr__(self):
-        return f"PersonTimeObserver({self.field})"
+        return f"PersonTimeObserver({self.column})"
 
     ##########################
     # Initialization methods #
@@ -238,9 +238,9 @@ class CategoricalColumnObserver:
     def _get_configuration_defaults(self) -> Dict[str, Dict]:
         return {
             "observers": {
-                f"{self.field}": CategoricalColumnObserver.configuration_defaults[
+                f"{self.column}": CategoricalColumnObserver.configuration_defaults[
                     "observers"
-                ]["field"]
+                ]["column"]
             }
         }
 
@@ -250,7 +250,7 @@ class CategoricalColumnObserver:
 
     @property
     def name(self):
-        return f"person_time_observer.{self.field}"
+        return f"person_time_observer.{self.column}"
 
     #################
     # Setup methods #
@@ -271,7 +271,7 @@ class CategoricalColumnObserver:
         self._register_metrics_modifier(builder)
 
     def _get_stratification_configuration(self, builder: Builder) -> ConfigTree:
-        return builder.configuration.observers[self.field]
+        return builder.configuration.observers[self.column]
 
     def _get_stratifier(self, builder: Builder) -> ResultsStratifier:
         return builder.components.get_component(ResultsStratifier.name)
@@ -287,10 +287,10 @@ class CategoricalColumnObserver:
             data_values.COLUMNS.OUTREACH: list(data_values.INTERVENTION_CATEGORY_MAPPING),
         }
 
-        return mapping[self.field]
+        return mapping[self.column]
 
     def _get_population_view(self, builder: Builder) -> PopulationView:
-        columns_required = ["alive", self.field]
+        columns_required = ["alive", self.column]
         return builder.population.get_view(columns_required)
 
     def _register_time_step_prepare_listener(self, builder: Builder) -> None:
@@ -313,7 +313,7 @@ class CategoricalColumnObserver:
             return
         step_size_in_years = to_years(event.step_size)
         exposures = self.population_view.get(event.index, query='alive == "alive"')[
-            self.field
+            self.column
         ]
         groups = self.stratifier.group(
             exposures.index, self.config.include, self.config.exclude
@@ -322,7 +322,7 @@ class CategoricalColumnObserver:
             for category in self.categories:
                 category_in_group_mask = group_mask & (exposures == category)
                 person_time_in_group = category_in_group_mask.sum() * step_size_in_years
-                key = f"{self.field}_{category}_person_time_{label}"
+                key = f"{self.column}_{category}_person_time_{label}"
                 new_observations = {key: person_time_in_group}
                 self.counts.update(new_observations)
 
