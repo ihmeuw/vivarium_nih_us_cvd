@@ -7,7 +7,7 @@ from vivarium_public_health.treatment import LinearScaleUp as LinearScaleUp_
 
 
 class LinearScaleUp(LinearScaleUp_):
-    
+
     configuration_defaults = {
         "treatment": {
             "date": {
