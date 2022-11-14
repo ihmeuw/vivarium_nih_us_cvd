@@ -48,6 +48,7 @@ components:
             - MedicationObserver("risk_factor.high_ldl_cholesterol")
 
             - OutreachEffect()
+            - LinearScaleUp("risk_factor.outreach")
 
 configuration:
     input_data:
@@ -91,9 +92,25 @@ configuration:
         ldlc_medication:
             include:
                 - 'ldlc_medication_adherence'
+    
     outreach:
         # NOTE: For outreach, we are changing our standard heuristic of categories
         # being mapped highest to lowest where cat1 is highest risk. Here, an 
         # outreach.exposure = 0.0 is the highest risk (no outreach means less
         # likely to take medication) but will map to cat2 (not cat1)
         exposure: 0
+    intervention:
+        scenario: "outreach_50"
+    outreach_scale_up:
+        date:
+            start:
+                year: 2023
+                month: 1
+                day: 1
+            end:
+                year: 2024
+                month: 1
+                day: 1
+        value:
+            start: 0
+            end: 0.5

@@ -54,7 +54,6 @@ class OutreachEffect:
         self, index: pd.Index, target: pd.Series, medication_type: str
     ) -> pd.Series:
         clock_time = self.clock()
-        breakpoint()  # save for next PR
         # Do not adjust target on intialization. We do this because during
         # initialization the Treatment component sets the medication adherence
         # state table columns equal to the medication adherence pipeline values;

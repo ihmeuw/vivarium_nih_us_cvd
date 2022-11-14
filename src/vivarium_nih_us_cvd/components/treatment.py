@@ -700,7 +700,6 @@ class Treatment:
         new_outreach = self.outreach(maybe_enroll)
         to_enroll = current_outreach[current_outreach != new_outreach].index
         if not to_enroll.empty:
-            breakpoint()  # save for next PR
             # Update the outreach column with the new pipeline values. This
             # is then used in OutreachEffect which registers a value modifier
             # using the (newly updated) outreach column to modify adherence exposure.
@@ -711,15 +710,11 @@ class Treatment:
             # With the just-updated outreach column, update the medication
             # adherence columns with pipeline values
             pop_visitors.loc[
-                to_enroll,
-                [
-                    data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
-                    data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
-                ],
-            ] = [
-                self.sbp_medication_adherence(to_enroll),
-                self.ldlc_medication_adherence(to_enroll),
-            ]
+                to_enroll, data_values.COLUMNS.SBP_MEDICATION_ADHERENCE
+            ] = self.sbp_medication_adherence(to_enroll)
+            pop_visitors.loc[
+                to_enroll, data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE
+            ] = self.ldlc_medication_adherence(to_enroll)
             self.population_view.update(
                 pop_visitors[
                     [
