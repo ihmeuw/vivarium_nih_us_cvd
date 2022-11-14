@@ -51,6 +51,9 @@ components:
             - OutreachInterventionScaleUp("risk_factor.outreach")
             - CategoricalColumnObserver("outreach")
 
+            - OutreachEffect()
+            - LinearScaleUp("risk_factor.outreach")
+
 configuration:
     input_data:
         input_draw_number: 0
