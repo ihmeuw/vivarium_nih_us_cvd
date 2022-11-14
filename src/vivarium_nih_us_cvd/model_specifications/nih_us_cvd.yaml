@@ -48,7 +48,7 @@ components:
             - MedicationObserver("risk_factor.high_ldl_cholesterol")
 
             - OutreachEffect()
-            - OutreachInterventionScaleUp("risk_factor.outreach")
+            - LinearScaleUp("risk_factor.outreach")
 
 configuration:
     input_data:
