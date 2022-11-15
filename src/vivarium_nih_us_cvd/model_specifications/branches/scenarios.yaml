@@ -2,6 +2,18 @@ input_draw_count: 10
 random_seed_count: 15
 
 branches:
-# TODO change to name of intervention
-  - placeholder_branch_name:
-      scenario: ['baseline']
+  - intervention:
+      scenario: "baseline"
+    outreach_scale_up:
+      value:
+        end: 0
+  - intervention:
+      scenario: "outreach_50"
+    outreach_scale_up:
+      value:
+        end: 0.5
+  - intervention:
+      scenario: "outreach_100"
+    outreach_scale_up:
+      value:
+        end: 1
