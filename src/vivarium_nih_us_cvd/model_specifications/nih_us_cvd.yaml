@@ -48,11 +48,8 @@ components:
             - CategoricalColumnObserver("ldlc_medication")
 
             - OutreachEffect()
-            - OutreachInterventionScaleUp("risk_factor.outreach")
-            - CategoricalColumnObserver("outreach")
-
-            - OutreachEffect()
             - LinearScaleUp("risk_factor.outreach")
+            - CategoricalColumnObserver("outreach")
 
 configuration:
     input_data:
