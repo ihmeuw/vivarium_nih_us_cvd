@@ -2,7 +2,8 @@ from datetime import datetime
 from typing import Dict, Tuple
 
 from vivarium.framework.engine import Builder
-from vivarium.framework.time import Time, get_time_stamp
+from vivarium.framework.lookup import LookupTable
+from vivarium.framework.time import get_time_stamp
 from vivarium_public_health.treatment import LinearScaleUp as LinearScaleUp_
 
 
@@ -29,13 +30,14 @@ class LinearScaleUp(LinearScaleUp_):
         }
     }
 
+    # re-define because configuration_defaults is a class attribute
     def _get_configuration_defaults(self) -> Dict[str, Dict]:
         return {self.configuration_key: LinearScaleUp.configuration_defaults["treatment"]}
 
     def _get_scale_up_dates(self, builder: Builder) -> Tuple[datetime, datetime]:
         scale_up_config = builder.configuration[self.configuration_key]["date"]
-
-        def get_endpoint(endpoint_type: str) -> datetime:
+        endpoints = []
+        for endpoint_type in ["start", "end"]:
             if (
                 (scale_up_config[endpoint_type]["year"] == f"{endpoint_type}_year")
                 & (scale_up_config[endpoint_type]["month"] == f"{endpoint_type}_month")
@@ -44,6 +46,19 @@ class LinearScaleUp(LinearScaleUp_):
                 endpoint = get_time_stamp(builder.configuration.time[endpoint_type])
             else:
                 endpoint = get_time_stamp(scale_up_config[endpoint_type])
-            return endpoint
+            endpoints.append(endpoint)
 
-        return get_endpoint("start"), get_endpoint("end")
+        return endpoints[0], endpoints[1]
+
+    # NOTE: Re-defining to test for future vph fix
+    def _get_scale_up_values(self, builder: Builder) -> Tuple[LookupTable, LookupTable]:
+        scale_up_config = builder.configuration[self.configuration_key]["value"]
+        endpoints = []
+        for endpoint_type in ["start", "end"]:
+            if scale_up_config[endpoint_type] == "data":
+                endpoint = self._get_endpoint_value_from_data(builder, endpoint_type)
+            else:
+                endpoint = builder.lookup.build_table(scale_up_config[endpoint_type])
+            endpoints.append(endpoint)
+
+        return endpoints[0], endpoints[1]
