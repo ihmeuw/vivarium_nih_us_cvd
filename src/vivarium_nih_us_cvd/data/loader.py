@@ -120,7 +120,9 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.SBP_MEDICATION_ADHERENCE.DISTRIBUTION: load_medication_adherence_distribution,
         data_keys.SBP_MEDICATION_ADHERENCE.EXPOSURE: load_medication_adherence_exposure,
         # Risk (outreach)
-        data_keys.OUTREACH.DISTRIBUTION: load_outreach_distribution,
+        data_keys.OUTREACH.DISTRIBUTION: load_dichotomous_distribution,
+        # Risk (polypill)
+        data_keys.POLYPILL.DISTRIBUTION: load_dichotomous_distribution,
     }
     source_key = _get_source_key(lookup_key)
     data = mapping[lookup_key](source_key, location)
@@ -530,5 +532,5 @@ def load_medication_adherence_exposure(key: str, location: str) -> pd.DataFrame:
     return df.set_index("parameter", append=True)
 
 
-def load_outreach_distribution(key: str, location: str) -> str:
+def load_dichotomous_distribution(key: str, location: str) -> str:
     return "dichotomous"
