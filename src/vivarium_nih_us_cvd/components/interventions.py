@@ -36,7 +36,7 @@ class LinearScaleUp(LinearScaleUp_):
 
     def _get_scale_up_dates(self, builder: Builder) -> Tuple[datetime, datetime]:
         scale_up_config = builder.configuration[self.configuration_key]["date"]
-        endpoints = []
+        endpoints = {}
         for endpoint_type in ["start", "end"]:
             if (
                 (scale_up_config[endpoint_type]["year"] == f"{endpoint_type}_year")
@@ -46,19 +46,19 @@ class LinearScaleUp(LinearScaleUp_):
                 endpoint = get_time_stamp(builder.configuration.time[endpoint_type])
             else:
                 endpoint = get_time_stamp(scale_up_config[endpoint_type])
-            endpoints.append(endpoint)
+            endpoints[endpoint_type] = endpoint
 
-        return endpoints[0], endpoints[1]
+        return endpoints["start"], endpoints["end"]
 
     # NOTE: Re-defining to test for future vph fix
     def _get_scale_up_values(self, builder: Builder) -> Tuple[LookupTable, LookupTable]:
         scale_up_config = builder.configuration[self.configuration_key]["value"]
-        endpoints = []
+        endpoints = {}
         for endpoint_type in ["start", "end"]:
             if scale_up_config[endpoint_type] == "data":
                 endpoint = self._get_endpoint_value_from_data(builder, endpoint_type)
             else:
                 endpoint = builder.lookup.build_table(scale_up_config[endpoint_type])
-            endpoints.append(endpoint)
+            endpoints[endpoint_type] = endpoint
 
-        return endpoints[0], endpoints[1]
+        return endpoints["start"], endpoints["end"]
