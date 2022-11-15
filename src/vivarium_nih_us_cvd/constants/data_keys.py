@@ -274,6 +274,21 @@ class __Outreach(NamedTuple):
 OUTREACH = __Outreach()
 
 
+class __Polypill(NamedTuple):
+    DISTRIBUTION: TargetString = TargetString("risk_factor.polypill.distribution")
+
+    @property
+    def name(self):
+        return "polypill"
+
+    @property
+    def log_name(self):
+        return self.name.replace("_", " ")
+
+
+POLYPILL = __Polypill()
+
+
 ##################
 # Artifact Items #
 ##################
@@ -288,4 +303,5 @@ MAKE_ARTIFACT_KEY_GROUPS = [
     LDLC_MEDICATION_ADHERENCE,
     SBP_MEDICATION_ADHERENCE,
     OUTREACH,
+    POLYPILL,
 ]
