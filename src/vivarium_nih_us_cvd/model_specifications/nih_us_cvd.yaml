@@ -52,6 +52,8 @@ components:
             - LinearScaleUp("risk_factor.outreach")
             - CategoricalColumnObserver("outreach")
 
+            - PolypillEffect()
+
 configuration:
     input_data:
         input_draw_number: 0

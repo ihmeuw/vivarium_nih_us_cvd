@@ -40,6 +40,7 @@ class Treatment:
             data_values.PIPELINES.LDLC_MEDICATION_ADHERENCE_EXPOSURE
         )
         self.outreach = builder.value.get_value(data_values.PIPELINES.OUTREACH_EXPOSURE)
+        self.polypill = builder.value.get_value(data_values.PIPELINES.POLYPILL_EXPOSURE)
 
         self.sbp_treatment_map = self._get_sbp_treatment_map()
         self.ldlc_treatment_map = self._get_ldlc_treatment_map()
@@ -58,6 +59,7 @@ class Treatment:
             data_values.COLUMNS.SBP_MULTIPLIER,
             data_values.COLUMNS.LDLC_MULTIPLIER,
             data_values.COLUMNS.OUTREACH,
+            data_values.COLUMNS.POLYPILL,
         ]
         columns_required_on_initialization = [
             "age",
@@ -78,6 +80,7 @@ class Treatment:
             data_values.PIPELINES.SBP_MEDICATION_ADHERENCE_EXPOSURE,
             data_values.PIPELINES.LDLC_MEDICATION_ADHERENCE_EXPOSURE,
             data_values.PIPELINES.OUTREACH_EXPOSURE,
+            data_values.PIPELINES.POLYPILL_EXPOSURE,
         ]
 
         # Initialize simulants
@@ -253,11 +256,13 @@ class Treatment:
         )
         pop = self.initialize_medication_coverage(pop)
 
-        # Generate outreach column
-        # NOTE: All outreach scenarios in this simulation start with 0%
-        # outreach exposure and so there is no need to update adherence
+        # Generate outreach and polypill intervention columns
+        # NOTE: All scenarios in this simulation start with 0%
+        # intervention exposure and so there is no need to update adherence
         # levels at this point.
         pop[data_values.COLUMNS.OUTREACH] = self.outreach(pop.index)
+        breakpoint()
+        pop[data_values.COLUMNS.POLYPILL] = self.polypill(pop.index)
 
         # Generate multiplier columns
         pop[data_values.COLUMNS.SBP_MULTIPLIER] = 1
@@ -318,25 +323,30 @@ class Treatment:
             == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
         )
         mask_emergency = mask_acute_is | mask_acute_mi
-        pop.loc[mask_emergency], maybe_enroll_in_outreach_sbp = self.apply_sbp_treatment_ramp(
+        pop.loc[mask_emergency], maybe_enroll_in_outreach_sbp, maybe_enroll_in_polypill = self.apply_sbp_treatment_ramp(
             pop_visitors=pop.loc[mask_emergency],
             exposure_pipeline=self.gbd_sbp,
         )
-        (
-            pop.loc[mask_emergency],
-            maybe_enroll_in_outreach_ldlc,
-        ) = self.apply_ldlc_treatment_ramp(
+        pop.loc[mask_emergency], maybe_enroll_in_outreach_ldlc = self.apply_ldlc_treatment_ramp(
             pop_visitors=pop.loc[mask_emergency],
             ldlc_pipeline=self.gbd_ldlc,
             sbp_pipeline=self.gbd_sbp,
         )
 
-        # Enroll in outreach intervention
+        # Enroll in interventions. The sbp treatment ramp includes both
+        # outreach and polypill enrollment logic whilc the ldlc ramp
+        # only includes outreach
+        breakpoint()
         maybe_enroll_in_outreach = maybe_enroll_in_outreach_sbp.union(
             maybe_enroll_in_outreach_ldlc
         )
         pop.loc[mask_emergency] = self.enroll_in_outreach(
             pop_visitors=pop.loc[mask_emergency], maybe_enroll=maybe_enroll_in_outreach
+        )
+        # Simulants need to be prescribed at 'two_drugs_half_dose' or higher
+        # to be eligible for the polypill program
+        pop.loc[mask_emergency] = self.enroll_in_polypill(
+            pop_visitors=pop.loc[mask_emergency], maybe_enroll=maybe_enroll_in_polypill
         )
 
         # We update the medication adherence columns and the outreach column here
@@ -351,6 +361,7 @@ class Treatment:
                     data_values.COLUMNS.SBP_MULTIPLIER,
                     data_values.COLUMNS.LDLC_MULTIPLIER,
                     data_values.COLUMNS.OUTREACH,
+                    data_values.COLUMNS.POLYPILL,
                 ]
             ]
         )
@@ -442,19 +453,22 @@ class Treatment:
             )
         ].index
 
-        pop.loc[visitors], maybe_enroll_in_outreach_sbp = self.apply_sbp_treatment_ramp(
+        pop.loc[visitors], maybe_enroll_in_outreach_sbp, maybe_enroll_in_polypill = self.apply_sbp_treatment_ramp(
             pop_visitors=pop.loc[visitors]
         )
         pop.loc[visitors], maybe_enroll_in_outreach_ldlc = self.apply_ldlc_treatment_ramp(
             pop_visitors=pop.loc[visitors]
         )
 
-        # Enroll in outreach intervention
+        # Enroll in interventions
         maybe_enroll_in_outreach = maybe_enroll_in_outreach_sbp.union(
             maybe_enroll_in_outreach_ldlc
         )
         pop.loc[visitors] = self.enroll_in_outreach(
             pop_visitors=pop.loc[visitors], maybe_enroll=maybe_enroll_in_outreach
+        )
+        pop.loc[visitors] = self.enroll_in_polypill(
+            pop_visitors=pop.loc[visitors], maybe_enroll=maybe_enroll_in_polypill
         )
 
         self.population_view.update(
@@ -468,7 +482,7 @@ class Treatment:
 
     def apply_sbp_treatment_ramp(
         self, pop_visitors: pd.DataFrame, exposure_pipeline: Optional[Pipeline] = None
-    ) -> Tuple[pd.DataFrame, pd.Index]:
+    ) -> Tuple[pd.DataFrame, pd.Index, pd.Index]:
         """Applies the SBP treatment ramp
 
         Arguments:
@@ -552,9 +566,14 @@ class Treatment:
 
         # Determine potential new outreach enrollees; applies to groups b, c, and
         # everyone already on medication
-        maybe_enroll = to_prescribe_b.union(to_prescribe_c).union(currently_medicated)
+        maybe_enroll_outreach = to_prescribe_b.union(to_prescribe_c).union(currently_medicated)
+        # Determine potential new polypill enrollees; same as potential outreach
+        # enrollees except must also have sbp medication dose at 
+        # 'two drugs half dose' or higher
+        breakpoint()
+        maybe_enroll_polypill = pop_visitors.loc[maybe_enroll_outreach, data_values.COLUMNS.SBP_MEDICATION] >= data_values.SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE
 
-        return pop_visitors, maybe_enroll
+        return pop_visitors, maybe_enroll_outreach, maybe_enroll_polypill
 
     def apply_ldlc_treatment_ramp(
         self,
@@ -703,6 +722,7 @@ class Treatment:
             # Update the outreach column with the new pipeline values. This
             # is then used in OutreachEffect which registers a value modifier
             # using the (newly updated) outreach column to modify adherence exposure.
+            breakpoint()  # THIS SHOULD NEVER GET HIT WHEN DOING POLYPILL!
             pop_visitors.loc[to_enroll, data_values.COLUMNS.OUTREACH] = new_outreach.loc[
                 to_enroll
             ]
@@ -720,6 +740,42 @@ class Treatment:
                     [
                         data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
                         data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
+                    ]
+                ]
+            )
+
+        return pop_visitors
+
+    def enroll_in_polypill(
+        self, pop_visitors: pd.DataFrame, maybe_enroll: pd.Index
+    ) -> pd.DataFrame:
+        """Enrolls simulants in polypill intervention program. It updates
+        the polypill column as well as sbp medication adherence column (the
+        effect of polypill intervention).
+
+        Reminder: 'cat1' polypill means enrolled and 'cat2' means not enrolled.
+        """
+        current = pop_visitors.loc[maybe_enroll, data_values.COLUMNS.POLYPILL]
+        new = self.polypill(maybe_enroll)
+        to_enroll = current[current != new].index
+        if not to_enroll.empty:
+            # Update the column with the new pipeline values. This
+            # is then used in PolypillEffect which registers a value modifier
+            # using the (newly updated) column to modify adherence exposure.
+            breakpoint()  # THIS SHOULD NEVER GET HIT WHEN DOING OUTREACH!
+            pop_visitors.loc[to_enroll, data_values.COLUMNS.POLYPILL] = new.loc[
+                to_enroll
+            ]
+            self.population_view.update(pop_visitors[[data_values.COLUMNS.POLYPILL]])
+            # With the just-updated column, update the medication
+            # adherence columns with pipeline values
+            pop_visitors.loc[
+                to_enroll, data_values.COLUMNS.SBP_MEDICATION_ADHERENCE
+            ] = self.sbp_medication_adherence(to_enroll)
+            self.population_view.update(
+                pop_visitors[
+                    [
+                        data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
                     ]
                 ]
             )

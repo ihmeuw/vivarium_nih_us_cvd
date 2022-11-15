@@ -21,6 +21,7 @@ class __Columns(NamedTuple):
     SBP_MULTIPLIER: str = "sbp_multiplier"
     LDLC_MULTIPLIER: str = "ldlc_multiplier"
     OUTREACH: str = "outreach"
+    POLYPILL: str = "polypill"
 
     @property
     def name(self):
