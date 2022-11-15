@@ -35,7 +35,7 @@ class LinearScaleUp(LinearScaleUp_):
         return {self.configuration_key: LinearScaleUp.configuration_defaults["treatment"]}
 
     def _get_scale_up_dates(self, builder: Builder) -> Tuple[datetime, datetime]:
-        scale_up_config = builder.configuration[self.configuration_key]["date"]
+        scale_up_config = builder.configuration.intervention[self.configuration_key]["date"]
         endpoints = {}
         for endpoint_type in ["start", "end"]:
             if (
@@ -52,7 +52,7 @@ class LinearScaleUp(LinearScaleUp_):
 
     # NOTE: Re-defining to test for future vph fix
     def _get_scale_up_values(self, builder: Builder) -> Tuple[LookupTable, LookupTable]:
-        scale_up_config = builder.configuration[self.configuration_key]["value"]
+        scale_up_config = builder.configuration.intervention[self.configuration_key]["value"]
         endpoints = {}
         for endpoint_type in ["start", "end"]:
             if scale_up_config[endpoint_type] == "data":

@@ -101,17 +101,17 @@ configuration:
         # likely to take medication) but will map to cat2 (not cat1)
         exposure: 0
     intervention:
-        scenario: "outreach_50"
-    outreach_scale_up:
-        date:
-            start:
-                year: 2023
-                month: 1
-                day: 1
-            end:
-                year: 2024
-                month: 1
-                day: 1
-        value:
-            start: 0
-            end: 0.5
+        scenario: "outreach_test_run"
+        outreach_scale_up:
+            date:
+                start:
+                    year: 2023
+                    month: 1
+                    day: 1
+                end:
+                    year: 2024
+                    month: 1
+                    day: 1
+            value:
+                start: 0
+                end: 0.5
