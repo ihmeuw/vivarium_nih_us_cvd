@@ -460,9 +460,14 @@ RISK_EXPOSURE_LIMITS = {
 }
 
 
-#######################
-# Outreach Parameters #
-#######################
+###########################
+# Intervention Parameters #
+###########################
+
+INTERVENTION_CATEGORY_MAPPING = {
+    "cat2": "no",
+    "cat1": "yes",
+}
 
 
 class __OutreachEffectSBP(NamedTuple):
@@ -509,7 +514,9 @@ OUTREACH_EFFECTS = {
     },
 }
 
-INTERVENTION_CATEGORY_MAPPING = {
-    "cat2": "no",
-    "cat1": "yes",
+# Define the polypill effect sbp medication adherence coverage
+POLYPILL_SBP_MEDICATION_ADHERENCE_COVERAGE = {
+    MEDICATION_ADHERENCE_TYPE.PRIMARY_NON_ADHERENT: 0.16,
+    MEDICATION_ADHERENCE_TYPE.SECONDARY_NON_ADHERENT: 0.049,
+    MEDICATION_ADHERENCE_TYPE.ADHERENT: 0.791,
 }

@@ -1,5 +1,5 @@
 from .disease import IschemicStroke, MyocardialInfarction
-from .effects import OutreachEffect, PolypillEffect
+from .effects import InterventionEffect
 from .healthcare_utilization import HealthcareUtilization
 from .interventions import LinearScaleUp
 from .observers import (
