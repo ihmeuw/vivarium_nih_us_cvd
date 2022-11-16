@@ -32,9 +32,6 @@ class __InterventionScenarios(NamedTuple):
         "polypill_100", is_polypill_scenario=True
     )
 
-    def name(self, item) -> str:
-        return item
-
     def __getitem__(self, item) -> InterventionScenario:
         for scenario in self:
             if scenario.name == item:

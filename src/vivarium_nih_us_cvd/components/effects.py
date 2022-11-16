@@ -11,12 +11,16 @@ from vivarium_nih_us_cvd.constants import data_values, scenarios
 class InterventionEffect:
     """A component to model the impact of the intervention risks on medication adherence levels"""
 
+    def __repr__(self):
+        return "InterventionEffect"
+
+    ##############
+    # Properties #
+    ##############
+
     @property
     def name(self) -> str:
-        return f"intervention_effect"
-
-    def __repr__(self):
-        return f"InterventionEffect"
+        return "intervention_effect"
 
     #################
     # Setup methods #
@@ -98,7 +102,10 @@ class InterventionEffect:
         # which we do want to be active upon initialization
         if clock_time >= self.simulation_start_time:  # not initialization
             adjusted = target.copy()
-            for cat, probability in data_values.POLYPILL_SBP_MEDICATION_ADHERENCE_COVERAGE.items():
+            for (
+                cat,
+                probability,
+            ) in data_values.POLYPILL_SBP_MEDICATION_ADHERENCE_COVERAGE.items():
                 adjusted[cat] = probability
             target = adjusted
 

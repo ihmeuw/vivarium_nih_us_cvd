@@ -599,7 +599,7 @@ class Treatment:
         pop_visitors: pd.DataFrame,
         ldlc_pipeline: Optional[Pipeline] = None,
         sbp_pipeline: Optional[Pipeline] = None,
-    ) -> pd.DataFrame:
+    ) -> Tuple[pd.DataFrame, pd.Index]:
         """Applies the LDL-C treatment ramp
 
         Arguments:
