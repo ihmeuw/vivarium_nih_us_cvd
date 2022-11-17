@@ -285,6 +285,7 @@ class CategoricalColumnObserver:
                 level.DESCRIPTION for level in data_values.LDLC_MEDICATION_LEVEL
             ],
             data_values.COLUMNS.OUTREACH: list(data_values.INTERVENTION_CATEGORY_MAPPING),
+            data_values.COLUMNS.POLYPILL: list(data_values.INTERVENTION_CATEGORY_MAPPING),
         }
 
         return mapping[self.column]

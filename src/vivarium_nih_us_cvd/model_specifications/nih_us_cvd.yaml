@@ -52,6 +52,7 @@ components:
             - LinearScaleUp("risk_factor.outreach")
             - LinearScaleUp("risk_factor.polypill")
             - CategoricalColumnObserver("outreach")
+            - CategoricalColumnObserver("polypill")
 
 configuration:
     input_data:

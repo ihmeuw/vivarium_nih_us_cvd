@@ -50,6 +50,9 @@ LDLC_MEDICATION_PERSON_TIME_TEMPLATE = "ldlc_medication_{LDLC_MEDICATION}_person
 OUTREACH_INTERVENTION_PERSON_TIME_TEMPLATE = (
     "outreach_{INTERVENTION}_person_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
 )
+POLYPILL_INTERVENTION_PERSON_TIME_TEMPLATE = (
+    "polypill_{INTERVENTION}_person_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
+)
 
 
 COLUMN_TEMPLATES = {
@@ -64,6 +67,7 @@ COLUMN_TEMPLATES = {
     "sbp_medication_person_time": SBP_MEDICATION_PERSON_TIME_TEMPLATE,
     "ldlc_medication_person_time": LDLC_MEDICATION_PERSON_TIME_TEMPLATE,
     "outreach_intervention_person_time": OUTREACH_INTERVENTION_PERSON_TIME_TEMPLATE,
+    "polypill_intervention_person_time": POLYPILL_INTERVENTION_PERSON_TIME_TEMPLATE,
 }
 
 NON_COUNT_TEMPLATES = []
