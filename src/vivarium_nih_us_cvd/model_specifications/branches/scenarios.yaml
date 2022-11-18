@@ -4,23 +4,41 @@ random_seed_count: 15
 branches:
   - intervention:
       scenario: "baseline"
+    outreach_scale_up:
+      value:
+        end: 0
+    polypill_scale_up:
+      value:
+        end: 0
   - intervention:
       scenario: "outreach_50"
     outreach_scale_up:
       value:
         end: 0.5
+    polypill_scale_up:
+      value:
+        end: 0
   - intervention:
       scenario: "outreach_100"
     outreach_scale_up:
       value:
         end: 1
+    polypill_scale_up:
+      value:
+        end: 0
   - intervention:
       scenario: "polypill_50"
+    outreach_scale_up:
+      value:
+        end: 0
     polypill_scale_up:
       value:
         end: 0.5
   - intervention:
       scenario: "polypill_100"
+    outreach_scale_up:
+      value:
+        end: 0
     polypill_scale_up:
       value:
         end: 1
