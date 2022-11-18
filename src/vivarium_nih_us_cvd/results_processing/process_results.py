@@ -41,8 +41,8 @@ def make_measure_data(data):
         ldlc_medication_person_time=get_medication_person_time_data(
             data, "ldlc_medication_person_time"
         ),
-        outreach_intervention_person_time=get_intervention_person_time_data(
-            data, "outreach_intervention_person_time"
+        intervention_person_time=get_intervention_person_time_data(
+            data, "intervention_person_time"
         ),
     )
     return measure_data
@@ -59,7 +59,7 @@ class MeasureData(NamedTuple):
     healthcare_visits: pd.DataFrame
     sbp_medication_person_time: pd.DataFrame
     ldlc_medication_person_time: pd.DataFrame
-    outreach_intervention_person_time: pd.DataFrame
+    intervention_person_time: pd.DataFrame
 
     def dump(self, output_dir: Path):
         for key, df in self._asdict().items():
