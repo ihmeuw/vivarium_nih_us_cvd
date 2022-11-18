@@ -21,6 +21,7 @@ class __Columns(NamedTuple):
     SBP_MULTIPLIER: str = "sbp_multiplier"
     LDLC_MULTIPLIER: str = "ldlc_multiplier"
     OUTREACH: str = "outreach"
+    POLYPILL: str = "polypill"
 
     @property
     def name(self):
@@ -45,6 +46,7 @@ class __Pipelines(NamedTuple):
     SBP_MEDICATION_ADHERENCE_EXPOSURE: str = "sbp_medication_adherence.exposure"
     LDLC_MEDICATION_ADHERENCE_EXPOSURE: str = "ldlc_medication_adherence.exposure"
     OUTREACH_EXPOSURE: str = "outreach.exposure"
+    POLYPILL_EXPOSURE: str = "polypill.exposure"
 
     @property
     def name(self):
@@ -458,9 +460,14 @@ RISK_EXPOSURE_LIMITS = {
 }
 
 
-#######################
-# Outreach Parameters #
-#######################
+###########################
+# Intervention Parameters #
+###########################
+
+INTERVENTION_CATEGORY_MAPPING = {
+    "cat2": "no",
+    "cat1": "yes",
+}
 
 
 class __OutreachEffectSBP(NamedTuple):
@@ -507,7 +514,9 @@ OUTREACH_EFFECTS = {
     },
 }
 
-INTERVENTION_CATEGORY_MAPPING = {
-    "cat2": "no",
-    "cat1": "yes",
+# Define the polypill effect sbp medication adherence coverage
+POLYPILL_SBP_MEDICATION_ADHERENCE_COVERAGE = {
+    MEDICATION_ADHERENCE_TYPE.PRIMARY_NON_ADHERENT: 0.16,
+    MEDICATION_ADHERENCE_TYPE.SECONDARY_NON_ADHERENT: 0.049,
+    MEDICATION_ADHERENCE_TYPE.ADHERENT: 0.791,
 }

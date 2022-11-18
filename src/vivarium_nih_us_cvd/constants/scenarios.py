@@ -9,21 +9,34 @@ class InterventionScenario:
     def __init__(
         self,
         name: str,
-        # todo add additional interventions
-        # has_treatment_one: bool = False,
-        # has_treatment_two: bool = False,
+        is_outreach_scenario: bool = False,
+        is_polypill_scenario: bool = False,
     ):
         self.name = name
-        # self.has_treatment_one = has_treatment_one
-        # self.has_treatment_two = has_treatment_two
+        self.is_outreach_scenario = is_outreach_scenario
+        self.is_polypill_scenario = is_polypill_scenario
 
 
 class __InterventionScenarios(NamedTuple):
     BASELINE: InterventionScenario = InterventionScenario("baseline")
-    # todo add additional intervention scenarios
+    OUTREACH_50: InterventionScenario = InterventionScenario(
+        "outreach_50", is_outreach_scenario=True
+    )
+    OUTREACH_100: InterventionScenario = InterventionScenario(
+        "outreach_100", is_outreach_scenario=True
+    )
+    POLYPILL_50: InterventionScenario = InterventionScenario(
+        "polypill_50", is_polypill_scenario=True
+    )
+    POLYPILL_100: InterventionScenario = InterventionScenario(
+        "polypill_100", is_polypill_scenario=True
+    )
 
-    def __get_item__(self, item):
-        return self._asdict()[item]
+    def __getitem__(self, item) -> InterventionScenario:
+        for scenario in self:
+            if scenario.name == item:
+                return scenario
+        raise KeyError(item)
 
 
 INTERVENTION_SCENARIOS = __InterventionScenarios()
