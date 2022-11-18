@@ -77,30 +77,24 @@ class InterventionEffect:
             primary_non_adherent = target[
                 target == data_values.MEDICATION_ADHERENCE_TYPE.PRIMARY_NON_ADHERENT
             ].index
-            adjusted = self.randomness.choice(
+            target[primary_non_adherent] = self.randomness.choice(
                 primary_non_adherent,
                 choices=list(data_values.OUTREACH_EFFECTS[medication_type].keys()),
                 p=list(data_values.OUTREACH_EFFECTS[medication_type].values()),
                 additional_key=f"outreach_adjust_{medication_type}_medication_adherence_values",
             )
-            target[primary_non_adherent] = adjusted
 
         return target
 
     def _polypill_sbp_adherence_modifier(
         self, index: pd.Index, target: pd.Series
     ) -> pd.Series:
-        return self._polypill_adjust_target(index=index, target=target)
-
-    def _polypill_adjust_target(self, index: pd.Index, target: pd.Series) -> pd.Series:
         polypill = self.polypill(index)
         on_polypill = polypill[polypill == "cat1"].index
-        adjusted = target.copy()
         for (
             cat,
             probability,
         ) in data_values.POLYPILL_SBP_MEDICATION_ADHERENCE_COVERAGE.items():
-            adjusted.loc[on_polypill, cat] = probability
-        target = adjusted
+            target.loc[on_polypill, cat] = probability
 
         return target

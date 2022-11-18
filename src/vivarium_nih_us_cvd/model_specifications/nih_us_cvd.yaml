@@ -71,17 +71,17 @@ configuration:
             month: 1
             day: 1
         observation_start: # TODO: Implement for all observers (currently only custom observers)
-            year: 2021
+            year: 2023
             month: 1
             day: 1
         end:
-            year: 2021
+            year: 2040
             month: 12
             day: 31
         step_size: 28 # Days
     population:
-        population_size: 10_000
-        age_start: 70
+        population_size: 50_000
+        age_start: 7
         age_end: 125
         exit_age: 125
     observers:
@@ -101,7 +101,7 @@ configuration:
     polypill:
         exposure: 0
     intervention:
-        scenario: "polypill_100"
+        scenario: "baseline"
     outreach_scale_up: 
         date:
             start:
@@ -118,13 +118,13 @@ configuration:
     polypill_scale_up: 
         date:
             start:
-                year: 2021
+                year: 2023
                 month: 1
                 day: 1
             end:
-                year: 2021
-                month: 6
+                year: 2024
+                month: 1
                 day: 1
         value:
             start: 0
-            end: 01
+            end: 0
