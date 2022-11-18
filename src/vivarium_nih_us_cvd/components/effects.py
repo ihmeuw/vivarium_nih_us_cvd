@@ -1,6 +1,3 @@
-from typing import Callable
-
-import numpy as np
 import pandas as pd
 from vivarium.framework.engine import Builder
 from vivarium.framework.time import get_time_stamp
@@ -27,6 +24,7 @@ class InterventionEffect:
     #################
 
     def setup(self, builder: Builder) -> None:
+        self.polypill = builder.value.get_value(data_values.PIPELINES.POLYPILL_EXPOSURE)
         self.scenario = self._get_scenario(builder)
         self.clock = builder.time.clock()
         self.simulation_start_time = get_time_stamp(builder.configuration.time.start)
@@ -51,6 +49,7 @@ class InterventionEffect:
             builder.value.register_value_modifier(
                 "risk_factor.sbp_medication_adherence.exposure_parameters",
                 modifier=self._polypill_sbp_adherence_modifier,
+                requires_values=[data_values.PIPELINES.POLYPILL_EXPOSURE],
             )
 
     def _outreach_sbp_adherence_modifier(
@@ -78,35 +77,24 @@ class InterventionEffect:
             primary_non_adherent = target[
                 target == data_values.MEDICATION_ADHERENCE_TYPE.PRIMARY_NON_ADHERENT
             ].index
-            adjusted = self.randomness.choice(
+            target[primary_non_adherent] = self.randomness.choice(
                 primary_non_adherent,
                 choices=list(data_values.OUTREACH_EFFECTS[medication_type].keys()),
                 p=list(data_values.OUTREACH_EFFECTS[medication_type].values()),
                 additional_key=f"outreach_adjust_{medication_type}_medication_adherence_values",
             )
-            target[primary_non_adherent] = adjusted
 
         return target
 
     def _polypill_sbp_adherence_modifier(
         self, index: pd.Index, target: pd.Series
     ) -> pd.Series:
-        return self._polypill_adjust_target(index=index, target=target)
-
-    def _polypill_adjust_target(self, index: pd.Index, target: pd.Series) -> pd.Series:
-        clock_time = self.clock()
-        # Do not adjust target on intialization. We do this because during
-        # initialization the Treatment component sets the medication adherence
-        # state table columns equal to the medication adherence pipeline values;
-        # this modifier implements the outreach intervention treatment effect
-        # which we do want to be active upon initialization
-        if clock_time >= self.simulation_start_time:  # not initialization
-            adjusted = target.copy()
-            for (
-                cat,
-                probability,
-            ) in data_values.POLYPILL_SBP_MEDICATION_ADHERENCE_COVERAGE.items():
-                adjusted[cat] = probability
-            target = adjusted
+        polypill = self.polypill(index)
+        on_polypill = polypill[polypill == "cat1"].index
+        for (
+            cat,
+            probability,
+        ) in data_values.POLYPILL_SBP_MEDICATION_ADHERENCE_COVERAGE.items():
+            target.loc[on_polypill, cat] = probability
 
         return target
