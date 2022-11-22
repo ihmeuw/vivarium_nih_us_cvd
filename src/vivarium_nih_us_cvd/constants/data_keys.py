@@ -237,7 +237,7 @@ class __HighBMI(NamedTuple):
     PAF: TargetString = TargetString(
         "risk_factor.high_body_mass_index_in_adults.population_attributable_fraction"
     )
-    TMRED: TargetString = TargetString("risk_factor.high_systolic_blood_pressure.tmred")
+    TMRED: TargetString = TargetString("risk_factor.high_body_mass_index_in_adults.tmred")
     RELATIVE_RISK_SCALAR: TargetString = TargetString(
         "risk_factor.high_body_mass_index_in_adults.relative_risk_scalar"
     )
