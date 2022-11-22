@@ -16,7 +16,7 @@ from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from gbd_mapping import causes, covariates, risk_factors
+from gbd_mapping import ModelableEntity, causes, covariates, risk_factors
 from vivarium.framework.artifact import EntityKey
 from vivarium_gbd_access import gbd
 from vivarium_gbd_access.constants import ROUND_IDS, SEX, SOURCES
@@ -31,10 +31,7 @@ from vivarium_inputs.mapping_extension import (
 )
 
 from vivarium_nih_us_cvd.constants import data_keys, data_values
-from vivarium_nih_us_cvd.utilities import (
-    get_random_value_from_normal_distribution,
-    get_random_variable_draws,
-)
+from vivarium_nih_us_cvd.utilities import get_random_variable_draws
 
 
 def _get_source_key(val: Union[str, data_keys.SourceTarget]) -> str:
@@ -113,6 +110,15 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.SBP.PAF: load_standard_data,
         data_keys.SBP.TMRED: load_metadata,
         data_keys.SBP.RELATIVE_RISK_SCALAR: load_metadata,
+        # Risk (body mass index)
+        data_keys.BMI.DISTRIBUTION: load_metadata,
+        data_keys.BMI.EXPOSURE_MEAN: load_standard_data,
+        data_keys.BMI.EXPOSURE_SD: load_standard_data,
+        data_keys.BMI.EXPOSURE_WEIGHTS: load_standard_data,
+        data_keys.BMI.RELATIVE_RISK: load_standard_data,
+        data_keys.BMI.PAF: load_standard_data,
+        data_keys.BMI.TMRED: load_metadata,
+        data_keys.BMI.RELATIVE_RISK_SCALAR: load_metadata,
         # Risk (ldlc medication adherence)
         data_keys.LDLC_MEDICATION_ADHERENCE.DISTRIBUTION: load_medication_adherence_distribution,
         data_keys.LDLC_MEDICATION_ADHERENCE.EXPOSURE: load_medication_adherence_exposure,
@@ -154,7 +160,7 @@ def load_theoretical_minimum_risk_life_expectancy(key: str, location: str) -> pd
 
 
 def _get_measure_wrapped(
-    entity: "ModelableEntity", measure: Union[str, data_keys.TargetString], location: str
+    entity: ModelableEntity, measure: Union[str, data_keys.TargetString], location: str
 ) -> pd.DataFrame:
     """
     All calls to get_measure() need to have the location dropped. For the time being,
@@ -446,6 +452,8 @@ def match_rr_to_cause_name(
         data_keys.LDL_C.PAF,
         data_keys.SBP.RELATIVE_RISK,
         data_keys.SBP.PAF,
+        data_keys.BMI.RELATIVE_RISK,
+        data_keys.BMI.PAF,
     ]
     if source_key in affected_keys:
         data = modify_rr_affected_entity(data, source_key, map)

@@ -703,7 +703,6 @@ class Treatment:
         else:
             maybe_enroll = pd.Index([])  # baseline or polypill scenario
 
-
         return pop_visitors, maybe_enroll
 
     def enroll_in_outreach(

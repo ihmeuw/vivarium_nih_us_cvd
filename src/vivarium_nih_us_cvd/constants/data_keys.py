@@ -14,11 +14,6 @@ class SourceTarget(NamedTuple):
     target: str
 
 
-##########
-# Causes #
-##########
-
-
 class __Population(NamedTuple):
     LOCATION: str = "population.location"
     STRUCTURE: str = "population.structure"
@@ -223,6 +218,42 @@ class __HighSBP(NamedTuple):
 SBP = __HighSBP()
 
 
+class __HighBMI(NamedTuple):
+    DISTRIBUTION: TargetString = TargetString(
+        "risk_factor.high_body_mass_index_in_adults.distribution"
+    )
+    EXPOSURE_MEAN: TargetString = TargetString(
+        "risk_factor.high_body_mass_index_in_adults.exposure"
+    )
+    EXPOSURE_SD: TargetString = TargetString(
+        "risk_factor.high_body_mass_index_in_adults.exposure_standard_deviation"
+    )
+    EXPOSURE_WEIGHTS: TargetString = TargetString(
+        "risk_factor.high_body_mass_index_in_adults.exposure_distribution_weights"
+    )
+    RELATIVE_RISK: TargetString = TargetString(
+        "risk_factor.high_body_mass_index_in_adults.relative_risk"
+    )
+    PAF: TargetString = TargetString(
+        "risk_factor.high_body_mass_index_in_adults.population_attributable_fraction"
+    )
+    TMRED: TargetString = TargetString("risk_factor.high_systolic_blood_pressure.tmred")
+    RELATIVE_RISK_SCALAR: TargetString = TargetString(
+        "risk_factor.high_body_mass_index_in_adults.relative_risk_scalar"
+    )
+
+    @property
+    def name(self):
+        return "high_bmi"
+
+    @property
+    def log_name(self):
+        return self.name.replace("_", " ")
+
+
+BMI = __HighBMI()
+
+
 class __LDLCholesterolMedicationAdherence(NamedTuple):
     DISTRIBUTION: TargetString = TargetString(
         "risk_factor.ldlc_medication_adherence.distribution"
@@ -300,6 +331,7 @@ MAKE_ARTIFACT_KEY_GROUPS = [
     ANGINA,
     LDL_C,
     SBP,
+    BMI,
     LDLC_MEDICATION_ADHERENCE,
     SBP_MEDICATION_ADHERENCE,
     OUTREACH,
