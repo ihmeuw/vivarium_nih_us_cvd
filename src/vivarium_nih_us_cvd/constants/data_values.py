@@ -457,6 +457,9 @@ RISK_EXPOSURE_LIMITS = {
         "minimum": 50,
         "maximum": 300,
     },
+    "high_body_mass_index_in_adults": {
+        "minimum": 5,
+    },
 }
 
 

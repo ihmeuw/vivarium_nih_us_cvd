@@ -29,7 +29,6 @@ components:
             - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_ischemic_stroke.incidence_rate")
             - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
 
-            - Risk("risk_factor.high_body_mass_index_in_adults")
             - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.acute_myocardial_infarction.incidence_rate")
             - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
             - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.angina.incidence_rate")
@@ -48,6 +47,8 @@ components:
             
             - AdjustedRisk("risk_factor.high_systolic_blood_pressure")
             - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
+
+            - AdjustedRisk("risk_factor.high_body_mass_index_in_adults")
 
             - HealthcareUtilization() # Note that this uses Treatment() as a sub-component
             - HealthcareVisitObserver()
