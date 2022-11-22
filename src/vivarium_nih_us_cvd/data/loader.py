@@ -12,6 +12,7 @@ for an example.
 
    No logging is done here. Logging is done in vivarium inputs itself and forwarded.
 """
+from functools import partial
 from typing import Dict, List, Tuple, Union
 
 import numpy as np
@@ -115,8 +116,8 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.BMI.EXPOSURE_MEAN: load_standard_data,
         data_keys.BMI.EXPOSURE_SD: load_standard_data,
         data_keys.BMI.EXPOSURE_WEIGHTS: load_standard_data,
-        data_keys.BMI.RELATIVE_RISK: load_standard_data,
-        data_keys.BMI.PAF: load_standard_data,
+        data_keys.BMI.RELATIVE_RISK: partial(load_standard_data_enforce_minimum, 1),
+        data_keys.BMI.PAF: partial(load_standard_data_enforce_minimum, 0),
         data_keys.BMI.TMRED: load_metadata,
         data_keys.BMI.RELATIVE_RISK_SCALAR: load_metadata,
         # Risk (ldlc medication adherence)
@@ -172,7 +173,15 @@ def _get_measure_wrapped(
 def load_standard_data(key: str, location: str) -> pd.DataFrame:
     key = EntityKey(key)
     entity = get_entity(key)
-    return interface.get_measure(entity, key.measure, location).droplevel("location")
+    return _get_measure_wrapped(entity, key.measure, location)
+
+
+def load_standard_data_enforce_minimum(
+    min_value: Union[float, int], key: str, location: str
+) -> pd.DataFrame:
+    data = load_standard_data(key, location)
+    data[data < min_value] = min_value
+    return data
 
 
 def load_metadata(key: str, location: str):
@@ -234,6 +243,7 @@ def handle_special_cases(
     source_key: Union[str, data_keys.TargetString],
     location: str,
 ) -> None:
+    source_key = EntityKey(source_key)
     data = match_rr_to_cause_name(data, source_key)
     # use_correct_fpg_name(artifact)
     # modify_hd_incidence(artifact, location)
@@ -405,9 +415,7 @@ def load_csmr_all_zeros_angina(key: str, location: str) -> pd.DataFrame:
     return load_csmr_all_zeros(data_keys.ANGINA.EMR, location)
 
 
-def modify_rr_affected_entity(
-    data: pd.DataFrame, risk_key: str, mod_map: Dict[str, List[str]]
-) -> None:
+def modify_rr_affected_entity(data: pd.DataFrame, mod_map: Dict[str, List[str]]) -> None:
     """Modify relative_risk data so that the affected_entity and affected_measure
     columns correspond to what is used in the disease model
     """
@@ -432,9 +440,7 @@ def modify_rr_affected_entity(
     return new_data.set_index(idx_orig)
 
 
-def match_rr_to_cause_name(
-    data: Union[str, pd.DataFrame], source_key: Union[str, data_keys.TargetString]
-):
+def match_rr_to_cause_name(data: Union[str, pd.DataFrame], source_key: EntityKey):
     # Need to make relative risk data match causes in the model
     map = {
         "ischemic_heart_disease": [
@@ -447,16 +453,8 @@ def match_rr_to_cause_name(
             "chronic_ischemic_stroke_to_acute_ischemic_stroke",
         ],
     }
-    affected_keys = [
-        data_keys.LDL_C.RELATIVE_RISK,
-        data_keys.LDL_C.PAF,
-        data_keys.SBP.RELATIVE_RISK,
-        data_keys.SBP.PAF,
-        data_keys.BMI.RELATIVE_RISK,
-        data_keys.BMI.PAF,
-    ]
-    if source_key in affected_keys:
-        data = modify_rr_affected_entity(data, source_key, map)
+    if source_key.measure in ["relative_risk", "population_attributable_fraction"]:
+        data = modify_rr_affected_entity(data, map)
     return data
 
 
