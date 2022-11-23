@@ -62,7 +62,7 @@ MYOCARDIAL_INFARCTION_MODEL_TRANSITIONS = (
 # Use the VPH SI("angina") disease model, but define states and transitions
 # here as well for post-processing purposes
 # Greg requested we remove angina
-# ANGINA_MODEL_NAME = data_keys.ANGINA.name  
+# ANGINA_MODEL_NAME = data_keys.ANGINA.name
 # ANGINA_SUSCEPTIBLE_STATE_NAME = f"susceptible_to_{ANGINA_MODEL_NAME}"
 # ANGINA_MODEL_STATES = (
 #     ANGINA_SUSCEPTIBLE_STATE_NAME,
