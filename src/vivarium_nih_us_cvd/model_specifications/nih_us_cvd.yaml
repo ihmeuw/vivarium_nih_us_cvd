@@ -8,9 +8,9 @@ components:
             - DisabilityObserver()
             - DiseaseObserver("ischemic_stroke")
             - DiseaseObserver("myocardial_infarction")
-            - DiseaseObserver("angina")
-        disease:
-            - SI("angina")
+            # - DiseaseObserver("angina")  # Greg requested we remove angina
+        # disease:
+        #     - SI("angina")  # Greg requested we remove angina
         risks:
             - Risk("risk_factor.sbp_medication_adherence")
             - Risk("risk_factor.ldlc_medication_adherence")
@@ -19,15 +19,21 @@ components:
 
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+            # - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.angina.incidence_rate")  # Greg requested we remove angina
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_ischemic_stroke.incidence_rate")
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
-            - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.angina.incidence_rate")
             
             - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_myocardial_infarction.incidence_rate")
             - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+            # - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.angina.incidence_rate")  # Greg requested we remove angina
             - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_ischemic_stroke.incidence_rate")
             - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
-            - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.angina.incidence_rate")
+
+            - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.acute_myocardial_infarction.incidence_rate")
+            - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+            # - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.angina.incidence_rate")  # Greg requested we remove angina
+            - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.acute_ischemic_stroke.incidence_rate")
+            - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
 
     vivarium_nih_us_cvd:
         components:
@@ -42,7 +48,9 @@ components:
             - AdjustedRisk("risk_factor.high_systolic_blood_pressure")
             - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
 
-            - HealthcareUtilization() # Note that this uses Treatment() as a sub-component
+            - AdjustedRisk("risk_factor.high_body_mass_index_in_adults")
+
+            - HealthcareUtilization()  # NOTE: this uses Treatment() as a sub-component
             - HealthcareVisitObserver()
         
             - CategoricalColumnObserver("sbp_medication")

@@ -19,7 +19,7 @@ class AdjustedRisk(Risk):
         self.multiplier_col = {
             "risk_factor.high_systolic_blood_pressure": COLUMNS.SBP_MULTIPLIER,
             "risk_factor.high_ldl_cholesterol": COLUMNS.LDLC_MULTIPLIER,
-        }[self.risk]
+        }.get(self.risk, None)
 
     def __repr__(self) -> str:
         return f"AdjustedRisk({self.risk})"
@@ -67,12 +67,18 @@ class AdjustedRisk(Risk):
         propensity = self.propensity(index)
         exposures = pd.Series(self.exposure_distribution.ppf(propensity), index=index)
         if self.risk.name in RISK_EXPOSURE_LIMITS:
-            min_exposure = RISK_EXPOSURE_LIMITS[self.risk.name]["minimum"]
-            max_exposure = RISK_EXPOSURE_LIMITS[self.risk.name]["maximum"]
+            min_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get("minimum", None)
+            max_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get("maximum", None)
             exposures[exposures < min_exposure] = min_exposure
             exposures[exposures > max_exposure] = max_exposure
         return exposures
 
     def _get_current_exposure(self, index: pd.Index) -> pd.Series:
         """Applies medication multipliers to the raw GBD exposure values"""
-        return self.gbd_exposure(index) * self.population_view.get(index)[self.multiplier_col]
+        if self.multiplier_col:
+            return (
+                self.gbd_exposure(index)
+                * self.population_view.get(index)[self.multiplier_col]
+            )
+        else:
+            return self.gbd_exposure(index)
