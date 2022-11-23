@@ -76,6 +76,9 @@ class AdjustedRisk(Risk):
     def _get_current_exposure(self, index: pd.Index) -> pd.Series:
         """Applies medication multipliers to the raw GBD exposure values"""
         if self.multiplier_col:
-            return self.gbd_exposure(index) * self.population_view.get(index)[self.multiplier_col]
+            return (
+                self.gbd_exposure(index)
+                * self.population_view.get(index)[self.multiplier_col]
+            )
         else:
             return self.gbd_exposure(index)
