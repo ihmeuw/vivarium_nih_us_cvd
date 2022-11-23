@@ -49,6 +49,7 @@ components:
             - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
 
             - AdjustedRisk("risk_factor.high_body_mass_index_in_adults")
+            - ContinuousRiskObserver("risk_factor.high_body_mass_index_in_adults")
 
             - HealthcareUtilization()  # NOTE: this uses Treatment() as a sub-component
             - HealthcareVisitObserver()
