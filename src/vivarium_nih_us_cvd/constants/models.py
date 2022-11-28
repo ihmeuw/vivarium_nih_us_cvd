@@ -61,15 +61,16 @@ MYOCARDIAL_INFARCTION_MODEL_TRANSITIONS = (
 
 # Use the VPH SI("angina") disease model, but define states and transitions
 # here as well for post-processing purposes
-ANGINA_MODEL_NAME = data_keys.ANGINA.name
-ANGINA_SUSCEPTIBLE_STATE_NAME = f"susceptible_to_{ANGINA_MODEL_NAME}"
-ANGINA_MODEL_STATES = (
-    ANGINA_SUSCEPTIBLE_STATE_NAME,
-    ANGINA_MODEL_NAME,
-)
-ANGINA_MODEL_TRANSITIONS = (
-    TransitionString(f"{ANGINA_SUSCEPTIBLE_STATE_NAME}_TO_{ANGINA_MODEL_NAME}"),
-)
+# Greg requested we remove angina
+# ANGINA_MODEL_NAME = data_keys.ANGINA.name
+# ANGINA_SUSCEPTIBLE_STATE_NAME = f"susceptible_to_{ANGINA_MODEL_NAME}"
+# ANGINA_MODEL_STATES = (
+#     ANGINA_SUSCEPTIBLE_STATE_NAME,
+#     ANGINA_MODEL_NAME,
+# )
+# ANGINA_MODEL_TRANSITIONS = (
+#     TransitionString(f"{ANGINA_SUSCEPTIBLE_STATE_NAME}_TO_{ANGINA_MODEL_NAME}"),
+# )
 
 
 STATE_MACHINE_MAP = {
@@ -81,10 +82,11 @@ STATE_MACHINE_MAP = {
         "states": MYOCARDIAL_INFARCTION_MODEL_STATES,
         "transitions": MYOCARDIAL_INFARCTION_MODEL_TRANSITIONS,
     },
-    ANGINA_MODEL_NAME: {
-        "states": ANGINA_MODEL_STATES,
-        "transitions": ANGINA_MODEL_TRANSITIONS,
-    },
+    # Greg requested we remove angina
+    # ANGINA_MODEL_NAME: {
+    #     "states": ANGINA_MODEL_STATES,
+    #     "transitions": ANGINA_MODEL_TRANSITIONS,
+    # },
 }
 
 

@@ -92,7 +92,7 @@ CAUSES_OF_DISABILITY = (
     models.ACUTE_ISCHEMIC_STROKE_STATE_NAME,
     models.CHRONIC_ISCHEMIC_STROKE_STATE_NAME,
     models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME,
-    "angina",
+    # "angina",  # Greg requested we remove angina
 )
 CAUSES_OF_DEATH = CAUSES_OF_DISABILITY + (
     "other_causes",
@@ -101,6 +101,7 @@ CAUSES_OF_DEATH = CAUSES_OF_DISABILITY + (
 RISKS = (
     "high_ldl_cholesterol",
     "high_systolic_blood_pressure",
+    "high_body_mass_index_in_adults",
 )
 MEDICATION_ADHERENCES = tuple(x for x in data_values.MEDICATION_ADHERENCE_TYPE)
 SBP_MEDICATIONS = tuple(x.DESCRIPTION for x in data_values.SBP_MEDICATION_LEVEL)
