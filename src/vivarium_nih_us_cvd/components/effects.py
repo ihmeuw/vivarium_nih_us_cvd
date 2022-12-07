@@ -5,7 +5,7 @@ from vivarium.framework.time import get_time_stamp
 from vivarium_nih_us_cvd.constants import data_values, scenarios
 
 
-class InterventionEffect:
+class InterventionAdherenceEffect:
     """A component to model the impact of the intervention risks on medication adherence levels"""
 
     def __repr__(self):
@@ -45,7 +45,7 @@ class InterventionEffect:
                 data_values.PIPELINES.LDLC_MEDICATION_ADHERENCE_EXPOSURE,
                 modifier=self._outreach_ldlc_adherence_modifier,
             )
-        elif self.scenario.is_polypill_scenario:
+        if self.scenario.is_polypill_scenario and self.scenario.affect_sbp_adherence:
             builder.value.register_value_modifier(
                 "risk_factor.sbp_medication_adherence.exposure_parameters",
                 modifier=self._polypill_sbp_adherence_modifier,
