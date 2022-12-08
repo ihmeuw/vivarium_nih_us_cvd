@@ -42,16 +42,24 @@ class __InterventionScenarios(NamedTuple):
         affect_sbp_medication=True,
     )
     POLYPILL_ADHERENCE_ONLY_50: InterventionScenario = InterventionScenario(
-        "polypill_adherence_only_50", is_polypill_scenario=True, affect_sbp_adherence=True
+        "polypill_adherence_only_50",
+        is_polypill_scenario=True,
+        affect_sbp_adherence=True,
     )
     POLYPILL_ADHERENCE_ONLY_100: InterventionScenario = InterventionScenario(
-        "polypill_adherence_only_100", is_polypill_scenario=True, affect_sbp_adherence=True
+        "polypill_adherence_only_100",
+        is_polypill_scenario=True,
+        affect_sbp_adherence=True,
     )
     POLYPILL_MEDICATION_ONLY_50: InterventionScenario = InterventionScenario(
-        "polypill_medication_only_50", is_polypill_scenario=True, affect_sbp_medication=True
+        "polypill_medication_only_50",
+        is_polypill_scenario=True,
+        affect_sbp_medication=True,
     )
     POLYPILL_MEDICATION_ONLY_100: InterventionScenario = InterventionScenario(
-        "polypill_medication_only_100", is_polypill_scenario=True, affect_sbp_medication=True
+        "polypill_medication_only_100",
+        is_polypill_scenario=True,
+        affect_sbp_medication=True,
     )
 
     def __getitem__(self, item) -> InterventionScenario:
