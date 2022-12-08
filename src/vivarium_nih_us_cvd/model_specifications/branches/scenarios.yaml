@@ -27,7 +27,7 @@ branches:
       value:
         end: 0
   - intervention:
-      scenario: "polypill_50"
+      scenario: "polypill_adherence_only_50"
     outreach_scale_up:
       value:
         end: 0
@@ -35,7 +35,39 @@ branches:
       value:
         end: 0.5
   - intervention:
-      scenario: "polypill_100"
+      scenario: "polypill_adherence_only_100"
+    outreach_scale_up:
+      value:
+        end: 0
+    polypill_scale_up:
+      value:
+        end: 1
+  - intervention:
+      scenario: "polypill_medication_only_50"
+    outreach_scale_up:
+      value:
+        end: 0
+    polypill_scale_up:
+      value:
+        end: 0.5
+  - intervention:
+      scenario: "polypill_medication_only_100"
+    outreach_scale_up:
+      value:
+        end: 0
+    polypill_scale_up:
+      value:
+        end: 1
+  - intervention:
+      scenario: "polypill_50"  # both adherence + medicatino level effects
+    outreach_scale_up:
+      value:
+        end: 0
+    polypill_scale_up:
+      value:
+        end: 0.5
+  - intervention:
+      scenario: "polypill_100"  # both adherence + medicatino level effects
     outreach_scale_up:
       value:
         end: 0
