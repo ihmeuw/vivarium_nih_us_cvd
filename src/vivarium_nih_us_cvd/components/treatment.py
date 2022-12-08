@@ -761,17 +761,24 @@ class Treatment:
 
         Reminder: 'cat1' polypill means enrolled and 'cat2' means not enrolled.
         """
-        pop_visitors.loc[maybe_enroll, data_values.COLUMNS.POLYPILL] = self.polypill(
-            maybe_enroll
-        )
+        current_enrollment = pop_visitors.loc[maybe_enroll, data_values.COLUMNS.POLYPILL]
+        updated_enrollment = self.polypill(maybe_enroll)
+
+        # Update the polypill statuses
+        pop_visitors.loc[maybe_enroll, data_values.COLUMNS.POLYPILL] = updated_enrollment
+
+        # Update sbp medication adherences
         if self.scenario.affect_sbp_adherence:
-            # Update sbp medication adherences
+            # NOTE: this if statement is not strictly necessary because the
+            # check is also made when registering the adherence value modifier
+            # but is kept for readability
             pop_visitors.loc[
                 maybe_enroll, data_values.COLUMNS.SBP_MEDICATION_ADHERENCE
             ] = self.sbp_medication_adherence(maybe_enroll)
 
+        # Update sbp medication levels
         if self.scenario.affect_sbp_medication:
-            # Update sbp medication levels
+            to_enroll = current_enrollment[current_enrollment != updated_enrollment].index
             low_sbp_medication_dose = pop_visitors[
                 pop_visitors[data_values.COLUMNS.SBP_MEDICATION].map(
                     {v: k for k, v in self.sbp_treatment_map.items()}
@@ -779,7 +786,7 @@ class Treatment:
                 < data_values.SBP_MEDICATION_LEVEL.THREE_DRUGS_HALF_DOSE.VALUE
             ].index
             pop_visitors.loc[
-                maybe_enroll.intersection(low_sbp_medication_dose),
+                to_enroll.intersection(low_sbp_medication_dose),
                 data_values.COLUMNS.SBP_MEDICATION,
             ] = data_values.SBP_MEDICATION_LEVEL.THREE_DRUGS_HALF_DOSE.DESCRIPTION
 

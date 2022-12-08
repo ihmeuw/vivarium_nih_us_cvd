@@ -3,11 +3,11 @@ components:
         population:
             - BasePopulation()
             - Mortality()
-        # metrics:
-            # - MortalityObserver()
-            # - DisabilityObserver()
-            # - DiseaseObserver("ischemic_stroke")
-            # - DiseaseObserver("myocardial_infarction")
+        metrics:
+            - MortalityObserver()
+            - DisabilityObserver()
+            - DiseaseObserver("ischemic_stroke")
+            - DiseaseObserver("myocardial_infarction")
             # - DiseaseObserver("angina")  # Greg requested we remove angina
         # disease:
         #     - SI("angina")  # Greg requested we remove angina
@@ -43,25 +43,25 @@ components:
             - MyocardialInfarction()
 
             - AdjustedRisk("risk_factor.high_ldl_cholesterol")
-            # - ContinuousRiskObserver("risk_factor.high_ldl_cholesterol")
+            - ContinuousRiskObserver("risk_factor.high_ldl_cholesterol")
             
             - AdjustedRisk("risk_factor.high_systolic_blood_pressure")
-            # - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
+            - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
 
             - AdjustedRisk("risk_factor.high_body_mass_index_in_adults")
-            # - ContinuousRiskObserver("risk_factor.high_body_mass_index_in_adults")
+            - ContinuousRiskObserver("risk_factor.high_body_mass_index_in_adults")
 
             - HealthcareUtilization()  # NOTE: this uses Treatment() as a sub-component
-            # - HealthcareVisitObserver()
+            - HealthcareVisitObserver()
         
-            # - CategoricalColumnObserver("sbp_medication")
-            # - CategoricalColumnObserver("ldlc_medication")
+            - CategoricalColumnObserver("sbp_medication")
+            - CategoricalColumnObserver("ldlc_medication")
 
             - InterventionAdherenceEffect()
             - LinearScaleUp("risk_factor.outreach")
             - LinearScaleUp("risk_factor.polypill")
-            # - CategoricalColumnObserver("outreach")
-            # - CategoricalColumnObserver("polypill")
+            - CategoricalColumnObserver("outreach")
+            - CategoricalColumnObserver("polypill")
 
 configuration:
     input_data:
@@ -81,17 +81,17 @@ configuration:
             month: 1
             day: 1
         observation_start: # TODO: Implement for all observers (currently only custom observers)
-            year: 2021
+            year: 2023
             month: 1
             day: 1
         end:
-            year: 2021
+            year: 2040
             month: 12
             day: 31
         step_size: 28 # Days
     population:
-        population_size: 10_000
-        age_start: 70
+        population_size: 50_000
+        age_start: 7
         age_end: 125
         exit_age: 125
     observers:
@@ -111,7 +111,7 @@ configuration:
     polypill:
         exposure: 0
     intervention:
-        scenario: "polypill_100"
+        scenario: "baseline"
     outreach_scale_up: 
         date:
             start:
@@ -128,13 +128,13 @@ configuration:
     polypill_scale_up: 
         date:
             start:
-                year: 2021
+                year: 2023
                 month: 1
                 day: 1
             end:
-                year: 2021
+                year: 2024
                 month: 1
-                day: 28
+                day: 1
         value:
             start: 0
-            end: 1
+            end: 0
