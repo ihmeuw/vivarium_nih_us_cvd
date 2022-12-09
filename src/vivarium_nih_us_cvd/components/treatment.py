@@ -574,9 +574,7 @@ class Treatment:
         # 2. measured sbp >= 130 and a history of MI or stroke
         if self.scenario.is_polypill_scenario:
             maybe_enroll = maybe_enroll.intersection(
-                high_sbp.union(
-                    maybe_enroll.difference(low_sbp).intersection(history_mi_or_is)
-                )
+                high_sbp.union(history_mi_or_is.difference(low_sbp))
             )
 
         return pop_visitors, maybe_enroll
@@ -763,6 +761,7 @@ class Treatment:
         """
         current_enrollment = pop_visitors.loc[maybe_enroll, data_values.COLUMNS.POLYPILL]
         updated_enrollment = self.polypill(maybe_enroll)
+        to_enroll = current_enrollment[current_enrollment != updated_enrollment].index
 
         # Update the polypill statuses
         pop_visitors.loc[maybe_enroll, data_values.COLUMNS.POLYPILL] = updated_enrollment
@@ -773,12 +772,11 @@ class Treatment:
             # check is also made when registering the adherence value modifier
             # but is kept for readability
             pop_visitors.loc[
-                maybe_enroll, data_values.COLUMNS.SBP_MEDICATION_ADHERENCE
-            ] = self.sbp_medication_adherence(maybe_enroll)
+                to_enroll, data_values.COLUMNS.SBP_MEDICATION_ADHERENCE
+            ] = self.sbp_medication_adherence(to_enroll)
 
         # Update sbp medication levels
         if self.scenario.polypill_affects_sbp_medication:
-            to_enroll = current_enrollment[current_enrollment != updated_enrollment].index
             low_sbp_medication_dose = pop_visitors[
                 pop_visitors[data_values.COLUMNS.SBP_MEDICATION].map(
                     {v: k for k, v in self.sbp_treatment_map.items()}
