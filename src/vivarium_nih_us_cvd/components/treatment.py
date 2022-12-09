@@ -313,8 +313,6 @@ class Treatment:
         ] = data_values.LDLC_MULTIPLIER.HIGH
 
         # Send anyone in emergency state to medication ramp
-        # Note that for initialization we base the measured exposures on
-        # the GBD exposure values
         mask_acute_is = (
             pop[models.ISCHEMIC_STROKE_MODEL_NAME] == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
         )
@@ -323,6 +321,10 @@ class Treatment:
             == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
         )
         mask_emergency = mask_acute_is | mask_acute_mi
+        # NOTE: during initialization we base the measured exposures on
+        # the GBD exposure values
+        # NOTE: we do not do anything with interventions durint initialization
+        # because the simulation always starts at 0% rampup
         pop.loc[mask_emergency], _ = self.apply_sbp_treatment_ramp(
             pop_visitors=pop.loc[mask_emergency],
             exposure_pipeline=self.gbd_sbp,
@@ -452,7 +454,7 @@ class Treatment:
             pop.loc[visitors] = self.enroll_in_outreach(
                 pop_visitors=pop.loc[visitors], maybe_enroll=maybe_enroll
             )
-        elif self.scenario.is_polypill_scenario:
+        if self.scenario.is_polypill_scenario:
             pop.loc[visitors] = self.enroll_in_polypill(
                 pop_visitors=pop.loc[visitors], maybe_enroll=maybe_enroll_sbp
             )
@@ -503,6 +505,15 @@ class Treatment:
         newly_prescribed = overcome_therapeutic_inertia.difference(
             currently_medicated
         ).difference(low_sbp)
+        mask_history_mi = (
+            pop_visitors[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
+            != models.MYOCARDIAL_INFARCTION_SUSCEPTIBLE_STATE_NAME
+        )
+        mask_history_is = (
+            pop_visitors[models.ISCHEMIC_STROKE_MODEL_NAME]
+            != models.ISCHEMIC_STROKE_SUSCEPTIBLE_STATE_NAME
+        )
+        history_mi_or_is = pop_visitors[mask_history_mi | mask_history_is].index
 
         # [Treatment ramp ID C] Simulants who overcome therapeutic inertia, have
         # high SBP, and are not currently medicated
@@ -558,16 +569,13 @@ class Treatment:
             maybe_enroll = pd.Index([])  # baseline scenario
 
         # Determine potential new polypill enrollees; same as potential outreach
-        # enrollees except must also have sbp medication dose at
-        # 'two drugs half dose' or higher
+        # enrollees except must also have one of the following two requirements
+        # 1. measured sbp >= 140
+        # 2. measured sbp >= 130 and a history of MI or stroke
         if self.scenario.is_polypill_scenario:
-            high_sbp_medication_dose = pop_visitors[
-                pop_visitors[data_values.COLUMNS.SBP_MEDICATION].map(
-                    {v: k for k, v in self.sbp_treatment_map.items()}
-                )
-                >= data_values.SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE.VALUE
-            ].index
-            maybe_enroll = maybe_enroll.intersection(high_sbp_medication_dose)
+            maybe_enroll = maybe_enroll.intersection(
+                high_sbp.union(history_mi_or_is.difference(low_sbp))
+            )
 
         return pop_visitors, maybe_enroll
 
@@ -746,17 +754,40 @@ class Treatment:
         self, pop_visitors: pd.DataFrame, maybe_enroll: pd.Index
     ) -> pd.DataFrame:
         """Enrolls simulants in polypill intervention program. It updates
-        the polypill column as well as sbp medication adherence column (the
-        effect of polypill intervention).
+        the polypill column as well as sbp medication level and adherence columns
+        (the effects of polypill intervention).
 
         Reminder: 'cat1' polypill means enrolled and 'cat2' means not enrolled.
         """
-        pop_visitors.loc[maybe_enroll, data_values.COLUMNS.POLYPILL] = self.polypill(
-            maybe_enroll
-        )
-        pop_visitors.loc[
-            maybe_enroll, data_values.COLUMNS.SBP_MEDICATION_ADHERENCE
-        ] = self.sbp_medication_adherence(maybe_enroll)
+        current_enrollment = pop_visitors.loc[maybe_enroll, data_values.COLUMNS.POLYPILL]
+        updated_enrollment = self.polypill(maybe_enroll)
+        to_enroll = current_enrollment[current_enrollment != updated_enrollment].index
+
+        # Update the polypill statuses
+        pop_visitors.loc[maybe_enroll, data_values.COLUMNS.POLYPILL] = updated_enrollment
+
+        # Update sbp medication adherences
+        if self.scenario.polypill_affects_sbp_adherence:
+            # NOTE: this if statement is not strictly necessary because the
+            # check is also made when registering the adherence value modifier
+            # but is kept for readability
+            pop_visitors.loc[
+                to_enroll, data_values.COLUMNS.SBP_MEDICATION_ADHERENCE
+            ] = self.sbp_medication_adherence(to_enroll)
+
+        # Update sbp medication levels
+        if self.scenario.polypill_affects_sbp_medication:
+            low_sbp_medication_dose = pop_visitors[
+                pop_visitors[data_values.COLUMNS.SBP_MEDICATION].map(
+                    {v: k for k, v in self.sbp_treatment_map.items()}
+                )
+                < data_values.SBP_MEDICATION_LEVEL.THREE_DRUGS_HALF_DOSE.VALUE
+            ].index
+            pop_visitors.loc[
+                to_enroll.intersection(low_sbp_medication_dose),
+                data_values.COLUMNS.SBP_MEDICATION,
+            ] = data_values.SBP_MEDICATION_LEVEL.THREE_DRUGS_HALF_DOSE.DESCRIPTION
+
         self.population_view.update(
             pop_visitors[
                 [

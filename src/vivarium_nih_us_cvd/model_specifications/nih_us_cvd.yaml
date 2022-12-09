@@ -57,7 +57,7 @@ components:
             - CategoricalColumnObserver("sbp_medication")
             - CategoricalColumnObserver("ldlc_medication")
 
-            - InterventionEffect()
+            - InterventionAdherenceEffect()
             - LinearScaleUp("risk_factor.outreach")
             - LinearScaleUp("risk_factor.polypill")
             - CategoricalColumnObserver("outreach")
