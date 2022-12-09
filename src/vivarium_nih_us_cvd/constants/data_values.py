@@ -427,13 +427,13 @@ class __MedicationCoveragecoefficients(NamedTuple):
     """Coefficients used to calculate baseline medication coverage upon initialization"""
 
     SBP: MedicationCoverageCoefficientsBaseClass = MedicationCoverageCoefficientsBaseClass(
-        "sbp", -6.75, 0.025, -0.0045, 0.05, 0.16
+        "sbp", -6.75, 0.025, -0.173, 0.05, 0.158
     )
     LDLC: MedicationCoverageCoefficientsBaseClass = MedicationCoverageCoefficientsBaseClass(
-        "ldlc", -4.23, -0.0026, -0.005, 0.062, -0.19
+        "ldlc", -4.23, -0.0026, -0.196, 0.062, -0.19
     )
     BOTH: MedicationCoverageCoefficientsBaseClass = MedicationCoverageCoefficientsBaseClass(
-        "both", -6.26, 0.018, -0.014, 0.069, 0.13
+        "both", -6.26, 0.018, -0.524, 0.069, 0.13
     )
 
     @property
