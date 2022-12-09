@@ -768,7 +768,7 @@ class Treatment:
         pop_visitors.loc[maybe_enroll, data_values.COLUMNS.POLYPILL] = updated_enrollment
 
         # Update sbp medication adherences
-        if self.scenario.affect_sbp_adherence:
+        if self.scenario.polypill_affects_sbp_adherence:
             # NOTE: this if statement is not strictly necessary because the
             # check is also made when registering the adherence value modifier
             # but is kept for readability
@@ -777,7 +777,7 @@ class Treatment:
             ] = self.sbp_medication_adherence(maybe_enroll)
 
         # Update sbp medication levels
-        if self.scenario.affect_sbp_medication:
+        if self.scenario.polypill_affects_sbp_medication:
             to_enroll = current_enrollment[current_enrollment != updated_enrollment].index
             low_sbp_medication_dose = pop_visitors[
                 pop_visitors[data_values.COLUMNS.SBP_MEDICATION].map(

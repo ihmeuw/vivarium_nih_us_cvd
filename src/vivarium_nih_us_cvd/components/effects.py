@@ -45,7 +45,7 @@ class InterventionAdherenceEffect:
                 data_values.PIPELINES.LDLC_MEDICATION_ADHERENCE_EXPOSURE,
                 modifier=self._outreach_ldlc_adherence_modifier,
             )
-        if self.scenario.is_polypill_scenario and self.scenario.affect_sbp_adherence:
+        if self.scenario.polypill_affects_sbp_adherence:
             builder.value.register_value_modifier(
                 "risk_factor.sbp_medication_adherence.exposure_parameters",
                 modifier=self._polypill_sbp_adherence_modifier,
