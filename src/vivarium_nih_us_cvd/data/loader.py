@@ -188,8 +188,7 @@ def load_bmi_standard_deviation(key: str, location: str) -> pd.DataFrame:
         new_values = [np.mean(acceptable_values.sample(50, replace=True)) for _ in outlier_values]
         return row.replace(dict(zip(outlier_values, new_values)))
 
-    bmi_sd.apply(replace_outliers_by_sampling_from_reasonable_values)
-    return bmi_sd
+    return bmi_sd.apply(replace_outliers_by_sampling_from_reasonable_values)
 
 
 def load_standard_data_enforce_minimum(
