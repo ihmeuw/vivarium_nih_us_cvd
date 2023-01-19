@@ -185,7 +185,9 @@ def load_bmi_standard_deviation(key: str, location: str) -> pd.DataFrame:
         outlier_values = row[row >= data_values.MAX_BMI_STANDARD_DEVIATION]
         acceptable_values = row[row < data_values.MAX_BMI_STANDARD_DEVIATION]
         # get average of 50 samples
-        new_values = [np.mean(acceptable_values.sample(50, replace=True)) for _ in outlier_values]
+        new_values = [
+            np.mean(acceptable_values.sample(50, replace=True)) for _ in outlier_values
+        ]
         return row.replace(dict(zip(outlier_values, new_values)))
 
     return bmi_sd.apply(replace_outliers_by_sampling_from_reasonable_values)
