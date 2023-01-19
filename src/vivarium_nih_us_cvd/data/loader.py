@@ -114,7 +114,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         # Risk (body mass index)
         data_keys.BMI.DISTRIBUTION: load_metadata,
         data_keys.BMI.EXPOSURE_MEAN: load_standard_data,
-        data_keys.BMI.EXPOSURE_SD: load_standard_data,
+        data_keys.BMI.EXPOSURE_SD: load_bmi_standard_deviation,
         data_keys.BMI.EXPOSURE_WEIGHTS: load_standard_data,
         data_keys.BMI.RELATIVE_RISK: partial(load_standard_data_enforce_minimum, 1),
         data_keys.BMI.PAF: partial(load_standard_data_enforce_minimum, 0),
@@ -174,6 +174,23 @@ def load_standard_data(key: str, location: str) -> pd.DataFrame:
     key = EntityKey(key)
     entity = get_entity(key)
     return _get_measure_wrapped(entity, key.measure, location)
+
+
+def load_bmi_standard_deviation(key: str, location: str) -> pd.DataFrame:
+    key = EntityKey(key)
+    entity = get_entity(key)
+    bmi_sd = _get_measure_wrapped(entity, key.measure, location)
+
+    def replace_outliers_by_sampling_from_reasonable_values(row: pd.Series) -> pd.Series:
+        outlier_values = row[row >= data_values.MAX_BMI_STANDARD_DEVIATION]
+        acceptable_values = row[row < data_values.MAX_BMI_STANDARD_DEVIATION]
+        # get average of 50 samples
+        new_values = [
+            np.mean(acceptable_values.sample(50, replace=True)) for _ in outlier_values
+        ]
+        return row.replace(dict(zip(outlier_values, new_values)))
+
+    return bmi_sd.apply(replace_outliers_by_sampling_from_reasonable_values)
 
 
 def load_standard_data_enforce_minimum(

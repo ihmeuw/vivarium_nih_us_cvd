@@ -463,6 +463,8 @@ RISK_EXPOSURE_LIMITS = {
     },
 }
 
+MAX_BMI_STANDARD_DEVIATION = 15
+
 
 ###########################
 # Intervention Parameters #
