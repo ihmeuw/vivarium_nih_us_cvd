@@ -12,10 +12,10 @@ components:
         # disease:
         #     - SI("angina")  # Greg requested we remove angina
         risks:
-            - Risk("risk_factor.sbp_medication_adherence")
-            - Risk("risk_factor.ldlc_medication_adherence")
-            - Risk("risk_factor.outreach")
-            - Risk("risk_factor.polypill")
+#            - Risk("risk_factor.sbp_medication_adherence")
+#            - Risk("risk_factor.ldlc_medication_adherence")
+#            - Risk("risk_factor.outreach")
+#            - Risk("risk_factor.polypill")
 
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
@@ -51,17 +51,17 @@ components:
             - AdjustedRisk("risk_factor.high_body_mass_index_in_adults")
             - ContinuousRiskObserver("risk_factor.high_body_mass_index_in_adults")
 
-            - HealthcareUtilization()  # NOTE: this uses Treatment() as a sub-component
-            - HealthcareVisitObserver()
-        
-            - CategoricalColumnObserver("sbp_medication")
-            - CategoricalColumnObserver("ldlc_medication")
-
-            - InterventionAdherenceEffect()
-            - LinearScaleUp("risk_factor.outreach")
-            - LinearScaleUp("risk_factor.polypill")
-            - CategoricalColumnObserver("outreach")
-            - CategoricalColumnObserver("polypill")
+#            - HealthcareUtilization()  # NOTE: this uses Treatment() as a sub-component
+#            - HealthcareVisitObserver()
+#
+#            - CategoricalColumnObserver("sbp_medication")
+#            - CategoricalColumnObserver("ldlc_medication")
+#
+#            - InterventionAdherenceEffect()
+#            - LinearScaleUp("risk_factor.outreach")
+#            - LinearScaleUp("risk_factor.polypill")
+#            - CategoricalColumnObserver("outreach")
+#            - CategoricalColumnObserver("polypill")
 
 configuration:
     input_data:
@@ -99,12 +99,12 @@ configuration:
             - 'age'
             - 'sex'
             - 'year'
-        sbp_medication:
-            include:
-                - 'sbp_medication_adherence'
-        ldlc_medication:
-            include:
-                - 'ldlc_medication_adherence'
+#        sbp_medication:
+#            include:
+#                - 'sbp_medication_adherence'
+#        ldlc_medication:
+#            include:
+#                - 'ldlc_medication_adherence'
     
     outreach:
         exposure: 0
