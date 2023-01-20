@@ -46,7 +46,7 @@ class AdjustedRisk(Risk):
         return builder.value.register_value_producer(
             self.exposure_pipeline_name,
             source=self._get_current_exposure,
-            #requires_columns=[self.multiplier_col],
+            # requires_columns=[self.multiplier_col],
             requires_values=[self.gbd_exposure_pipeline_name],
             preferred_post_processor=get_exposure_post_processor(builder, self.risk),
         )
@@ -55,7 +55,7 @@ class AdjustedRisk(Risk):
         return builder.population.get_view(
             [
                 self.propensity_column_name,
-                #self.multiplier_col,
+                # self.multiplier_col,
             ]
         )
 
