@@ -16,6 +16,7 @@ components:
             - Risk("risk_factor.ldlc_medication_adherence")
             - Risk("risk_factor.outreach")
             - Risk("risk_factor.polypill")
+            - Risk("risk_factor.high_fasting_plasma_glucose")
 
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
