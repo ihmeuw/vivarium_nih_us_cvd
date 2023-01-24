@@ -18,6 +18,8 @@ from typing import Dict, List, Tuple, Union
 import numpy as np
 import pandas as pd
 from gbd_mapping import ModelableEntity, causes, covariates, risk_factors
+from gbd_mapping.base_template import Tmred
+from gbd_mapping.id import scalar
 from vivarium.framework.artifact import EntityKey
 from vivarium_gbd_access import gbd
 from vivarium_gbd_access.constants import ROUND_IDS, SEX, SOURCES
@@ -30,8 +32,6 @@ from vivarium_inputs.mapping_extension import (
     alternative_risk_factors,
     healthcare_entities,
 )
-from gbd_mapping.id import scalar
-from gbd_mapping.base_template import Tmred
 
 from vivarium_nih_us_cvd.constants import data_keys, data_values
 from vivarium_nih_us_cvd.utilities import get_random_variable_draws
@@ -289,11 +289,11 @@ def get_entity(key: Union[str, EntityKey]):
     }
     key = EntityKey(key)
 
-    if key.name == 'high_fasting_plasma_glucose':
+    if key.name == "high_fasting_plasma_glucose":
         entity = type_map[key.type][key.name]
-        entity.distribution = 'ensemble'
+        entity.distribution = "ensemble"
         entity.tmred = Tmred(
-            distribution='uniform',
+            distribution="uniform",
             min=scalar(4.884880066),
             max=scalar(5.301205158),
             inverted=False,
