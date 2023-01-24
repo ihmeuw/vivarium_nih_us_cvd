@@ -18,6 +18,8 @@ from typing import Dict, List, Tuple, Union
 import numpy as np
 import pandas as pd
 from gbd_mapping import ModelableEntity, causes, covariates, risk_factors
+from gbd_mapping.base_template import Tmred
+from gbd_mapping.id import scalar
 from vivarium.framework.artifact import EntityKey
 from vivarium_gbd_access import gbd
 from vivarium_gbd_access.constants import ROUND_IDS, SEX, SOURCES
@@ -120,6 +122,15 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.BMI.PAF: partial(load_standard_data_enforce_minimum, 0),
         data_keys.BMI.TMRED: load_metadata,
         data_keys.BMI.RELATIVE_RISK_SCALAR: load_metadata,
+        # Risk (fasting plasma glucose)
+        data_keys.FPG.DISTRIBUTION: load_metadata,
+        data_keys.FPG.EXPOSURE_MEAN: load_standard_data,
+        data_keys.FPG.EXPOSURE_SD: load_standard_data,
+        data_keys.FPG.EXPOSURE_WEIGHTS: load_standard_data,
+        data_keys.FPG.RELATIVE_RISK: load_standard_data,
+        data_keys.FPG.PAF: load_standard_data,
+        data_keys.FPG.TMRED: load_metadata,
+        data_keys.FPG.RELATIVE_RISK_SCALAR: load_metadata,
         # Risk (ldlc medication adherence)
         data_keys.LDLC_MEDICATION_ADHERENCE.DISTRIBUTION: load_medication_adherence_distribution,
         data_keys.LDLC_MEDICATION_ADHERENCE.EXPOSURE: load_medication_adherence_exposure,
@@ -277,6 +288,19 @@ def get_entity(key: Union[str, EntityKey]):
         "healthcare_entity": healthcare_entities,
     }
     key = EntityKey(key)
+
+    if key.name == "high_fasting_plasma_glucose":
+        entity = type_map[key.type][key.name]
+        entity.distribution = "ensemble"
+        entity.tmred = Tmred(
+            distribution="uniform",
+            min=scalar(4.884880066),
+            max=scalar(5.301205158),
+            inverted=False,
+        )
+        entity.relative_risk_scalar = scalar(1)
+        return entity
+
     return type_map[key.type][key.name]
 
 
