@@ -82,3 +82,17 @@ class AdjustedRisk(Risk):
             )
         else:
             return self.gbd_exposure(index)
+
+
+class TruncatedRisk(Risk):
+    def _get_current_exposure(self, index: pd.Index) -> pd.Series:
+        # Keep exposure values between defined limits
+        propensity = self.propensity(index)
+
+        exposures = pd.Series(self.exposure_distribution.ppf(propensity), index=index)
+        min_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get("minimum", None)
+        max_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get("maximum", None)
+        exposures[exposures < min_exposure] = min_exposure
+        exposures[exposures > max_exposure] = max_exposure
+
+        return exposures

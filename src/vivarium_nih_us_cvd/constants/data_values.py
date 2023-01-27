@@ -461,6 +461,10 @@ RISK_EXPOSURE_LIMITS = {
         "minimum": 5,
         "maximum": 80,
     },
+    "high_fasting_plasma_glucose": {
+        "minimum": 1,
+        "maximum": 30,
+    },
 }
 
 MAX_BMI_STANDARD_DEVIATION = 15
