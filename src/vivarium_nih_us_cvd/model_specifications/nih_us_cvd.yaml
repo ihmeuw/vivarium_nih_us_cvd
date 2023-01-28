@@ -35,6 +35,11 @@ components:
             - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.acute_ischemic_stroke.incidence_rate")
             - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
 
+            - RiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.acute_myocardial_infarction.incidence_rate")
+            - RiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+            - RiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.acute_ischemic_stroke.incidence_rate")
+            - RiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
+
     vivarium_nih_us_cvd:
         components:
             - ResultsStratifier()
