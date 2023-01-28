@@ -27,7 +27,6 @@ RENAME_COLUMNS = {
 # TODO [MIC-3219]: - update template
 def make_measure_data(data):
     measure_data = MeasureData(
-        population=get_population_data(data),
         ylls=get_measure_data(data, "ylls"),
         ylds=get_measure_data(data, "ylds"),
         deaths=get_measure_data(data, "deaths"),
@@ -49,7 +48,6 @@ def make_measure_data(data):
 
 
 class MeasureData(NamedTuple):
-    population: pd.DataFrame
     ylls: pd.DataFrame
     ylds: pd.DataFrame
     deaths: pd.DataFrame
@@ -157,18 +155,6 @@ def apply_results_map(data: pd.DataFrame, kind: str) -> pd.DataFrame:
     data = data.rename(columns=RENAME_COLUMNS)
     logger.info(f"Mapping {kind} complete.")
     return data
-
-
-def get_population_data(data: pd.DataFrame) -> pd.DataFrame:
-    total_pop = pivot_data(
-        data[
-            [results.TOTAL_POPULATION_COLUMN]
-            + results.RESULT_COLUMNS("population")
-            + GROUPBY_COLUMNS
-        ]
-    )
-    total_pop = total_pop.rename(columns={"key": "measure"})
-    return sort_data(total_pop)
 
 
 def get_measure_data(data: pd.DataFrame, measure: str) -> pd.DataFrame:
