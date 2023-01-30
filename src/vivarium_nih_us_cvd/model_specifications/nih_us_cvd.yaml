@@ -53,7 +53,7 @@ components:
             - AdjustedRisk("risk_factor.high_systolic_blood_pressure")
             - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
 
-            - AdjustedRisk("risk_factor.high_body_mass_index_in_adults")
+            - TruncatedRisk("risk_factor.high_body_mass_index_in_adults")
             - ContinuousRiskObserver("risk_factor.high_body_mass_index_in_adults")
 
             - TruncatedRisk('risk_factor.high_fasting_plasma_glucose')
