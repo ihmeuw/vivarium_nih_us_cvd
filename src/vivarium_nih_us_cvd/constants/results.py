@@ -21,7 +21,6 @@ OUTPUT_RANDOM_SEED_COLUMN = "randomness.random_seed"
 OUTPUT_SCENARIO_COLUMN = "intervention.scenario"
 
 STANDARD_COLUMNS = {
-    "total_population": TOTAL_POPULATION_COLUMN,
     "total_ylls": TOTAL_YLLS_COLUMN,
     "total_ylds": TOTAL_YLDS_COLUMN,
 }
@@ -29,7 +28,6 @@ STANDARD_COLUMNS = {
 THROWAWAY_COLUMNS = [f"{state}_event_count" for state in models.STATES]
 
 # FIXME [MIC-3230]: Update to match template. Should we add model_name as prefix to all STATEs and TRANSITIONs?
-TOTAL_POPULATION_COLUMN_TEMPLATE = "total_population_{POP_STATE}"
 DEATH_COLUMN_TEMPLATE = "death_due_to_{CAUSE_OF_DEATH}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
 YLLS_COLUMN_TEMPLATE = "ylls_due_to_{CAUSE_OF_DEATH}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
 YLDS_COLUMN_TEMPLATE = (
@@ -53,7 +51,6 @@ INTERVENTION_PERSON_TIME_TEMPLATE = (
 
 
 COLUMN_TEMPLATES = {
-    "population": TOTAL_POPULATION_COLUMN_TEMPLATE,
     "deaths": DEATH_COLUMN_TEMPLATE,
     "ylls": YLLS_COLUMN_TEMPLATE,
     "ylds": YLDS_COLUMN_TEMPLATE,
@@ -68,7 +65,6 @@ COLUMN_TEMPLATES = {
 
 NON_COUNT_TEMPLATES = []
 
-POP_STATES = ("living", "dead", "tracked", "untracked")
 SEXES = ("male", "female")
 YEARS = tuple(range(2023, 2041))
 AGE_GROUPS = (
@@ -102,6 +98,7 @@ RISKS = (
     "high_ldl_cholesterol",
     "high_systolic_blood_pressure",
     "high_body_mass_index_in_adults",
+    "high_fasting_plasma_glucose",
 )
 MEDICATION_ADHERENCES = tuple(x for x in data_values.MEDICATION_ADHERENCE_TYPE)
 SBP_MEDICATIONS = tuple(x.DESCRIPTION for x in data_values.SBP_MEDICATION_LEVEL)
@@ -113,7 +110,6 @@ INTERVENTION_TYPES = (
 INTERVENTIONS = ("cat1", "cat2")
 
 TEMPLATE_FIELD_MAP = {
-    "POP_STATE": POP_STATES,
     "YEAR": YEARS,
     "SEX": SEXES,
     "AGE_GROUP": AGE_GROUPS,
