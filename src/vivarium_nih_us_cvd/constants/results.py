@@ -88,7 +88,6 @@ CAUSES_OF_DISABILITY = (
     models.ACUTE_ISCHEMIC_STROKE_STATE_NAME,
     models.CHRONIC_ISCHEMIC_STROKE_STATE_NAME,
     models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME,
-    # "angina",  # Greg requested we remove angina
 )
 CAUSES_OF_DEATH = CAUSES_OF_DISABILITY + (
     "other_causes",

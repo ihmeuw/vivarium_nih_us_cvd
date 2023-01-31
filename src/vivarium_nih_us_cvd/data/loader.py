@@ -87,13 +87,6 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.MYOCARDIAL_INFARCTION.EMR_POST: load_emr_ihd,
         data_keys.MYOCARDIAL_INFARCTION.CSMR: load_standard_data,  # Assign 100% of IHD CSMR to MI
         data_keys.MYOCARDIAL_INFARCTION.RESTRICTIONS: load_metadata,
-        # Cause (angina)
-        data_keys.ANGINA.PREVALENCE: load_prevalence_ihd,
-        data_keys.ANGINA.INCIDENCE_RATE: load_incidence_ihd,
-        data_keys.ANGINA.DISABILITY_WEIGHT: load_disability_weight_ihd,
-        data_keys.ANGINA.EMR: load_emr_ihd,
-        data_keys.ANGINA.CSMR: load_csmr_all_zeros_angina,  # All IHD CSMR went to MI
-        data_keys.ANGINA.RESTRICTIONS: load_metadata,
         # Risk (LDL-cholesterol)
         data_keys.LDL_C.DISTRIBUTION: load_metadata,
         data_keys.LDL_C.EXPOSURE_MEAN: load_standard_data,
@@ -377,7 +370,6 @@ def _get_ihd_sequela() -> Dict[str, List["Sequela"]]:
             for s in causes.ischemic_heart_disease.sequelae
             if s.name == "asymptomatic_ischemic_heart_disease_following_myocardial_infarction"
         ],
-        "angina": [s for s in causes.ischemic_heart_disease.sequelae if "angina" in s.name],
     }
     return seq_by_cause
 
@@ -387,7 +379,6 @@ def load_prevalence_ihd(key: str, location: str) -> pd.DataFrame:
     map = {
         data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_ACUTE: ihd_seq["acute_mi"],
         data_keys.MYOCARDIAL_INFARCTION.PREVALENCE_POST: ihd_seq["post_mi"],
-        data_keys.ANGINA.PREVALENCE: ihd_seq["angina"],
     }
     prevalence = _load_and_sum_prevalence_from_sequelae(key, map, location)
     return prevalence
@@ -397,7 +388,6 @@ def load_incidence_ihd(key: str, location: str) -> pd.DataFrame:
     ihd_seq = _get_ihd_sequela()
     map = {
         data_keys.MYOCARDIAL_INFARCTION.INCIDENCE_RATE_ACUTE: (ihd_seq["acute_mi"], 24694),
-        data_keys.ANGINA.INCIDENCE_RATE: (ihd_seq["angina"], 1817),
     }
     sequela, meid = map[key]
     incidence = _load_em_from_meid(location, meid, "Incidence rate")
@@ -410,7 +400,6 @@ def load_disability_weight_ihd(key: str, location: str) -> pd.DataFrame:
     map = {
         data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_ACUTE: ihd_seq["acute_mi"],
         data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_POST: ihd_seq["post_mi"],
-        data_keys.ANGINA.DISABILITY_WEIGHT: ihd_seq["angina"],
     }
     prevalence_disability_weights = _get_prevalence_weighted_disability_weight(
         map[key], location
@@ -425,7 +414,6 @@ def load_emr_ihd(key: str, location: str) -> pd.DataFrame:
     map = {
         data_keys.MYOCARDIAL_INFARCTION.EMR_ACUTE: 24694,
         data_keys.MYOCARDIAL_INFARCTION.EMR_POST: 15755,
-        data_keys.ANGINA.EMR: 1817,
     }
     return _load_em_from_meid(location, map[key], "Excess mortality rate")
 
@@ -435,7 +423,7 @@ def load_csmr_all_zeros(emr_source: str, location: str) -> pd.DataFrame:
     # we need something for the SI model.
     #
     # Note that 100% of CSMR for IHD has been assigned to MI. This then requires
-    # that other IHD causes (angina and heart failure) must be assigned
+    # that other IHD causes (heart failure) must be assigned
     # zero CSMR or else we would underestimate the IHD mortality rate because
     # we'd be subtracting off too much CSMR.
     #
@@ -450,10 +438,6 @@ def load_csmr_all_zeros(emr_source: str, location: str) -> pd.DataFrame:
     df_zeros = load_emr_ihd(emr_source, location)
     df_zeros[draws] = 0.0
     return df_zeros
-
-
-def load_csmr_all_zeros_angina(key: str, location: str) -> pd.DataFrame:
-    return load_csmr_all_zeros(data_keys.ANGINA.EMR, location)
 
 
 def modify_rr_affected_entity(data: pd.DataFrame, mod_map: Dict[str, List[str]]) -> None:
@@ -487,7 +471,6 @@ def match_rr_to_cause_name(data: Union[str, pd.DataFrame], source_key: EntityKey
         "ischemic_heart_disease": [
             "acute_myocardial_infarction",
             "post_myocardial_infarction_to_acute_myocardial_infarction",
-            "angina",
         ],
         "ischemic_stroke": [
             "acute_ischemic_stroke",
