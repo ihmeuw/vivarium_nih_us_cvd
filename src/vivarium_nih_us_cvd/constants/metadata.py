@@ -28,6 +28,11 @@ ARTIFACT_INDEX_COLUMNS = [
     "year_end",
 ]
 
+PROPORTION_DATA_INDEX_COLUMNS = [
+    "sex_id",
+    "age_group_id",
+]
+
 DRAW_COUNT = 1000
 ARTIFACT_COLUMNS = pd.Index([f"draw_{i}" for i in range(DRAW_COUNT)])
 
