@@ -578,7 +578,7 @@ def get_proportion_adjusted_heart_failure_data(location: str, heart_failure_type
 def load_prevalence_heart_failure(key: str, location: str) -> pd.DataFrame:
     heart_failure_type_map = {
         data_keys.IHD_AND_HF.PREVALENCE_HF_IHD: 'ihd',
-        data_keys.IHD_AND_HF.PREVALENCE_HF_RESID: 'residual',
+        data_keys.IHD_AND_HF.PREVALENCE_HF_RESIDUAL: 'residual',
     }
 
     heart_failure_type = key[heart_failure_type_map]
