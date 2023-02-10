@@ -517,7 +517,8 @@ def load_disability_weight_hf_residual(key: str, location: str) -> pd.DataFrame:
     sequelae_matching_strings = tuple(f"{severity}_heart_failure_due_to" for severity in heart_failure_severities)
     sequelae = [sequela for sequela in all_sequelae if
                    (sequela.name.startswith(sequelae_matching_strings)) &
-                   ~('ischemic_heart_disease' in sequela.name)]
+                   ~('ischemic_heart_disease' in sequela.name) &
+                ~('other_cardiovascular_diseases' in sequela.name)]
 
     # calculate disability weights
     prevalence_disability_weights = _get_prevalence_weighted_disability_weight(
