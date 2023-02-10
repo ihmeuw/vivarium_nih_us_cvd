@@ -87,8 +87,8 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.IHD_AND_HF.INCIDENCE_ACUTE_MI: load_incidence_acute_mi,
         data_keys.IHD_AND_HF.INCIDENCE_HF_IHD: load_incidence_hf_ihd,
         data_keys.IHD_AND_HF.INCIDENCE_HF_RESIDUAL: load_incidence_hf_residual,
-        data_keys.IHD_AND_HF.DISABILITY_WEIGHT_ACUTE: load_disability_weight_ihd,
-        data_keys.IHD_AND_HF.DISABILITY_WEIGHT_POST: load_disability_weight_ihd,
+        data_keys.IHD_AND_HF.DISABILITY_WEIGHT_ACUTE_MI: load_disability_weight_ihd,
+        data_keys.IHD_AND_HF.DISABILITY_WEIGHT_POST_MI: load_disability_weight_ihd,
         data_keys.IHD_AND_HF.DISABILITY_WEIGHT_HF_IHD: load_disability_weight_hf_ihd,
         data_keys.IHD_AND_HF.DISABILITY_WEIGHT_HF_RESIDUAL: load_disability_weight_hf_residual,
         data_keys.IHD_AND_HF.EMR_AMI: load_emr_ihd_and_hf,
@@ -482,8 +482,8 @@ def load_disability_weight_ihd(key: str, location: str) -> pd.DataFrame:
     # get sequelae
     ihd_seq = _get_ihd_sequela()
     map = {
-        data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_ACUTE: ihd_seq["acute_mi"],
-        data_keys.MYOCARDIAL_INFARCTION.DISABILITY_WEIGHT_POST: ihd_seq["post_mi"],
+        data_keys.IHD_AND_HF.DISABILITY_WEIGHT_ACUTE_MI: ihd_seq["acute_mi"],
+        data_keys.IHD_AND_HF.DISABILITY_WEIGHT_POST_MI: ihd_seq["post_mi"],
     }
     sequelae = map[key]
 
@@ -581,7 +581,7 @@ def load_prevalence_heart_failure(key: str, location: str) -> pd.DataFrame:
         data_keys.IHD_AND_HF.PREVALENCE_HF_RESIDUAL: 'residual',
     }
 
-    heart_failure_type = key[heart_failure_type_map]
+    heart_failure_type = heart_failure_type_map[key]
     hf_adjusted_prevalence = get_proportion_adjusted_heart_failure_data(location, heart_failure_type, 'Prevalence')
 
     return hf_adjusted_prevalence
