@@ -129,7 +129,6 @@ class __IschemicHeartDiseaseAndHeartFailure(NamedTuple):
     def name(self):
         return "ischemic_heart_disease_and_heart_failure"
 
-
     @property
     def log_name(self):
         return self.name.replace("_", " ")
