@@ -116,9 +116,7 @@ class __IschemicHeartDiseaseAndHeartFailure(NamedTuple):
     EMR_POST_MI: TargetString = TargetString(
         "cause.post_myocardial_infarction.excess_mortality_rate"
     )
-    EMR_HF: TargetString = TargetString(
-        "cause.heart_failure.excess_mortality_rate"
-    )
+    EMR_HF: TargetString = TargetString("cause.heart_failure.excess_mortality_rate")
     CSMR: TargetString = TargetString(
         "cause.ischemic_heart_disease_and_heart_failure.cause_specific_mortality"
     )

@@ -17,7 +17,8 @@ from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from gbd_mapping import ModelableEntity, causes, covariates, risk_factors, sequelae as all_sequelae
+from gbd_mapping import ModelableEntity, causes, covariates, risk_factors
+from gbd_mapping import sequelae as all_sequelae
 from gbd_mapping.base_template import Tmred
 from gbd_mapping.id import scalar
 from vivarium.framework.artifact import EntityKey
@@ -34,8 +35,8 @@ from vivarium_inputs.mapping_extension import (
 )
 
 from vivarium_nih_us_cvd.constants import data_keys, data_values, paths
-from vivarium_nih_us_cvd.utilities import get_random_variable_draws
 from vivarium_nih_us_cvd.constants.metadata import PROPORTION_DATA_INDEX_COLUMNS
+from vivarium_nih_us_cvd.utilities import get_random_variable_draws
 
 
 def _get_source_key(val: Union[str, data_keys.SourceTarget]) -> str:
@@ -337,37 +338,6 @@ def load_emr_ischemic_stroke(key: str, location: str) -> pd.DataFrame:
     return _load_em_from_meid(location, map[key], "Excess mortality rate")
 
 
-def load_emr_ihd_and_hf(key: str, location: str) -> pd.DataFrame:
-    map = {
-        data_keys.IHD_AND_HF.EMR_AMI: 24694,
-        data_keys.IHD_AND_HF.EMR_POST_MI: 15755,
-        data_keys.IHD_AND_HF.EMR_HF_IHD: 2412,
-    }
-    return _load_em_from_meid(location, map[key], "Excess mortality rate")
-
-
-def load_csmr_ihd_and_hf(key: str, location: str) -> pd.DataFrame:
-    hf_prevalence = _load_em_from_meid(location, data_values.HEART_FAILURE_ME_ID, 'Prevalence')
-    hf_emr = _load_em_from_meid(location, data_values.HEART_FAILURE_ME_ID, 'Excess mortality rate')
-
-    acute_sequelae = _get_ihd_sequela()['acute_mi']
-    acute_prevalence = _load_and_sum_prevalence_from_sequelae(acute_sequelae, location)
-    acute_emr = _load_em_from_meid(location, data_values.ACUTE_MI_ME_ID, 'Excess mortality rate')
-
-    post_sequelae = _get_ihd_sequela()['post_mi']
-    post_prevalence = _load_and_sum_prevalence_from_sequelae(post_sequelae, location)
-    post_emr = _load_em_from_meid(location, data_values.POST_MI_ME_ID, 'Excess mortality rate')
-
-    csmr = ((hf_prevalence * hf_emr) +
-            (acute_prevalence * acute_emr) +
-            (post_prevalence * post_emr))
-
-    return csmr
-
-
-    return _load_em_from_meid(location, map[key], "Excess mortality rate")
-
-
 def _get_prevalence_weighted_disability_weight(
     seq: List["Sequela"], location: str
 ) -> List[pd.DataFrame]:
@@ -411,12 +381,65 @@ def _get_ihd_sequela() -> Dict[str, List["Sequela"]]:
             if s.name == "asymptomatic_ischemic_heart_disease_following_myocardial_infarction"
         ],
         "heart_failure": [
-            s
-            for s in causes.ischemic_heart_disease.sequelae
-            if "heart_failure" in s.name
+            s for s in causes.ischemic_heart_disease.sequelae if "heart_failure" in s.name
         ],
     }
     return seq_by_cause
+
+
+def get_heart_failure_proportions(location: str, heart_failure_type: str) -> pd.Series:
+    hf_proportions = pd.read_csv(paths.FILEPATHS.HEART_FAILURE_PROPORTIONS)
+    hf_proportions = hf_proportions.query(
+        "location_name==@location & sim_cause==@heart_failure_type"
+    )
+
+    hf_proportions = hf_proportions[PROPORTION_DATA_INDEX_COLUMNS + ["proportion"]]
+
+    return hf_proportions
+
+
+def get_proportion_adjusted_heart_failure_data(
+    location: str, heart_failure_type: str, measure: str
+) -> pd.DataFrame:
+    # pull measure data
+    location_id = utility_data.get_location_id(location)
+    heart_failure_data = gbd.get_modelable_entity_draws(
+        data_values.HEART_FAILURE_ME_ID, location_id
+    )
+    measure_data = heart_failure_data[
+        heart_failure_data.measure_id == vi_globals.MEASURES[measure]
+    ]
+    measure_data = vi_utils.normalize(measure_data, fill_value=0)
+    measure_data = measure_data.filter(
+        vi_globals.DEMOGRAPHIC_COLUMNS + vi_globals.DRAW_COLUMNS
+    )
+
+    # pull proportions data
+    hf_proportions = get_heart_failure_proportions(location, heart_failure_type)
+
+    # apply proportion data
+    draw_cols = [f"draw_{i}" for i in range(1000)]
+
+    measure_data = measure_data.merge(hf_proportions, on=PROPORTION_DATA_INDEX_COLUMNS)
+    measure_data[draw_cols] = measure_data[draw_cols].mul(measure_data["proportion"], axis=0)
+
+    # format for vivarium
+    prop_adjusted_data = measure_data.filter(
+        vi_globals.DEMOGRAPHIC_COLUMNS + vi_globals.DRAW_COLUMNS
+    )
+    prop_adjusted_data = vi_utils.reshape(prop_adjusted_data)
+    prop_adjusted_data = vi_utils.scrub_gbd_conventions(prop_adjusted_data, location)
+    prop_adjusted_data = vi_utils.split_interval(
+        prop_adjusted_data, interval_column="age", split_column_prefix="age"
+    )
+    prop_adjusted_data = vi_utils.split_interval(
+        prop_adjusted_data, interval_column="year", split_column_prefix="year"
+    )
+    prop_adjusted_data = vi_utils.sort_hierarchical_data(prop_adjusted_data).droplevel(
+        "location"
+    )
+
+    return prop_adjusted_data
 
 
 def load_prevalence_mi(key: str, location: str) -> pd.DataFrame:
@@ -429,7 +452,9 @@ def load_prevalence_mi(key: str, location: str) -> pd.DataFrame:
     sequelae, prevalence_includes_heart_failure = map[key]
     sequelae_prevalence = _load_and_sum_prevalence_from_sequelae(sequelae, location)
 
-    hf_ihd_prevalence = load_prevalence_heart_failure(data_keys.IHD_AND_HF.PREVALENCE_HF_IHD, location)
+    hf_ihd_prevalence = load_prevalence_heart_failure(
+        data_keys.IHD_AND_HF.PREVALENCE_HF_IHD, location
+    )
 
     if prevalence_includes_heart_failure:
         prevalence = hf_ihd_prevalence * sequelae_prevalence
@@ -439,28 +464,54 @@ def load_prevalence_mi(key: str, location: str) -> pd.DataFrame:
     return prevalence
 
 
+def load_prevalence_heart_failure(key: str, location: str) -> pd.DataFrame:
+    heart_failure_type_map = {
+        data_keys.IHD_AND_HF.PREVALENCE_HF_IHD: "ihd",
+        data_keys.IHD_AND_HF.PREVALENCE_HF_RESIDUAL: "residual",
+    }
+
+    heart_failure_type = heart_failure_type_map[key]
+    hf_adjusted_prevalence = get_proportion_adjusted_heart_failure_data(
+        location, heart_failure_type, "Prevalence"
+    )
+
+    return hf_adjusted_prevalence
+
+
 def load_incidence_acute_mi(key: str, location: str) -> pd.DataFrame:
     # get population mi incidence
-    acute_mi_incidence = _load_em_from_meid(location, 24694, 'Incidence rate')
+    acute_mi_incidence = _load_em_from_meid(
+        location, data_values.ACUTE_MI_ME_ID, "Incidence rate"
+    )
 
     # pull prevalences
-    acute_mi_sequelae = _get_ihd_sequela()['acute_mi']
-    ami_sequelae_prevalence = _load_and_sum_prevalence_from_sequelae(acute_mi_sequelae, location)
+    acute_mi_sequelae = _get_ihd_sequela()["acute_mi"]
+    ami_sequelae_prevalence = _load_and_sum_prevalence_from_sequelae(
+        acute_mi_sequelae, location
+    )
 
-    hf_residual_prevalence = get_proportion_adjusted_heart_failure_data(location, 'residual', 'Prevalence')
+    hf_residual_prevalence = get_proportion_adjusted_heart_failure_data(
+        location, "residual", "Prevalence"
+    )
 
     # calculate prevalence-adjusted incidence
-    acute_mi_incidence = acute_mi_incidence / (1 - (ami_sequelae_prevalence + hf_residual_prevalence))
+    acute_mi_incidence = acute_mi_incidence / (
+        1 - (ami_sequelae_prevalence + hf_residual_prevalence)
+    )
 
     return acute_mi_incidence
 
 
 def load_incidence_hf_ihd(key: str, location: str) -> pd.DataFrame:
     # pull population incidence data
-    hf_ihd_incidence = get_proportion_adjusted_heart_failure_data(location, 'ihd', 'Incidence rate')
+    hf_ihd_incidence = get_proportion_adjusted_heart_failure_data(
+        location, "ihd", "Incidence rate"
+    )
 
     # pull prevalences
-    hf_prevalence = _load_em_from_meid(location, data_values.HEART_FAILURE_ME_ID, 'Prevalence')
+    hf_prevalence = _load_em_from_meid(
+        location, data_values.HEART_FAILURE_ME_ID, "Prevalence"
+    )
     ami_prevalence = load_prevalence_mi(data_keys.IHD_AND_HF.PREVALENCE_ACUTE_MI, location)
 
     hf_ihd_incidence = hf_ihd_incidence / (1 - (hf_prevalence + ami_prevalence))
@@ -470,21 +521,32 @@ def load_incidence_hf_ihd(key: str, location: str) -> pd.DataFrame:
 
 def load_incidence_hf_residual(key: str, location: str) -> pd.DataFrame:
     # pull population incidence data
-    hf_residual_incidence = get_proportion_adjusted_heart_failure_data(location, 'residual', 'Incidence rate')
+    hf_residual_incidence = get_proportion_adjusted_heart_failure_data(
+        location, "residual", "Incidence rate"
+    )
 
     # pull prevalences
-    acute_mi_sequelae = _get_ihd_sequela()['acute_mi']
-    post_mi_sequelae = _get_ihd_sequela()['post_mi']
+    acute_mi_sequelae = _get_ihd_sequela()["acute_mi"]
+    post_mi_sequelae = _get_ihd_sequela()["post_mi"]
 
-    ami_sequelae_prevalence = _load_and_sum_prevalence_from_sequelae(acute_mi_sequelae, location)
-    post_mi_sequelae_prevalence = _load_and_sum_prevalence_from_sequelae(post_mi_sequelae, location)
-    hf_ihd_prevalence = get_proportion_adjusted_heart_failure_data(location, 'ihd', 'Prevalence')
-    hf_prevalence = _load_em_from_meid(location, data_values.HEART_FAILURE_ME_ID, 'Prevalence')
+    ami_sequelae_prevalence = _load_and_sum_prevalence_from_sequelae(
+        acute_mi_sequelae, location
+    )
+    post_mi_sequelae_prevalence = _load_and_sum_prevalence_from_sequelae(
+        post_mi_sequelae, location
+    )
+    hf_ihd_prevalence = get_proportion_adjusted_heart_failure_data(
+        location, "ihd", "Prevalence"
+    )
+    hf_prevalence = _load_em_from_meid(
+        location, data_values.HEART_FAILURE_ME_ID, "Prevalence"
+    )
 
-    susceptible_prevalence = (1 - (ami_sequelae_prevalence + hf_prevalence +
-                                   ( (1 - hf_ihd_prevalence) * post_mi_sequelae_prevalence )
-                                   )
-                              )
+    susceptible_prevalence = 1 - (
+        ami_sequelae_prevalence
+        + hf_prevalence
+        + ((1 - hf_ihd_prevalence) * post_mi_sequelae_prevalence)
+    )
 
     hf_residual_incidence = hf_residual_incidence / susceptible_prevalence
 
@@ -512,13 +574,13 @@ def load_disability_weight_ihd(key: str, location: str) -> pd.DataFrame:
 
 def load_disability_weight_hf_ihd(key: str, location: str) -> pd.DataFrame:
     # get sequelae
-    sequelae = _get_ihd_sequela()['heart_failure']
+    sequelae = _get_ihd_sequela()["heart_failure"]
 
     # calculate disability weights
     prevalence_disability_weights = _get_prevalence_weighted_disability_weight(
         sequelae, location
     )
-    prevalence = get_proportion_adjusted_heart_failure_data(location, 'ihd', 'Prevalence')
+    prevalence = get_proportion_adjusted_heart_failure_data(location, "ihd", "Prevalence")
     # TODO: Is always filling NA w/ 0 the correct thing here?
     ihd_disability_weight = (sum(prevalence_disability_weights) / prevalence).fillna(0)
     return ihd_disability_weight
@@ -526,19 +588,26 @@ def load_disability_weight_hf_ihd(key: str, location: str) -> pd.DataFrame:
 
 def load_disability_weight_hf_residual(key: str, location: str) -> pd.DataFrame:
     # get sequelae
-    heart_failure_severities = ['mild', 'moderate', 'severe', 'controlled_medically_managed']
-    sequelae_matching_strings = tuple(f"{severity}_heart_failure_due_to" for severity in heart_failure_severities)
-    sequelae = [sequela for sequela in all_sequelae if
-                   (sequela.name.startswith(sequelae_matching_strings)) &
-                   ~('ischemic_heart_disease' in sequela.name) &
-                    ~('other_cardiovascular_disease' in sequela.name) &
-                ~(sequela.name.endswith('due_to_pulmonary_arterial_hypertension'))]
+    heart_failure_severities = ["mild", "moderate", "severe", "controlled_medically_managed"]
+    sequelae_matching_strings = tuple(
+        f"{severity}_heart_failure_due_to" for severity in heart_failure_severities
+    )
+    sequelae = [
+        sequela
+        for sequela in all_sequelae
+        if (sequela.name.startswith(sequelae_matching_strings))
+        & ~("ischemic_heart_disease" in sequela.name)
+        & ~("other_cardiovascular_disease" in sequela.name)
+        & ~(sequela.name.endswith("due_to_pulmonary_arterial_hypertension"))
+    ]
 
     # calculate disability weights
     prevalence_disability_weights = _get_prevalence_weighted_disability_weight(
         sequelae, location
     )
-    prevalence = get_proportion_adjusted_heart_failure_data(location, 'residual', 'Prevalence')
+    prevalence = get_proportion_adjusted_heart_failure_data(
+        location, "residual", "Prevalence"
+    )
     # TODO: Is always filling NA w/ 0 the correct thing here?
     ihd_disability_weight = (sum(prevalence_disability_weights) / prevalence).fillna(0)
     return ihd_disability_weight
@@ -554,53 +623,33 @@ def load_emr_ihd_and_hf(key: str, location: str) -> pd.DataFrame:
     return _load_em_from_meid(location, me_id, "Excess mortality rate")
 
 
-def get_heart_failure_proportions(location: str, heart_failure_type: str) -> pd.Series:
-    hf_proportions = pd.read_csv(paths.FILEPATHS.HEART_FAILURE_PROPORTIONS)
-    hf_proportions = hf_proportions.query("location_name==@location & sim_cause==@heart_failure_type")
+def load_csmr_ihd_and_hf(key: str, location: str) -> pd.DataFrame:
+    hf_prevalence = _load_em_from_meid(
+        location, data_values.HEART_FAILURE_ME_ID, "Prevalence"
+    )
+    hf_emr = _load_em_from_meid(
+        location, data_values.HEART_FAILURE_ME_ID, "Excess mortality rate"
+    )
 
-    hf_proportions = hf_proportions[PROPORTION_DATA_INDEX_COLUMNS + ['proportion']]
+    acute_sequelae = _get_ihd_sequela()["acute_mi"]
+    acute_prevalence = _load_and_sum_prevalence_from_sequelae(acute_sequelae, location)
+    acute_emr = _load_em_from_meid(
+        location, data_values.ACUTE_MI_ME_ID, "Excess mortality rate"
+    )
 
-    return hf_proportions
+    post_sequelae = _get_ihd_sequela()["post_mi"]
+    post_prevalence = _load_and_sum_prevalence_from_sequelae(post_sequelae, location)
+    post_emr = _load_em_from_meid(
+        location, data_values.POST_MI_ME_ID, "Excess mortality rate"
+    )
 
+    csmr = (
+        (hf_prevalence * hf_emr)
+        + (acute_prevalence * acute_emr)
+        + (post_prevalence * post_emr)
+    )
 
-def get_proportion_adjusted_heart_failure_data(location: str, heart_failure_type: str, measure: str) -> pd.DataFrame:
-    # pull measure data
-    location_id = utility_data.get_location_id(location)
-    heart_failure_data = gbd.get_modelable_entity_draws(data_values.HEART_FAILURE_ME_ID, location_id)
-    measure_data = heart_failure_data[heart_failure_data.measure_id == vi_globals.MEASURES[measure]]
-    measure_data = vi_utils.normalize(measure_data, fill_value=0)
-    measure_data = measure_data.filter(vi_globals.DEMOGRAPHIC_COLUMNS + vi_globals.DRAW_COLUMNS)
-
-    # pull proportions data
-    hf_proportions = get_heart_failure_proportions(location, heart_failure_type)
-
-    # apply proportion data
-    draw_cols = [f"draw_{i}" for i in range(1000)]
-
-    measure_data = measure_data.merge(hf_proportions, on=PROPORTION_DATA_INDEX_COLUMNS)
-    measure_data[draw_cols] = measure_data[draw_cols].mul(measure_data['proportion'], axis=0)
-
-    # format for vivarium
-    prop_adjusted_data = measure_data.filter(vi_globals.DEMOGRAPHIC_COLUMNS + vi_globals.DRAW_COLUMNS)
-    prop_adjusted_data = vi_utils.reshape(prop_adjusted_data)
-    prop_adjusted_data = vi_utils.scrub_gbd_conventions(prop_adjusted_data, location)
-    prop_adjusted_data = vi_utils.split_interval(prop_adjusted_data, interval_column="age", split_column_prefix="age")
-    prop_adjusted_data = vi_utils.split_interval(prop_adjusted_data, interval_column="year", split_column_prefix="year")
-    prop_adjusted_data = vi_utils.sort_hierarchical_data(prop_adjusted_data).droplevel("location")
-
-    return prop_adjusted_data
-
-
-def load_prevalence_heart_failure(key: str, location: str) -> pd.DataFrame:
-    heart_failure_type_map = {
-        data_keys.IHD_AND_HF.PREVALENCE_HF_IHD: 'ihd',
-        data_keys.IHD_AND_HF.PREVALENCE_HF_RESIDUAL: 'residual',
-    }
-
-    heart_failure_type = heart_failure_type_map[key]
-    hf_adjusted_prevalence = get_proportion_adjusted_heart_failure_data(location, heart_failure_type, 'Prevalence')
-
-    return hf_adjusted_prevalence
+    return csmr
 
 
 def modify_rr_affected_entity(data: pd.DataFrame, mod_map: Dict[str, List[str]]) -> None:
