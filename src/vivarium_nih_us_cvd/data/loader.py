@@ -347,11 +347,24 @@ def load_emr_ihd_and_hf(key: str, location: str) -> pd.DataFrame:
 
 
 def load_csmr_ihd_and_hf(key: str, location: str) -> pd.DataFrame:
-    map = {
-        data_keys.IHD_AND_HF.EMR_AMI: 24694,
-        data_keys.IHD_AND_HF.EMR_POST_MI: 15755,
-        data_keys.IHD_AND_HF.EMR_HF_IHD: 2412,
-    }
+    hf_prevalence = _load_em_from_meid(location, data_values.HEART_FAILURE_ME_ID, 'Prevalence')
+    hf_emr = _load_em_from_meid(location, data_values.HEART_FAILURE_ME_ID, 'Excess mortality rate')
+
+    acute_sequelae = _get_ihd_sequela()['acute_mi']
+    acute_prevalence = _load_and_sum_prevalence_from_sequelae(acute_sequelae, location)
+    acute_emr = _load_em_from_meid(location, data_values.ACUTE_MI_ME_ID, 'Excess mortality rate')
+
+    post_sequelae = _get_ihd_sequela()['post_mi']
+    post_prevalence = _load_and_sum_prevalence_from_sequelae(post_sequelae, location)
+    post_emr = _load_em_from_meid(location, data_values.POST_MI_ME_ID, 'Excess mortality rate')
+
+    csmr = ((hf_prevalence * hf_emr) +
+            (acute_prevalence * acute_emr) +
+            (post_prevalence * post_emr))
+
+    return csmr
+
+
     return _load_em_from_meid(location, map[key], "Excess mortality rate")
 
 
@@ -518,7 +531,8 @@ def load_disability_weight_hf_residual(key: str, location: str) -> pd.DataFrame:
     sequelae = [sequela for sequela in all_sequelae if
                    (sequela.name.startswith(sequelae_matching_strings)) &
                    ~('ischemic_heart_disease' in sequela.name) &
-                ~('other_cardiovascular_diseases' in sequela.name)]
+                    ~('other_cardiovascular_disease' in sequela.name) &
+                ~(sequela.name.endswith('due_to_pulmonary_arterial_hypertension'))]
 
     # calculate disability weights
     prevalence_disability_weights = _get_prevalence_weighted_disability_weight(
@@ -531,12 +545,13 @@ def load_disability_weight_hf_residual(key: str, location: str) -> pd.DataFrame:
 
 
 def load_emr_ihd_and_hf(key: str, location: str) -> pd.DataFrame:
-    map = {
+    me_id_map = {
         data_keys.IHD_AND_HF.EMR_AMI: 24694,
         data_keys.IHD_AND_HF.EMR_POST_MI: 15755,
         data_keys.IHD_AND_HF.EMR_HF: 2412,
     }
-    return _load_em_from_meid(location, map[key], "Excess mortality rate")
+    me_id = me_id_map[key]
+    return _load_em_from_meid(location, me_id, "Excess mortality rate")
 
 
 def get_heart_failure_proportions(location: str, heart_failure_type: str) -> pd.Series:

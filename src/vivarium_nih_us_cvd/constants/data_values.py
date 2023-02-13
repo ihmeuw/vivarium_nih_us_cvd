@@ -532,5 +532,7 @@ POLYPILL_SBP_MEDICATION_ADHERENCE_COVERAGE = {
 }
 
 
-# Heart failure modelable entity ID
+# Modelable entity IDs
+ACUTE_MI_ME_ID = 24694
+POST_MI_ME_ID = 15755
 HEART_FAILURE_ME_ID = 2412
