@@ -326,7 +326,8 @@ def load_prevalence_ischemic_stroke(key: str, location: str) -> pd.DataFrame:
         data_keys.ISCHEMIC_STROKE.PREVALENCE_ACUTE: acute_sequelae,
         data_keys.ISCHEMIC_STROKE.PREVALENCE_CHRONIC: chronic_sequelae,
     }
-    prevalence = _load_and_sum_prevalence_from_sequelae(key, map, location)
+    sequelae = map[key]
+    prevalence = _load_and_sum_prevalence_from_sequelae(sequelae, location)
     return prevalence
 
 
