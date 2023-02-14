@@ -118,7 +118,7 @@ class __IschemicHeartDiseaseAndHeartFailure(NamedTuple):
     )
     EMR_HF: TargetString = TargetString("cause.heart_failure.excess_mortality_rate")
     CSMR: TargetString = TargetString(
-        "cause.ischemic_heart_disease_and_heart_failure.cause_specific_mortality"
+        "cause.ischemic_heart_disease_and_heart_failure.cause_specific_mortality_rate"
     )
     RESTRICTIONS: SourceTarget = SourceTarget(
         "cause.ischemic_heart_disease.restrictions",
