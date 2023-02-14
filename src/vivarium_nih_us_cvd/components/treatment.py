@@ -63,7 +63,7 @@ class Treatment:
             "age",
             "sex",
             models.ISCHEMIC_STROKE_MODEL_NAME,
-            models.MYOCARDIAL_INFARCTION_MODEL_NAME,
+            models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME,
         ]
 
         self.population_view = builder.population.get_view(
@@ -244,7 +244,7 @@ class Treatment:
                 "age",
                 "sex",
                 models.ISCHEMIC_STROKE_MODEL_NAME,
-                models.MYOCARDIAL_INFARCTION_MODEL_NAME,
+                models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME,
             ]
         ).get(pop_data.index)
 
@@ -317,7 +317,7 @@ class Treatment:
             pop[models.ISCHEMIC_STROKE_MODEL_NAME] == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
         )
         mask_acute_mi = (
-            pop[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
+            pop[models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME]
             == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
         )
         mask_emergency = mask_acute_is | mask_acute_mi
@@ -506,8 +506,8 @@ class Treatment:
             currently_medicated
         ).difference(low_sbp)
         mask_history_mi = (
-            pop_visitors[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
-            != models.MYOCARDIAL_INFARCTION_SUSCEPTIBLE_STATE_NAME
+            pop_visitors[models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME]
+            != models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_SUSCEPTIBLE_STATE_NAME
         )
         mask_history_is = (
             pop_visitors[models.ISCHEMIC_STROKE_MODEL_NAME]
@@ -625,8 +625,8 @@ class Treatment:
         low_ldlc = measured_ldlc[measured_ldlc < data_values.LDLC_THRESHOLD.LOW].index
         high_ldlc = measured_ldlc[measured_ldlc >= data_values.LDLC_THRESHOLD.HIGH].index
         mask_history_mi = (
-            pop_visitors[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
-            != models.MYOCARDIAL_INFARCTION_SUSCEPTIBLE_STATE_NAME
+            pop_visitors[models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME]
+            != models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_SUSCEPTIBLE_STATE_NAME
         )
         mask_history_is = (
             pop_visitors[models.ISCHEMIC_STROKE_MODEL_NAME]

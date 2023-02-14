@@ -55,7 +55,7 @@ class HealthcareUtilization:
             "age",
             "sex",
             models.ISCHEMIC_STROKE_MODEL_NAME,
-            models.MYOCARDIAL_INFARCTION_MODEL_NAME,
+            models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME,
             data_values.COLUMNS.SBP_MEDICATION,
             data_values.COLUMNS.LDLC_MEDICATION,
         ]
@@ -100,7 +100,7 @@ class HealthcareUtilization:
                 "age",
                 "sex",
                 models.ISCHEMIC_STROKE_MODEL_NAME,
-                models.MYOCARDIAL_INFARCTION_MODEL_NAME,
+                models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME,
                 data_values.COLUMNS.SBP_MEDICATION,
                 data_values.COLUMNS.LDLC_MEDICATION,
             ]
@@ -115,7 +115,7 @@ class HealthcareUtilization:
             pop[models.ISCHEMIC_STROKE_MODEL_NAME] == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
         )
         mask_acute_mi = (
-            pop[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
+            pop[models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME]
             == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
         )
         emergency = pop[(mask_acute_is | mask_acute_mi)].index
@@ -138,7 +138,7 @@ class HealthcareUtilization:
             == models.CHRONIC_ISCHEMIC_STROKE_STATE_NAME
         )
         mask_post_mi = (
-            pop[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
+            pop[models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME]
             == models.POST_MYOCARDIAL_INFARCTION_STATE_NAME
         )
         acute_history = pop[mask_chronic_is | mask_post_mi].index
@@ -175,7 +175,7 @@ class HealthcareUtilization:
             pop[models.ISCHEMIC_STROKE_MODEL_NAME] == models.ACUTE_ISCHEMIC_STROKE_STATE_NAME
         )
         mask_acute_mi = (
-            pop[models.MYOCARDIAL_INFARCTION_MODEL_NAME]
+            pop[models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME]
             == models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME
         )
         mask_emergency = mask_acute_is | mask_acute_mi

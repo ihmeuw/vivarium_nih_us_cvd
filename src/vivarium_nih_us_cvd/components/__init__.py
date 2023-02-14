@@ -1,4 +1,4 @@
-from .disease import IschemicStroke, MyocardialInfarction
+from .disease import IschemicStroke, IschemicHeartDiseaseAndHeartFailure
 from .effects import InterventionAdherenceEffect
 from .healthcare_utilization import HealthcareUtilization
 from .interventions import LinearScaleUp

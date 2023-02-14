@@ -110,7 +110,7 @@ class __IschemicHeartDiseaseAndHeartFailure(NamedTuple):
     DISABILITY_WEIGHT_HF_RESIDUAL: TargetString = TargetString(
         "cause.heart_failure_residual.disability_weight"
     )
-    EMR_AMI: TargetString = TargetString(
+    EMR_ACUTE_MI: TargetString = TargetString(
         "cause.acute_myocardial_infarction.excess_mortality_rate"
     )
     EMR_POST_MI: TargetString = TargetString(
@@ -118,7 +118,7 @@ class __IschemicHeartDiseaseAndHeartFailure(NamedTuple):
     )
     EMR_HF: TargetString = TargetString("cause.heart_failure.excess_mortality_rate")
     CSMR: TargetString = TargetString(
-        "cause.ischemic_heart_disease_and_heart_failure.cause_specific_mortality"
+        "cause.ischemic_heart_disease_and_heart_failure.cause_specific_mortality_rate"
     )
     RESTRICTIONS: SourceTarget = SourceTarget(
         "cause.ischemic_heart_disease.restrictions",
