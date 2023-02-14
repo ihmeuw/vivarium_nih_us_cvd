@@ -7,7 +7,6 @@ components:
             - MortalityObserver()
             - DisabilityObserver()
             - DiseaseObserver("ischemic_stroke")
-            - DiseaseObserver("myocardial_infarction")
         risks:
             - Risk("risk_factor.sbp_medication_adherence")
             - Risk("risk_factor.ldlc_medication_adherence")
@@ -48,7 +47,7 @@ components:
             - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
 
             - TruncatedRisk("risk_factor.high_body_mass_index_in_adults")
-            - ContinuousRiskObserver("risk_factor.hdigh_body_mass_index_in_adults")
+            - ContinuousRiskObserver("risk_factor.high_body_mass_index_in_adults")
 
             - TruncatedRisk('risk_factor.high_fasting_plasma_glucose')
             - ContinuousRiskObserver("risk_factor.high_fasting_plasma_glucose")
@@ -69,7 +68,8 @@ configuration:
     input_data:
         input_draw_number: 0
         location: 'Alabama'
-        artifact_path: '/ihme/costeffectiveness/artifacts/vivarium_nih_us_cvd/alabama.hdf'
+#        artifact_path: '/ihme/costeffectiveness/artifacts/vivarium_nih_us_cvd/alabama.hdf'
+        artifact_path: '/home/hussain-jafari/artifacts/alabama.hdf'
     interpolation:
         order: 0
         extrapolate: True
