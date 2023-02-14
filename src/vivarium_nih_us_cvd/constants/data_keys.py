@@ -52,7 +52,7 @@ class __IschemicStroke(NamedTuple):
     DISABILITY_WEIGHT_CHRONIC: TargetString = TargetString(
         "sequela.chronic_ischemic_stroke.disability_weight"
     )
-    EMR_ACUTE: TargetString = TargetString(
+    EMR_ACUTE_MI: TargetString = TargetString(
         "sequela.acute_ischemic_stroke.excess_mortality_rate"
     )
     EMR_CHRONIC: TargetString = TargetString(
@@ -110,7 +110,7 @@ class __IschemicHeartDiseaseAndHeartFailure(NamedTuple):
     DISABILITY_WEIGHT_HF_RESIDUAL: TargetString = TargetString(
         "cause.heart_failure_residual.disability_weight"
     )
-    EMR_AMI: TargetString = TargetString(
+    EMR_ACUTE_MI: TargetString = TargetString(
         "cause.acute_myocardial_infarction.excess_mortality_rate"
     )
     EMR_POST_MI: TargetString = TargetString(

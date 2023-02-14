@@ -92,7 +92,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.IHD_AND_HF.DISABILITY_WEIGHT_POST_MI: load_disability_weight_ihd,
         data_keys.IHD_AND_HF.DISABILITY_WEIGHT_HF_IHD: load_disability_weight_hf_ihd,
         data_keys.IHD_AND_HF.DISABILITY_WEIGHT_HF_RESIDUAL: load_disability_weight_hf_residual,
-        data_keys.IHD_AND_HF.EMR_AMI: load_emr_ihd_and_hf,
+        data_keys.IHD_AND_HF.EMR_ACUTE_MI: load_emr_ihd_and_hf,
         data_keys.IHD_AND_HF.EMR_POST_MI: load_emr_ihd_and_hf,
         data_keys.IHD_AND_HF.EMR_HF: load_emr_ihd_and_hf,
         data_keys.IHD_AND_HF.CSMR: load_csmr_ihd_and_hf,
@@ -616,7 +616,7 @@ def load_disability_weight_hf_residual(key: str, location: str) -> pd.DataFrame:
 
 def load_emr_ihd_and_hf(key: str, location: str) -> pd.DataFrame:
     me_id_map = {
-        data_keys.IHD_AND_HF.EMR_AMI: 24694,
+        data_keys.IHD_AND_HF.EMR_ACUTE_MI: 24694,
         data_keys.IHD_AND_HF.EMR_POST_MI: 15755,
         data_keys.IHD_AND_HF.EMR_HF: 2412,
     }
