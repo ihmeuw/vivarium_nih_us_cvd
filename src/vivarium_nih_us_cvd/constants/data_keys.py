@@ -52,7 +52,7 @@ class __IschemicStroke(NamedTuple):
     DISABILITY_WEIGHT_CHRONIC: TargetString = TargetString(
         "sequela.chronic_ischemic_stroke.disability_weight"
     )
-    EMR_ACUTE: TargetString = TargetString(
+    EMR_ACUTE_MI: TargetString = TargetString(
         "sequela.acute_ischemic_stroke.excess_mortality_rate"
     )
     EMR_CHRONIC: TargetString = TargetString(
@@ -73,47 +73,68 @@ class __IschemicStroke(NamedTuple):
 ISCHEMIC_STROKE = __IschemicStroke()
 
 
-class __MyocardialInfarction(NamedTuple):
-    PREVALENCE_ACUTE: TargetString = TargetString(
+class __IschemicHeartDiseaseAndHeartFailure(NamedTuple):
+    PREVALENCE_ACUTE_MI: TargetString = TargetString(
         "cause.acute_myocardial_infarction.prevalence"
     )
-    PREVALENCE_POST: TargetString = TargetString(
+    PREVALENCE_ACUTE_MI_AND_HF: TargetString = TargetString(
+        "cause.acute_myocardial_infarction_and_heart_failure.prevalence"
+    )
+    PREVALENCE_POST_MI: TargetString = TargetString(
         "cause.post_myocardial_infarction.prevalence"
     )
-    INCIDENCE_RATE_ACUTE: TargetString = TargetString(
-        "cause.myocardial_infarction.incidence_rate"
+    PREVALENCE_HF_IHD: TargetString = TargetString(
+        "cause.heart_failure_from_ischemic_heart_disease.prevalence"
     )
-    DISABILITY_WEIGHT_ACUTE: TargetString = TargetString(
+    PREVALENCE_HF_RESIDUAL: TargetString = TargetString(
+        "cause.heart_failure_residual.prevalence"
+    )
+    INCIDENCE_ACUTE_MI: TargetString = TargetString(
+        "cause.acute_myocardial_infarction.incidence_rate"
+    )
+    INCIDENCE_HF_IHD: TargetString = TargetString(
+        "cause.heart_failure_from_ischemic_heart_disease.incidence_rate"
+    )
+    INCIDENCE_HF_RESIDUAL: TargetString = TargetString(
+        "cause.heart_failure_residual.incidence_rate"
+    )
+    DISABILITY_WEIGHT_ACUTE_MI: TargetString = TargetString(
         "cause.acute_myocardial_infarction.disability_weight"
     )
-    DISABILITY_WEIGHT_POST: TargetString = TargetString(
+    DISABILITY_WEIGHT_POST_MI: TargetString = TargetString(
         "cause.post_myocardial_infarction.disability_weight"
     )
-    EMR_ACUTE: TargetString = TargetString(
+    DISABILITY_WEIGHT_HF_IHD: TargetString = TargetString(
+        "cause.heart_failure_from_ischemic_heart_disease.disability_weight"
+    )
+    DISABILITY_WEIGHT_HF_RESIDUAL: TargetString = TargetString(
+        "cause.heart_failure_residual.disability_weight"
+    )
+    EMR_ACUTE_MI: TargetString = TargetString(
         "cause.acute_myocardial_infarction.excess_mortality_rate"
     )
-    EMR_POST: TargetString = TargetString(
+    EMR_POST_MI: TargetString = TargetString(
         "cause.post_myocardial_infarction.excess_mortality_rate"
     )
-    CSMR: SourceTarget = SourceTarget(
-        "cause.ischemic_heart_disease.cause_specific_mortality_rate",
-        "cause.myocardial_infarction.cause_specific_mortality_rate",
+    EMR_HF: TargetString = TargetString("cause.heart_failure.excess_mortality_rate")
+    CSMR: TargetString = TargetString(
+        "cause.ischemic_heart_disease_and_heart_failure.cause_specific_mortality_rate"
     )
     RESTRICTIONS: SourceTarget = SourceTarget(
         "cause.ischemic_heart_disease.restrictions",
-        "cause.myocardial_infarction.restrictions",
+        "cause.ischemic_heart_disease_and_heart_failure.restrictions",
     )
 
     @property
     def name(self):
-        return "myocardial_infarction"
+        return "ischemic_heart_disease_and_heart_failure"
 
     @property
     def log_name(self):
         return self.name.replace("_", " ")
 
 
-MYOCARDIAL_INFARCTION = __MyocardialInfarction()
+IHD_AND_HF = __IschemicHeartDiseaseAndHeartFailure()
 
 
 ################
@@ -337,7 +358,7 @@ POLYPILL = __Polypill()
 MAKE_ARTIFACT_KEY_GROUPS = [
     POPULATION,
     ISCHEMIC_STROKE,
-    MYOCARDIAL_INFARCTION,
+    IHD_AND_HF,
     LDL_C,
     SBP,
     BMI,
