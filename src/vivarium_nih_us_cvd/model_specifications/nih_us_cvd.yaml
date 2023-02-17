@@ -7,7 +7,6 @@ components:
             - MortalityObserver()
             - DisabilityObserver()
             - DiseaseObserver("ischemic_stroke")
-            - DiseaseObserver("myocardial_infarction")
         risks:
             - Risk("risk_factor.sbp_medication_adherence")
             - Risk("risk_factor.ldlc_medication_adherence")
@@ -39,7 +38,7 @@ components:
             - ResultsStratifier()
 
             - IschemicStroke()
-            - MyocardialInfarction()
+            - IschemicHeartDiseaseAndHeartFailure()
 
             - AdjustedRisk("risk_factor.high_ldl_cholesterol")
             - ContinuousRiskObserver("risk_factor.high_ldl_cholesterol")
