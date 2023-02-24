@@ -785,7 +785,7 @@ def load_relative_risk_categorical_sbp(key: str, location: str) -> pd.DataFrame:
     exposed_rrs = pd.concat(exposed_groups_rrs)
 
     # define all heart failure data
-    heart_failure_rrs = pd.concat(baseline_hf_rrs, exposed_rrs)
+    heart_failure_rrs = pd.concat([baseline_hf_rrs, exposed_rrs])
     heart_failure_rrs['affected_measure'] = 'incidence_rate'
     heart_failure_rrs['parameter'] = 'per unit'
     heart_failure_rrs = add_affected_entity_to_heart_failure_relative_risk_data(heart_failure_rrs)
