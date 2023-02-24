@@ -472,7 +472,6 @@ RELATIVE_RISK_BMI_ON_HEART_FAILURE_DISTRIBUTION = (
     'bmi_relative_risk_for_heart_failure', get_norm(mean=1.14, ninety_five_pct_confidence_interval=(1.12,1.16))
 )
 
-SBP_RR_ON_HF_REFERENCE_GROUP_MAX_EXPOSURE_VALUE = 120
 RELATIVE_RISK_SBP_CAT3_ON_HEART_FAILURE_DISTRIBUTION = ( # sbp exposure of 120 - 130
     'cat3', get_norm(mean=1.27, ninety_five_pct_confidence_interval=(1.13,1.43))
 )
