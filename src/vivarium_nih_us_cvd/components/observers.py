@@ -31,7 +31,9 @@ class PAFObserver:
     def setup(self, builder: Builder) -> None:
         self.step_size = builder.time.step_size()
         self.config = builder.configuration.stratification["paf"]
-        self.risk_effect = builder.components.get_component(f"risk_effect.{self.risk}.{self.target}")
+        self.risk_effect = builder.components.get_component(
+            f"risk_effect.{self.risk}.{self.target}"
+        )
 
         builder.results.register_observation(
             name=f"calculated_paf_{self.risk}_on_{self.target}",
@@ -53,8 +55,6 @@ class PAFObserver:
     def get_configuration_defaults(self) -> Dict[str, Dict]:
         return {
             "stratification": {
-                self.risk: PAFObserver.configuration_defaults["stratification"][
-                    "paf"
-                ]
+                self.risk: PAFObserver.configuration_defaults["stratification"]["paf"]
             }
         }
