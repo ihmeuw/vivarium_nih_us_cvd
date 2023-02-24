@@ -35,7 +35,7 @@ from vivarium_inputs.mapping_extension import (
 )
 
 from vivarium_nih_us_cvd.constants import data_keys, data_values, paths
-from vivarium_nih_us_cvd.constants.metadata import PROPORTION_DATA_INDEX_COLUMNS
+from vivarium_nih_us_cvd.constants.metadata import ARTIFACT_COLUMNS, DRAW_COUNT, PROPORTION_DATA_INDEX_COLUMNS
 from vivarium_nih_us_cvd.utilities import get_random_variable_draws
 
 
@@ -113,6 +113,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.SBP.EXPOSURE_SD: load_standard_data,
         data_keys.SBP.EXPOSURE_WEIGHTS: load_standard_data,
         data_keys.SBP.RELATIVE_RISK: load_standard_data,
+        data_keys.SBP.CATEGORICAL_RELATIVE_RISK: load_relative_risk_categorical_sbp,
         data_keys.SBP.PAF: load_standard_data,
         data_keys.SBP.TMRED: load_metadata,
         data_keys.SBP.RELATIVE_RISK_SCALAR: load_metadata,
@@ -121,7 +122,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.BMI.EXPOSURE_MEAN: load_standard_data,
         data_keys.BMI.EXPOSURE_SD: load_bmi_standard_deviation,
         data_keys.BMI.EXPOSURE_WEIGHTS: load_standard_data,
-        data_keys.BMI.RELATIVE_RISK: partial(load_standard_data_enforce_minimum, 1),
+        data_keys.BMI.RELATIVE_RISK: load_relative_risk_bmi,
         data_keys.BMI.PAF: partial(load_standard_data_enforce_minimum, 0),
         data_keys.BMI.TMRED: load_metadata,
         data_keys.BMI.RELATIVE_RISK_SCALAR: load_metadata,
@@ -742,6 +743,78 @@ def load_ldlc_medication_effect(key: str, location: str) -> pd.DataFrame:
         df.loc[med_level, :] = get_random_variable_draws(1000, seeded_distribution)
     assert df.notna().values.all()
     return df
+
+
+def add_affected_entity_to_heart_failure_relative_risk_data(rr_data: pd.DataFrame) -> pd.DataFrame:
+    '''Return rr_data with affected_entity in index. The output will contain all the rows in rr_data with
+    heart failure from ischemic heart disease as the affected_entity concated with all the rows in rr_data with
+    residual heart failure as the affected_entity.'''
+    entity_col_ihd_values = ['heart_failure_from_ischemic_heart_disease'] * int(len(rr_data))
+    entity_col_residual_values = ['heart_failure_residual'] * int(len(rr_data))
+
+    rr_data = pd.concat([rr_data]*2)
+    rr_data['affected_entity'] = entity_col_ihd_values + entity_col_residual_values
+
+    rr_data.set_index(['affected_entity', 'affected_measure', 'parameter'], append=True, inplace=True)
+
+    return rr_data
+
+
+def load_relative_risk_categorical_sbp(key: str, location: str) -> pd.DataFrame:
+    distributions = data_values.RELATIVE_RISK_SBP_ON_HEART_FAILURE_DISTRIBUTIONS
+    population_structure = load_population_structure(data_keys.POPULATION.STRUCTURE, location).droplevel('location')
+
+    # define TMREL data
+    baseline_hf_rrs = pd.DataFrame(1.0, index=population_structure.index, columns=ARTIFACT_COLUMNS)
+    baseline_hf_rrs['parameter'] = 'cat4'
+    baseline_hf_rrs = baseline_hf_rrs.set_index('parameter', append=True)
+
+    # define exposed groups data
+    exposed_groups_rrs = []
+    for distribution_info in distributions:
+        rr_data = get_random_variable_draws(
+            DRAW_COUNT, distribution_info
+        )
+        rr_data = np.repeat([rr_data], len(population_structure), axis=0)
+        relative_risk_heart_failure = pd.DataFrame(rr_data, index=population_structure.index, columns=ARTIFACT_COLUMNS)
+        relative_risk_heart_failure['parameter'] = distribution_info[0]
+        relative_risk_heart_failure = relative_risk_heart_failure.set_index('parameter', append=True)
+
+        exposed_groups_rrs.append(relative_risk_heart_failure)
+
+    exposed_rrs = pd.concat(exposed_groups_rrs)
+
+    # define all heart failure data
+    heart_failure_rrs = pd.concat(baseline_hf_rrs, exposed_rrs)
+    heart_failure_rrs['affected_measure'] = 'incidence_rate'
+    heart_failure_rrs['parameter'] = 'per unit'
+    heart_failure_rrs = add_affected_entity_to_heart_failure_relative_risk_data(heart_failure_rrs)
+
+    return heart_failure_rrs
+
+
+def load_relative_risk_bmi(key: str, location: str) -> pd.DataFrame:
+    standard_rr_data = load_standard_data_enforce_minimum(1, key, location)
+
+    # generate draws for BMI relative risk on heart failure
+    rr_data = get_random_variable_draws(
+        DRAW_COUNT, data_values.RELATIVE_RISK_BMI_ON_HEART_FAILURE_DISTRIBUTION
+    )
+
+    # pull population structure to use as index
+    population_structure = load_population_structure(data_keys.POPULATION.STRUCTURE, location).droplevel('location')
+
+    # define heart failure rr dataframe
+    rr_data_for_df = np.repeat([rr_data], len(population_structure), axis=0)
+    relative_risk_heart_failure = pd.DataFrame(rr_data_for_df, index=population_structure.index,
+                                               columns=ARTIFACT_COLUMNS)
+    relative_risk_heart_failure['affected_measure'] = 'incidence_rate'
+    relative_risk_heart_failure['parameter'] = 'per unit'
+    relative_risk_heart_failure = add_affected_entity_to_heart_failure_relative_risk_data(relative_risk_heart_failure)
+
+    relative_risk_bmi = pd.concat([standard_rr_data, relative_risk_heart_failure])
+
+    return relative_risk_bmi
 
 
 def load_medication_adherence_distribution(key: str, location: str) -> str:
