@@ -795,6 +795,7 @@ def load_relative_risk_categorical_sbp(key: str, location: str) -> pd.DataFrame:
 
 def load_relative_risk_bmi(key: str, location: str) -> pd.DataFrame:
     standard_rr_data = load_standard_data_enforce_minimum(1, key, location)
+    standard_rr_data = handle_special_cases(standard_rr_data, key, location)
 
     # generate draws for BMI relative risk on heart failure
     rr_data = get_random_variable_draws(
