@@ -334,5 +334,3 @@ class CategoricalColumnObserver:
     def metrics(self, index: pd.Index, metrics: Dict) -> Dict:
         metrics.update(self.counts)
         return metrics
-
-
