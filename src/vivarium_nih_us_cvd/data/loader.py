@@ -805,9 +805,9 @@ def load_relative_risk_bmi(key: str, location: str) -> pd.DataFrame:
     relative_risk_heart_failure['affected_entity'] = 'heart_failure'
     relative_risk_heart_failure['affected_measure'] = 'incidence_rate'
     relative_risk_heart_failure['parameter'] = 'per unit'
+    relative_risk_heart_failure = relative_risk_heart_failure.set_index(['affected_entity', 'affected_measure', 'parameter'], append=True)
 
     relative_risk_bmi = pd.concat([standard_rr_data, relative_risk_heart_failure])
-    relative_risk_bmi = relative_risk_bmi.set_index(['affected_entity', 'affected_measure', 'parameter'], append=True)
 
     return relative_risk_bmi
 
