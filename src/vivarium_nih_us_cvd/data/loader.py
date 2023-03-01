@@ -759,9 +759,9 @@ def load_relative_risk_categorical_sbp(key: str, location: str) -> pd.DataFrame:
 
     # define exposed groups data
     exposed_groups_rrs = []
-    for distribution_info in distributions:
+    for sbp_category, distribution in distributions:
         rr_data = get_random_variable_draws(
-            DRAW_COUNT, distribution_info
+            DRAW_COUNT, (sbp_category, distribution)
         )
         # relative risks of 1 for ages without heart failure (under 25)
         under_25_data = pd.DataFrame(1, index=population_structure.query("age_start<=25").index,
@@ -772,7 +772,7 @@ def load_relative_risk_categorical_sbp(key: str, location: str) -> pd.DataFrame:
                                     columns=ARTIFACT_COLUMNS)
 
         relative_risk_heart_failure = pd.concat([under_25_data, over_25_data])
-        relative_risk_heart_failure['parameter'] = distribution_info[0]
+        relative_risk_heart_failure['parameter'] = sbp_category
 
         exposed_groups_rrs.append(relative_risk_heart_failure)
 
