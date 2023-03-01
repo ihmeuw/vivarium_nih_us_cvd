@@ -35,7 +35,11 @@ from vivarium_inputs.mapping_extension import (
 )
 
 from vivarium_nih_us_cvd.constants import data_keys, data_values, paths
-from vivarium_nih_us_cvd.constants.metadata import ARTIFACT_COLUMNS, DRAW_COUNT, PROPORTION_DATA_INDEX_COLUMNS
+from vivarium_nih_us_cvd.constants.metadata import (
+    ARTIFACT_COLUMNS,
+    DRAW_COUNT,
+    PROPORTION_DATA_INDEX_COLUMNS,
+)
 from vivarium_nih_us_cvd.utilities import get_random_variable_draws
 
 
@@ -695,7 +699,11 @@ def match_rr_to_cause_name(data: Union[str, pd.DataFrame], source_key: EntityKey
             "heart_failure_residual",
         ],
     }
-    if source_key.measure in ["relative_risk", "categorical_relative_risk", "population_attributable_fraction"]:
+    if source_key.measure in [
+        "relative_risk",
+        "categorical_relative_risk",
+        "population_attributable_fraction",
+    ]:
         data = modify_rr_affected_entity(data, map)
     return data
 
@@ -751,28 +759,38 @@ def load_ldlc_medication_effect(key: str, location: str) -> pd.DataFrame:
 
 def load_relative_risk_categorical_sbp(key: str, location: str) -> pd.DataFrame:
     distributions = data_values.RELATIVE_RISK_SBP_ON_HEART_FAILURE_DISTRIBUTIONS
-    population_structure = load_population_structure(data_keys.POPULATION.STRUCTURE, location).droplevel('location')
+    population_structure = load_population_structure(
+        data_keys.POPULATION.STRUCTURE, location
+    ).droplevel("location")
 
     # define TMREL data
-    baseline_hf_rrs = pd.DataFrame(1.0, index=population_structure.index, columns=ARTIFACT_COLUMNS)
-    baseline_hf_rrs['parameter'] = 'cat4'
+    baseline_hf_rrs = pd.DataFrame(
+        1.0, index=population_structure.index, columns=ARTIFACT_COLUMNS
+    )
+    baseline_hf_rrs["parameter"] = "cat4"
 
     # define exposed groups data
     exposed_groups_rrs = []
     for sbp_category, distribution in distributions:
-        rr_data = get_random_variable_draws(
-            DRAW_COUNT, (sbp_category, distribution)
-        )
+        rr_data = get_random_variable_draws(DRAW_COUNT, (sbp_category, distribution))
         # relative risks of 1 for ages without heart failure (under 25)
-        under_25_data = pd.DataFrame(1, index=population_structure.query("age_start<=25").index,
-                                     columns=ARTIFACT_COLUMNS)
+        under_25_data = pd.DataFrame(
+            1,
+            index=population_structure.query("age_start<=25").index,
+            columns=ARTIFACT_COLUMNS,
+        )
 
-        over_25_values = np.repeat([rr_data], len(population_structure.query("age_start>25")), axis=0)
-        over_25_data = pd.DataFrame(over_25_values, index=population_structure.query("age_start>25").index,
-                                    columns=ARTIFACT_COLUMNS)
+        over_25_values = np.repeat(
+            [rr_data], len(population_structure.query("age_start>25")), axis=0
+        )
+        over_25_data = pd.DataFrame(
+            over_25_values,
+            index=population_structure.query("age_start>25").index,
+            columns=ARTIFACT_COLUMNS,
+        )
 
         relative_risk_heart_failure = pd.concat([under_25_data, over_25_data])
-        relative_risk_heart_failure['parameter'] = sbp_category
+        relative_risk_heart_failure["parameter"] = sbp_category
 
         exposed_groups_rrs.append(relative_risk_heart_failure)
 
@@ -780,9 +798,11 @@ def load_relative_risk_categorical_sbp(key: str, location: str) -> pd.DataFrame:
 
     # define all heart failure data
     heart_failure_rrs = pd.concat([baseline_hf_rrs, exposed_rrs])
-    heart_failure_rrs['affected_entity'] = 'heart_failure'
-    heart_failure_rrs['affected_measure'] = 'incidence_rate'
-    heart_failure_rrs = heart_failure_rrs.set_index(['affected_entity', 'affected_measure', 'parameter'], append=True)
+    heart_failure_rrs["affected_entity"] = "heart_failure"
+    heart_failure_rrs["affected_measure"] = "incidence_rate"
+    heart_failure_rrs = heart_failure_rrs.set_index(
+        ["affected_entity", "affected_measure", "parameter"], append=True
+    )
 
     return heart_failure_rrs
 
@@ -796,16 +816,21 @@ def load_relative_risk_bmi(key: str, location: str) -> pd.DataFrame:
     )
 
     # pull population structure to use as index
-    population_structure = load_population_structure(data_keys.POPULATION.STRUCTURE, location).droplevel('location')
+    population_structure = load_population_structure(
+        data_keys.POPULATION.STRUCTURE, location
+    ).droplevel("location")
 
     # define heart failure rr dataframe
     rr_data_for_df = np.repeat([rr_data], len(population_structure), axis=0)
-    relative_risk_heart_failure = pd.DataFrame(rr_data_for_df, index=population_structure.index,
-                                               columns=ARTIFACT_COLUMNS)
-    relative_risk_heart_failure['affected_entity'] = 'heart_failure'
-    relative_risk_heart_failure['affected_measure'] = 'incidence_rate'
-    relative_risk_heart_failure['parameter'] = 'per unit'
-    relative_risk_heart_failure = relative_risk_heart_failure.set_index(['affected_entity', 'affected_measure', 'parameter'], append=True)
+    relative_risk_heart_failure = pd.DataFrame(
+        rr_data_for_df, index=population_structure.index, columns=ARTIFACT_COLUMNS
+    )
+    relative_risk_heart_failure["affected_entity"] = "heart_failure"
+    relative_risk_heart_failure["affected_measure"] = "incidence_rate"
+    relative_risk_heart_failure["parameter"] = "per unit"
+    relative_risk_heart_failure = relative_risk_heart_failure.set_index(
+        ["affected_entity", "affected_measure", "parameter"], append=True
+    )
 
     relative_risk_bmi = pd.concat([standard_rr_data, relative_risk_heart_failure])
 
