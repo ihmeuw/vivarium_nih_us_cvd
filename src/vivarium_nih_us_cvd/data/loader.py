@@ -690,6 +690,10 @@ def match_rr_to_cause_name(data: Union[str, pd.DataFrame], source_key: EntityKey
             "acute_ischemic_stroke",
             "chronic_ischemic_stroke_to_acute_ischemic_stroke",
         ],
+        "heart_failure": [
+            "heart_failure_from_ischemic_heart_disease",
+            "heart_failure_residual",
+        ],
     }
     if source_key.measure in ["relative_risk", "population_attributable_fraction"]:
         data = modify_rr_affected_entity(data, map)
@@ -745,21 +749,6 @@ def load_ldlc_medication_effect(key: str, location: str) -> pd.DataFrame:
     return df
 
 
-def add_affected_entity_to_heart_failure_relative_risk_data(rr_data: pd.DataFrame) -> pd.DataFrame:
-    '''Return rr_data with affected_entity in index. The output will contain all the rows in rr_data with
-    heart failure from ischemic heart disease as the affected_entity concated with all the rows in rr_data with
-    residual heart failure as the affected_entity. The data is expected to have affected_measure and parameter columns.'''
-    entity_col_ihd_values = ['heart_failure_from_ischemic_heart_disease'] * int(len(rr_data))
-    entity_col_residual_values = ['heart_failure_residual'] * int(len(rr_data))
-
-    rr_data = pd.concat([rr_data]*2)
-    rr_data['affected_entity'] = entity_col_ihd_values + entity_col_residual_values
-
-    rr_data.set_index(['affected_entity', 'affected_measure', 'parameter'], append=True, inplace=True)
-
-    return rr_data
-
-
 def load_relative_risk_categorical_sbp(key: str, location: str) -> pd.DataFrame:
     distributions = data_values.RELATIVE_RISK_SBP_ON_HEART_FAILURE_DISTRIBUTIONS
     population_structure = load_population_structure(data_keys.POPULATION.STRUCTURE, location).droplevel('location')
@@ -791,15 +780,15 @@ def load_relative_risk_categorical_sbp(key: str, location: str) -> pd.DataFrame:
 
     # define all heart failure data
     heart_failure_rrs = pd.concat([baseline_hf_rrs, exposed_rrs])
+    heart_failure_rrs['affected_entity'] = 'heart_failure'
     heart_failure_rrs['affected_measure'] = 'incidence_rate'
-    heart_failure_rrs = add_affected_entity_to_heart_failure_relative_risk_data(heart_failure_rrs)
+    heart_failure_rrs = heart_failure_rrs.set_index(['affected_entity', 'affected_measure', 'parameter'], append=True)
 
     return heart_failure_rrs
 
 
 def load_relative_risk_bmi(key: str, location: str) -> pd.DataFrame:
     standard_rr_data = load_standard_data_enforce_minimum(1, key, location)
-    standard_rr_data = handle_special_cases(standard_rr_data, key, location)
 
     # generate draws for BMI relative risk on heart failure
     rr_data = get_random_variable_draws(
@@ -813,11 +802,12 @@ def load_relative_risk_bmi(key: str, location: str) -> pd.DataFrame:
     rr_data_for_df = np.repeat([rr_data], len(population_structure), axis=0)
     relative_risk_heart_failure = pd.DataFrame(rr_data_for_df, index=population_structure.index,
                                                columns=ARTIFACT_COLUMNS)
+    relative_risk_heart_failure['affected_entity'] = 'heart_failure'
     relative_risk_heart_failure['affected_measure'] = 'incidence_rate'
     relative_risk_heart_failure['parameter'] = 'per unit'
-    relative_risk_heart_failure = add_affected_entity_to_heart_failure_relative_risk_data(relative_risk_heart_failure)
 
     relative_risk_bmi = pd.concat([standard_rr_data, relative_risk_heart_failure])
+    relative_risk_bmi = relative_risk_bmi.set_index(['affected_entity', 'affected_measure', 'parameter'], append=True)
 
     return relative_risk_bmi
 
