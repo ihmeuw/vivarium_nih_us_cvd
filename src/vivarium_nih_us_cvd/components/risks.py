@@ -163,4 +163,3 @@ class CategoricalSBPRisk:
         )  # left interval is closed, right interval is open
 
         return categorical_exposure
-    
