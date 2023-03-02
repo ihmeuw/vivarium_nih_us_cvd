@@ -699,11 +699,7 @@ def match_rr_to_cause_name(data: Union[str, pd.DataFrame], source_key: EntityKey
             "heart_failure_residual",
         ],
     }
-    if source_key.measure in [
-        "relative_risk",
-        "categorical_relative_risk",
-        "population_attributable_fraction",
-    ]:
+    if source_key.measure in ["relative_risk", "population_attributable_fraction"]:
         data = modify_rr_affected_entity(data, map)
     return data
 
