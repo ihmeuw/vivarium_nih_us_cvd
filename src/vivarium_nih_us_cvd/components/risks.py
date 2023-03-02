@@ -8,7 +8,12 @@ from vivarium_public_health.risks.data_transformations import (
 )
 from vivarium_public_health.utilities import EntityString
 
-from vivarium_nih_us_cvd.constants.data_values import CATEGORICAL_SBP_INTERVALS, COLUMNS, RISK_EXPOSURE_LIMITS, PIPELINES
+from vivarium_nih_us_cvd.constants.data_values import (
+    CATEGORICAL_SBP_INTERVALS,
+    COLUMNS,
+    PIPELINES,
+    RISK_EXPOSURE_LIMITS,
+)
 
 
 class AdjustedRisk(Risk):
@@ -87,6 +92,7 @@ class AdjustedRisk(Risk):
 
 class TruncatedRisk(Risk):
     """Keep exposure values between defined limits"""
+
     def _get_current_exposure(self, index: pd.Index) -> pd.Series:
         # Keep exposure values between defined limits
         propensity = self.propensity(index)
@@ -141,15 +147,20 @@ class CategoricalSBPRisk:
     def _get_current_exposure(self, index: pd.Index) -> pd.Series:
         continuous_exposure = self.continuous_exposure(index)
 
-        bins = [RISK_EXPOSURE_LIMITS["high_systolic_blood_pressure"]["minimum"],
-                CATEGORICAL_SBP_INTERVALS.CAT3_LEFT_THRESHOLD,
-                CATEGORICAL_SBP_INTERVALS.CAT2_LEFT_THRESHOLD,
-                CATEGORICAL_SBP_INTERVALS.CAT1_LEFT_THRESHOLD,
-                RISK_EXPOSURE_LIMITS["high_systolic_blood_pressure"]["maximum"]]
+        bins = [
+            RISK_EXPOSURE_LIMITS["high_systolic_blood_pressure"]["minimum"],
+            CATEGORICAL_SBP_INTERVALS.CAT3_LEFT_THRESHOLD,
+            CATEGORICAL_SBP_INTERVALS.CAT2_LEFT_THRESHOLD,
+            CATEGORICAL_SBP_INTERVALS.CAT1_LEFT_THRESHOLD,
+            RISK_EXPOSURE_LIMITS["high_systolic_blood_pressure"]["maximum"],
+        ]
 
-        categorical_exposure = pd.cut(continuous_exposure,
-                                      bins = bins,
-                                      labels = ['cat4', 'cat3', 'cat2', 'cat1'],
-                                      right = False) # left interval is closed, right interval is open
+        categorical_exposure = pd.cut(
+            continuous_exposure,
+            bins=bins,
+            labels=["cat4", "cat3", "cat2", "cat1"],
+            right=False,
+        )  # left interval is closed, right interval is open
 
         return categorical_exposure
+    

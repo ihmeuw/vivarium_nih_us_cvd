@@ -469,7 +469,7 @@ RISK_EXPOSURE_LIMITS = {
 
 
 class __CategoricalSBPIntervals(NamedTuple):
-    """ldl-c exposure thresholds"""
+    """categorical sbp exposure thresholds"""
 
     CAT3_LEFT_THRESHOLD: int = 120
     CAT2_LEFT_THRESHOLD: int = 130

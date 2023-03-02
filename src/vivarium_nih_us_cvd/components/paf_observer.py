@@ -56,6 +56,8 @@ class PAFObserver:
     def get_configuration_defaults(self) -> Dict[str, Dict]:
         return {
             "stratification": {
-                f"{self.risk.name}_paf": PAFObserver.configuration_defaults["stratification"]["paf"]
+                f"{self.risk.name}_paf": PAFObserver.configuration_defaults["stratification"][
+                    "paf"
+                ]
             }
         }
