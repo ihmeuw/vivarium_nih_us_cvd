@@ -776,7 +776,9 @@ def load_relative_risk_categorical_sbp(key: str, location: str) -> pd.DataFrame:
             columns=ARTIFACT_COLUMNS,
         )
         over_and_including_15_data = pd.DataFrame(
-            data=np.repeat([rr_data], len(population_structure.query("age_start>=15")), axis=0),
+            data=np.repeat(
+                [rr_data], len(population_structure.query("age_start>=15")), axis=0
+            ),
             index=population_structure.query("age_start>=15").index,
             columns=ARTIFACT_COLUMNS,
         )
