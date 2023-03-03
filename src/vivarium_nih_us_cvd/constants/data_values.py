@@ -467,6 +467,22 @@ RISK_EXPOSURE_LIMITS = {
     },
 }
 
+
+class __CategoricalSBPIntervals(NamedTuple):
+    """categorical sbp exposure thresholds"""
+
+    CAT3_LEFT_THRESHOLD: int = 120
+    CAT2_LEFT_THRESHOLD: int = 130
+    CAT1_LEFT_THRESHOLD: int = 140
+
+    @property
+    def name(self):
+        return "categorical_sbp_intervals"
+
+
+CATEGORICAL_SBP_INTERVALS = __CategoricalSBPIntervals()
+
+
 MAX_BMI_STANDARD_DEVIATION = 15
 RELATIVE_RISK_BMI_ON_HEART_FAILURE_DISTRIBUTION = (
     "bmi_relative_risk_for_heart_failure",

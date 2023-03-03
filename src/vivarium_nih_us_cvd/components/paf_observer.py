@@ -2,7 +2,7 @@ from typing import Dict, List
 
 import pandas as pd
 from vivarium.framework.engine import Builder
-from vivarium_public_health.utilities import TargetString
+from vivarium_public_health.utilities import EntityString, TargetString
 
 
 class PAFObserver:
@@ -17,8 +17,8 @@ class PAFObserver:
     }
 
     def __init__(self, risk: str, target: str):
-        self.risk = risk
-        self.target = target
+        self.risk = EntityString(risk)
+        self.target = TargetString(target)
         self.configuration_defaults = self.get_configuration_defaults()
 
     def __repr__(self):
@@ -34,8 +34,7 @@ class PAFObserver:
             f"risk_effect.{self.risk}.{self.target}"
         )
 
-        risk_name = TargetString(self.risk + ".some_measure").name
-        config = builder.configuration.stratification[f"{risk_name}_paf"]
+        config = builder.configuration.stratification[f"{self.risk.name}_paf"]
 
         builder.results.register_observation(
             name=f"calculated_paf_{self.risk}_on_{self.target}",
@@ -57,6 +56,8 @@ class PAFObserver:
     def get_configuration_defaults(self) -> Dict[str, Dict]:
         return {
             "stratification": {
-                self.risk: PAFObserver.configuration_defaults["stratification"]["paf"]
+                f"{self.risk.name}_paf": PAFObserver.configuration_defaults["stratification"][
+                    "paf"
+                ]
             }
         }
