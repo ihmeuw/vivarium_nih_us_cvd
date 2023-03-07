@@ -876,5 +876,6 @@ def load_medication_adherence_exposure(key: str, location: str) -> pd.DataFrame:
 def load_dichotomous_distribution(key: str, location: str) -> str:
     return "dichotomous"
 
+
 def load_ordered_polytomous_distribution(key: str, location: str) -> str:
     return "ordered_polytomous"

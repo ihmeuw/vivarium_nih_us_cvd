@@ -1,13 +1,12 @@
-import pandas as pd
-from vivarium.framework.engine import Builder
-from vivarium.framework.time import get_time_stamp
-from vivarium.framework.lookup import LookupTable
-
 from typing import Callable
 
-from vivarium_nih_us_cvd.constants import data_values, scenarios
-
+import pandas as pd
+from vivarium.framework.engine import Builder
+from vivarium.framework.lookup import LookupTable
+from vivarium.framework.time import get_time_stamp
 from vivarium_public_health.risks.effect import RiskEffect
+
+from vivarium_nih_us_cvd.constants import data_values, scenarios
 
 
 class InterventionAdherenceEffect:
