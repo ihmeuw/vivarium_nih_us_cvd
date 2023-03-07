@@ -56,6 +56,3 @@ configuration:
         exit_age: 125
     stratification:
         default: ['sex', 'age_group']
-        high_body_mass_index_in_adults_paf:
-            exclude: []
-            include: []
