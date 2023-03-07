@@ -166,7 +166,6 @@ class CategoricalSBPRisk:
             CATEGORICAL_SBP_INTERVALS.CAT3_LEFT_THRESHOLD,
             CATEGORICAL_SBP_INTERVALS.CAT2_LEFT_THRESHOLD,
             CATEGORICAL_SBP_INTERVALS.CAT1_LEFT_THRESHOLD,
-            #RISK_EXPOSURE_LIMITS["high_systolic_blood_pressure"]["maximum"],
             np.inf,
         ]
 
