@@ -113,6 +113,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.LDL_C.MEDICATION_EFFECT: load_ldlc_medication_effect,
         # Risk (systolic blood pressure)
         data_keys.SBP.DISTRIBUTION: load_metadata,
+        data_keys.SBP.CATEGORICAL_DISTRIBUTION: load_ordered_polytomous_distribution,
         data_keys.SBP.EXPOSURE_MEAN: load_standard_data,
         data_keys.SBP.EXPOSURE_SD: load_standard_data,
         data_keys.SBP.EXPOSURE_WEIGHTS: load_standard_data,
@@ -874,3 +875,7 @@ def load_medication_adherence_exposure(key: str, location: str) -> pd.DataFrame:
 
 def load_dichotomous_distribution(key: str, location: str) -> str:
     return "dichotomous"
+
+
+def load_ordered_polytomous_distribution(key: str, location: str) -> str:
+    return "ordered_polytomous"

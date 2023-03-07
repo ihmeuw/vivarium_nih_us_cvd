@@ -1,0 +1,58 @@
+components:
+    vivarium_public_health:
+        population:
+            - BasePopulation()
+        metrics:
+            - ResultsStratifier()
+
+    vivarium_nih_us_cvd:
+        components:
+            # heart failure
+            - IschemicHeartDiseaseAndHeartFailure()
+            # risks
+            - TruncatedRisk("risk_factor.high_systolic_blood_pressure")
+            - CategoricalSBPRisk()
+            - TruncatedRisk("risk_factor.high_body_mass_index_in_adults")
+            # risk effects
+            - PAFCalculationRiskEffect("risk_factor.categorical_high_systolic_blood_pressure", "cause.heart_failure_from_ischemic_heart_disease.incidence_rate")
+            - PAFCalculationRiskEffect("risk_factor.categorical_high_systolic_blood_pressure", "cause.heart_failure_residual.incidence_rate")
+            - PAFCalculationRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_from_ischemic_heart_disease.incidence_rate")
+            - PAFCalculationRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_residual.incidence_rate")
+
+            # PAF observers
+            - PAFObserver("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_residual.incidence_rate")
+            - PAFObserver("risk_factor.categorical_high_systolic_blood_pressure", "cause.heart_failure_residual.incidence_rate")
+
+configuration:
+    input_data:
+        input_draw_number: 0
+        location: 'Alabama'
+        artifact_path: '/home/hussain-jafari/artifacts/alabama.hdf'
+    interpolation:
+        order: 0
+        extrapolate: True
+    randomness:
+        map_size: 1_000_000
+        key_columns: ['entrance_time', 'age']
+        random_seed: 0
+    time:
+        start:
+            year: 2021 # Includes two years for burn-in
+            month: 1
+            day: 1
+        observation_start: # TODO: Implement for all observers (currently only custom observers)
+            year: 2021
+            month: 1
+            day: 1
+        end:
+            year: 2021
+            month: 1
+            day: 2
+        step_size: 28 # Days
+    population:
+        population_size: 100_000
+        age_start: 7
+        age_end: 125
+        exit_age: 125
+    stratification:
+        default: ['sex', 'age_group']

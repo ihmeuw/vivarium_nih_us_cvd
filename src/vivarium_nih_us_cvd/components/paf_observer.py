@@ -31,7 +31,7 @@ class PAFObserver:
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
         self.risk_effect = builder.components.get_component(
-            f"risk_effect.{self.risk}.{self.target}"
+            f"paf_calculation_risk_effect.{self.risk}.{self.target}"
         )
 
         config = builder.configuration.stratification[f"{self.risk.name}_paf"]
