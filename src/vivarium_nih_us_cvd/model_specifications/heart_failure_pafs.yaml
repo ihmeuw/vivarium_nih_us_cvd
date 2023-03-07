@@ -4,29 +4,21 @@ components:
             - BasePopulation()
         metrics:
             - ResultsStratifier()
-        risks:
-            - Risk("risk_factor.sbp_medication_adherence")
-            - Risk("risk_factor.ldlc_medication_adherence")
-            - Risk("risk_factor.outreach")
-            - Risk("risk_factor.polypill")
 
     vivarium_nih_us_cvd:
         components:
-            - IschemicStroke()
             # heart failure
             - IschemicHeartDiseaseAndHeartFailure()
             # risks
-            - AdjustedRisk("risk_factor.high_systolic_blood_pressure")
+            - TruncatedRisk("risk_factor.high_systolic_blood_pressure")
             - CategoricalSBPRisk()
             - TruncatedRisk("risk_factor.high_body_mass_index_in_adults")
-            - AdjustedRisk("risk_factor.high_ldl_cholesterol")
             # risk effects
             - PAFCalculationRiskEffect("risk_factor.categorical_high_systolic_blood_pressure", "cause.heart_failure_from_ischemic_heart_disease.incidence_rate")
             - PAFCalculationRiskEffect("risk_factor.categorical_high_systolic_blood_pressure", "cause.heart_failure_residual.incidence_rate")
             - PAFCalculationRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_from_ischemic_heart_disease.incidence_rate")
             - PAFCalculationRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_residual.incidence_rate")
 
-            - HealthcareUtilization()  # NOTE: this uses Treatment() as a sub-component
             # PAF observers
             - PAFObserver("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_residual.incidence_rate")
             - PAFObserver("risk_factor.categorical_high_systolic_blood_pressure", "cause.heart_failure_residual.incidence_rate")
@@ -59,17 +51,11 @@ configuration:
         step_size: 28 # Days
     population:
         population_size: 100_000
-        age_start: 15
-        age_end: 20
-        exit_age: 20
+        age_start: 7
+        age_end: 125
+        exit_age: 125
     stratification:
         default: ['sex', 'age_group']
         high_body_mass_index_in_adults_paf:
             exclude: []
             include: []
-    outreach:
-        exposure: 0
-    polypill:
-        exposure: 0
-    intervention:
-        scenario: "baseline"
