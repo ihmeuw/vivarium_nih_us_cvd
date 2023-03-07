@@ -1,5 +1,5 @@
 from .disease import IschemicHeartDiseaseAndHeartFailure, IschemicStroke
-from .effects import InterventionAdherenceEffect
+from .effects import PAFCalculationRiskEffect, InterventionAdherenceEffect
 from .healthcare_utilization import HealthcareUtilization
 from .interventions import LinearScaleUp
 from .paf_observer import PAFObserver

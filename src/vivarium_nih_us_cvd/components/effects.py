@@ -1,8 +1,13 @@
 import pandas as pd
 from vivarium.framework.engine import Builder
 from vivarium.framework.time import get_time_stamp
+from vivarium.framework.lookup import LookupTable
+
+from typing import Callable
 
 from vivarium_nih_us_cvd.constants import data_values, scenarios
+
+from vivarium_public_health.risks.effect import RiskEffect
 
 
 class InterventionAdherenceEffect:
@@ -98,3 +103,30 @@ class InterventionAdherenceEffect:
             target.loc[on_polypill, cat] = probability
 
         return target
+
+
+class PAFCalculationRiskEffect(RiskEffect):
+    """Risk effect component for calculating PAFs"""
+
+    def __repr__(self):
+        return f"PAFCalculationRiskEffect(risk={self.risk}, target={self.target})"
+
+    ##############
+    # Properties #
+    ##############
+
+    @property
+    def name(self) -> str:
+        return f"paf_calculation_risk_effect.{self.risk}.{self.target}"
+
+    #################
+    # Setup methods #
+    #################
+
+    # noinspection PyAttributeOutsideInit
+    def setup(self, builder: Builder) -> None:
+        self.exposure_distribution_type = self._get_distribution_type(builder)
+        self.exposure = self._get_risk_exposure(builder)
+        self.relative_risk = self._get_relative_risk_source(builder)
+
+        self.target_modifier = self._get_target_modifier(builder)

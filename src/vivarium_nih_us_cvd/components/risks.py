@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+from typing import Dict
 from vivarium.framework.engine import Builder
 from vivarium.framework.population.manager import PopulationView
 from vivarium.framework.values import Pipeline
@@ -109,12 +111,24 @@ class TruncatedRisk(Risk):
 class CategoricalSBPRisk:
     """Bin continuous systolic blood pressure values into categories"""
 
+    configuration_defaults = {
+        "risk": {
+            "exposure": "data",
+            "rebinned_exposed": [],
+            "category_thresholds": [],
+        }
+    }
+
     def __init__(self):
         self.risk = EntityString("risk_factor.categorical_high_systolic_blood_pressure")
+        self.configuration_defaults = self._get_configuration_defaults()
         self.exposure_pipeline_name = f"{self.risk.name}.exposure"
 
     def __repr__(self) -> str:
         return "CategoricalSBPRisk()"
+
+    def _get_configuration_defaults(self) -> Dict[str, Dict]:
+        return {self.risk.name: Risk.configuration_defaults["risk"]}
 
     ##############
     # Properties #
@@ -148,11 +162,12 @@ class CategoricalSBPRisk:
         continuous_exposure = self.continuous_exposure(index)
 
         bins = [
-            RISK_EXPOSURE_LIMITS["high_systolic_blood_pressure"]["minimum"],
+            0,
             CATEGORICAL_SBP_INTERVALS.CAT3_LEFT_THRESHOLD,
             CATEGORICAL_SBP_INTERVALS.CAT2_LEFT_THRESHOLD,
             CATEGORICAL_SBP_INTERVALS.CAT1_LEFT_THRESHOLD,
-            RISK_EXPOSURE_LIMITS["high_systolic_blood_pressure"]["maximum"],
+            #RISK_EXPOSURE_LIMITS["high_systolic_blood_pressure"]["maximum"],
+            np.inf,
         ]
 
         categorical_exposure = pd.cut(

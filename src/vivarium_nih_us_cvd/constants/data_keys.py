@@ -181,6 +181,9 @@ class __HighSBP(NamedTuple):
     DISTRIBUTION: TargetString = TargetString(
         "risk_factor.high_systolic_blood_pressure.distribution"
     )
+    CATEGORICAL_DISTRIBUTION: TargetString = TargetString(
+        "risk_factor.categorical_high_systolic_blood_pressure.distribution"
+    )
     EXPOSURE_MEAN: TargetString = TargetString(
         "risk_factor.high_systolic_blood_pressure.exposure"
     )
