@@ -459,7 +459,7 @@ RISK_EXPOSURE_LIMITS = {
     },
     "high_body_mass_index_in_adults": {
         "minimum": 5,
-        "maximum": 80,
+        "maximum": 40.8,
     },
     "high_fasting_plasma_glucose": {
         "minimum": 1,

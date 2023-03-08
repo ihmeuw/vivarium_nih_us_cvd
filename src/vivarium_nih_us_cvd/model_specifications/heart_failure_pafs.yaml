@@ -56,3 +56,9 @@ configuration:
         exit_age: 125
     stratification:
         default: ['sex', 'age_group']
+        categorical_high_systolic_blood_pressure_paf:
+            include: []
+            exclude: []
+        high_body_mass_index_in_adults_paf:
+            include: []
+            exclude: []
