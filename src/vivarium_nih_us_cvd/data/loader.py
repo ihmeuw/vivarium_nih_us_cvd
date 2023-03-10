@@ -119,6 +119,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.SBP.RELATIVE_RISK: load_standard_data,
         data_keys.SBP.CATEGORICAL_RELATIVE_RISK: load_relative_risk_categorical_sbp,
         data_keys.SBP.PAF: load_standard_data,
+        data_keys.SBP.CATEGORICAL_PAF: load_paf_categorical_sbp,
         data_keys.SBP.TMRED: load_metadata,
         data_keys.SBP.RELATIVE_RISK_SCALAR: load_metadata,
         # Risk (body mass index)
@@ -127,7 +128,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.BMI.EXPOSURE_SD: load_bmi_standard_deviation,
         data_keys.BMI.EXPOSURE_WEIGHTS: load_standard_data,
         data_keys.BMI.RELATIVE_RISK: load_relative_risk_bmi,
-        data_keys.BMI.PAF: partial(load_standard_data_enforce_minimum, 0),
+        data_keys.BMI.PAF: load_paf_bmi,
         data_keys.BMI.TMRED: load_metadata,
         data_keys.BMI.RELATIVE_RISK_SCALAR: load_metadata,
         # Risk (fasting plasma glucose)
@@ -911,6 +912,7 @@ def load_paf_bmi(key: str, location: str) -> pd.DataFrame:
     paf_bmi = pd.concat([standard_paf_data, heart_failure_pafs])
 
     return paf_bmi
+
 
 def load_medication_adherence_distribution(key: str, location: str) -> str:
     return "ordered_polytomous"

@@ -199,6 +199,9 @@ class __HighSBP(NamedTuple):
     PAF: TargetString = TargetString(
         "risk_factor.high_systolic_blood_pressure.population_attributable_fraction"
     )
+    CATEGORICAL_PAF: TargetString = TargetString(
+        "risk_factor.categorical_high_systolic_blood_pressure.population_attributable_fraction"
+    )
     TMRED: TargetString = TargetString("risk_factor.high_systolic_blood_pressure.tmred")
     RELATIVE_RISK_SCALAR: TargetString = TargetString(
         "risk_factor.high_systolic_blood_pressure.relative_risk_scalar"
