@@ -816,9 +816,9 @@ def get_age_and_sex_from_paf_output_cols(measure_str):
 
 
 def format_paf_data(entity: str, location: str) -> pd.DataFrame:
-    if entity != 'high_body_mass_index_in_adults' or entity != 'high_systolic_blood_pressure':
-        raise ValueError(f"entity must be high_body_mass_index_in_adults or high_systolic_blood_pressure."
-                         "You provided entity {entity}.")
+    if (entity != 'high_body_mass_index_in_adults') or (entity != 'high_systolic_blood_pressure'):
+        raise ValueError("entity must be high_body_mass_index_in_adults or high_systolic_blood_pressure."
+                         f"You provided entity {entity}.")
 
     population_structure = load_population_structure(
         data_keys.POPULATION.STRUCTURE, location
