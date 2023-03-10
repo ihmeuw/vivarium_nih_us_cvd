@@ -860,6 +860,7 @@ def format_paf_data(entity: str, location: str) -> pd.DataFrame:
 
     return formatted_pafs
 
+
 def load_paf_categorical_sbp(key: str, location: str) -> pd.DataFrame:
     return format_paf_data('high_systolic_blood_pressure', location)
 
