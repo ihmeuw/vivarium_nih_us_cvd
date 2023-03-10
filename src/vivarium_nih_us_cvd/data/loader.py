@@ -825,7 +825,7 @@ def format_paf_data(entity: str, location: str) -> pd.DataFrame:
     ).droplevel("location")
 
     pafs = pd.read_hdf(paths.FILEPATHS.CALCULATED_HEART_FAILURE_PAFS)
-    pafs = pafs[col for col in pafs.columns if entity in col].T
+    pafs = pafs[[col for col in pafs.columns if entity in col]].T
     pafs.columns = ARTIFACT_COLUMNS
     pafs = pafs.reset_index()
     pafs['demographics'] = pafs['index'].apply(get_age_and_sex_from_paf_output_cols)
