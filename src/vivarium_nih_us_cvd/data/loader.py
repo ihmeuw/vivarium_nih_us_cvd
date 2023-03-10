@@ -850,7 +850,7 @@ def format_paf_data(entity: str, location: str) -> pd.DataFrame:
     minimum_age = pafs['age_start'].min()
     data_for_young_ages = pd.DataFrame(0,
                                        columns=ARTIFACT_COLUMNS,
-                                       index=population_structure.query("age_start < @minimum_age").index)
+                                       index=population_structure.query("age_start < @minimum_age").index).reset_index()
     data_for_young_ages['affected_entity'] = 'heart_failure'
     data_for_young_ages['affected_measure'] = 'incidence_rate'
     data_for_young_ages = data_for_young_ages[pafs_for_all_years.columns]
