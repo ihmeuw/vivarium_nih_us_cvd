@@ -17,6 +17,7 @@ class __Filepaths(NamedTuple):
 
     SBP_MEDICATION_EFFECTS: Path = DATA_ROOT / "drug_efficacy_sbp.csv"
     HEART_FAILURE_PROPORTIONS: Path = DATA_ROOT / "hf_props.csv"
+    CALCULATED_HEART_FAILURE_PAFS: Path = DATA_ROOT / "calculated_heart_failure_pafs.hdf"
 
     @property
     def name(self):
