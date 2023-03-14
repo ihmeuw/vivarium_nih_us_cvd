@@ -806,9 +806,10 @@ def load_relative_risk_categorical_sbp(key: str, location: str) -> pd.DataFrame:
 def get_age_and_sex_from_paf_output_cols(measure_str):
     age = measure_str.split("AGE_GROUP_")[1].split("_SEX")[0]
     age_start = age.split("_")[0]
-    age_end = age.split("_")[-1]
     if age_start == "95":  # deal with 95_plus
         age_end = "125"
+    else:
+        age_end = str(int(age.split("_")[-1]) + 1)
 
     sex = measure_str.split("_SEX_")[1]
 
