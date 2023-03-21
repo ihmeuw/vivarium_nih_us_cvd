@@ -784,14 +784,13 @@ def load_bmi_standard_deviation(key: str, location: str) -> pd.DataFrame:
                    status='best')
 
     # core.get_data processing
-    data = data[data.measure_id == MEASURES['Continuous']]
+    exposure = extract.extract_data(entity, "exposure", location_id)
+    valid_age_groups = vi_utils.get_exposure_and_restriction_ages(exposure, entity)
+
     data = data.drop(labels=["modelable_entity_id"], axis="columns")
-    data = vi_utils.filter_data_by_restrictions(
-        data, entity, "outer", utility_data.get_age_group_ids()
-    )
+    data = data[data.age_group_id.isin(valid_age_groups)]
     data = vi_utils.normalize(data, fill_value=0)
-    data['parameter'] = 'continuous'
-    data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS + ["parameter"])
+    data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
     data = vi_utils.reshape(data, value_cols=DRAW_COLUMNS)
 
     # replace GBD conventions with vivarium conventions
