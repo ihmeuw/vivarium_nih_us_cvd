@@ -829,12 +829,16 @@ def load_bmi_weights(key: str, location: str) -> pd.DataFrame:
         df.append(copied)
     data = pd.concat(df)
 
-    # remove distributions not used in new R/E ensemble
-    bmi_distributions = [dist for dist in DISTRIBUTION_COLUMNS if dist not in ['glnorm', 'invweibull']]
+    # define distributions not used in new R/E ensemble with weights of 0
+    non_distribution_cols = ['location_id', 'rei_id', 'sex_id', 'measure', 'age_group_id']
+    distributions_in_data = [col for col in data.columns if col not in non_distribution_cols]
+    missing_distributions = [dist for dist in DISTRIBUTION_COLUMNS if dist not in distributions_in_data]
+    for missing_distribution in missing_distributions:
+        data[missing_distribution] = 0
 
-    data = vi_utils.normalize(data, fill_value=0, cols_to_fill=bmi_distributions)
-    data = data.filter(DEMOGRAPHIC_COLUMNS + bmi_distributions)
-    data = vi_utils.wide_to_long(data, bmi_distributions, var_name="parameter")
+    data = vi_utils.normalize(data, fill_value=0, cols_to_fill=DISTRIBUTION_COLUMNS)
+    data = data.filter(DEMOGRAPHIC_COLUMNS + DISTRIBUTION_COLUMNS)
+    data = vi_utils.wide_to_long(data, DISTRIBUTION_COLUMNS, var_name="parameter")
     data = vi_utils.reshape(data, value_cols=['value'])
 
     data = vi_utils.scrub_gbd_conventions(data, location)
