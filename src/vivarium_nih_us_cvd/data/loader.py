@@ -17,6 +17,7 @@ from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
+import vivarium_inputs.validation.sim as validation
 from gbd_mapping import ModelableEntity, causes, covariates, risk_factors
 from gbd_mapping import sequelae as all_sequelae
 from gbd_mapping.base_template import Tmred
@@ -25,27 +26,28 @@ from vivarium.framework.artifact import EntityKey
 from vivarium_gbd_access import gbd
 from vivarium_gbd_access.constants import ROUND_IDS, SEX, SOURCES
 from vivarium_gbd_access.utilities import get_draws
+from vivarium_inputs import extract
 from vivarium_inputs import globals as vi_globals
 from vivarium_inputs import interface
 from vivarium_inputs import utilities as vi_utils
 from vivarium_inputs import utility_data
-from vivarium_inputs.mapping_extension import (
-    alternative_risk_factors,
-    healthcare_entities,
-)
-
-from vivarium_nih_us_cvd.constants import data_keys, data_values, paths
-from vivarium_nih_us_cvd.constants.metadata import GBD_2020_ROUND_ID, PROPORTION_DATA_INDEX_COLUMNS
-from vivarium_nih_us_cvd.utilities import get_random_variable_draws
-
-import vivarium_inputs.validation.sim as validation
-from vivarium_inputs import extract
 from vivarium_inputs.globals import (
     DEMOGRAPHIC_COLUMNS,
     DISTRIBUTION_COLUMNS,
     DRAW_COLUMNS,
     MEASURES,
 )
+from vivarium_inputs.mapping_extension import (
+    alternative_risk_factors,
+    healthcare_entities,
+)
+
+from vivarium_nih_us_cvd.constants import data_keys, data_values, paths
+from vivarium_nih_us_cvd.constants.metadata import (
+    GBD_2020_ROUND_ID,
+    PROPORTION_DATA_INDEX_COLUMNS,
+)
+from vivarium_nih_us_cvd.utilities import get_random_variable_draws
 
 
 def _get_source_key(val: Union[str, data_keys.SourceTarget]) -> str:
@@ -740,23 +742,25 @@ def load_bmi_exposure(key: str, location: str) -> pd.DataFrame:
     entity = get_entity(key)
     location_id = utility_data.get_location_id(location)
 
-    data = get_draws(gbd_id_type='modelable_entity_id',
-                     gbd_id=data_values.BMI_MEAN_ME_ID,
-                     source=SOURCES.EPI,
-                     location_id=location_id,
-                     sex_id=SEX.MALE + SEX.FEMALE,
-                     gbd_round_id=GBD_2020_ROUND_ID,
-                     decomp_step='usa_re',
-                     status='best')
+    data = get_draws(
+        gbd_id_type="modelable_entity_id",
+        gbd_id=data_values.BMI_MEAN_ME_ID,
+        source=SOURCES.EPI,
+        location_id=location_id,
+        sex_id=SEX.MALE + SEX.FEMALE,
+        gbd_round_id=GBD_2020_ROUND_ID,
+        decomp_step="usa_re",
+        status="best",
+    )
 
     # core.get_data processing
-    data = data[data.measure_id == MEASURES['Continuous']]
+    data = data[data.measure_id == MEASURES["Continuous"]]
     data = data.drop(labels=["modelable_entity_id"], axis="columns")
     data = vi_utils.filter_data_by_restrictions(
         data, entity, "outer", utility_data.get_age_group_ids()
     )
     data = vi_utils.normalize(data, fill_value=0)
-    data['parameter'] = 'continuous'
+    data["parameter"] = "continuous"
     data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS + ["parameter"])
     data = vi_utils.reshape(data, value_cols=DRAW_COLUMNS)
 
@@ -765,7 +769,7 @@ def load_bmi_exposure(key: str, location: str) -> pd.DataFrame:
     validation.validate_for_simulation(data, entity, key.measure, location)
     data = vi_utils.split_interval(data, interval_column="age", split_column_prefix="age")
     data = vi_utils.split_interval(data, interval_column="year", split_column_prefix="year")
-    data = vi_utils.sort_hierarchical_data(data).droplevel('location')
+    data = vi_utils.sort_hierarchical_data(data).droplevel("location")
 
     return data
 
@@ -774,14 +778,16 @@ def load_bmi_standard_deviation(key: str, location: str) -> pd.DataFrame:
     entity = get_entity(key)
     location_id = utility_data.get_location_id(location)
 
-    data = get_draws(gbd_id_type='modelable_entity_id',
-                   gbd_id=data_values.BMI_SD_ME_ID,
-                   source=SOURCES.EPI,
-                   location_id=location_id,
-                   sex_id=SEX.MALE + SEX.FEMALE,
-                   gbd_round_id=GBD_2020_ROUND_ID,
-                   decomp_step='usa_re',
-                   status='best')
+    data = get_draws(
+        gbd_id_type="modelable_entity_id",
+        gbd_id=data_values.BMI_SD_ME_ID,
+        source=SOURCES.EPI,
+        location_id=location_id,
+        sex_id=SEX.MALE + SEX.FEMALE,
+        gbd_round_id=GBD_2020_ROUND_ID,
+        decomp_step="usa_re",
+        status="best",
+    )
 
     # core.get_data processing
     exposure = extract.extract_data(entity, "exposure", location_id)
@@ -798,7 +804,7 @@ def load_bmi_standard_deviation(key: str, location: str) -> pd.DataFrame:
     validation.validate_for_simulation(data, entity, key.measure, location)
     data = vi_utils.split_interval(data, interval_column="age", split_column_prefix="age")
     data = vi_utils.split_interval(data, interval_column="year", split_column_prefix="year")
-    data = vi_utils.sort_hierarchical_data(data).droplevel('location')
+    data = vi_utils.sort_hierarchical_data(data).droplevel("location")
 
     return data
 
@@ -810,13 +816,13 @@ def load_bmi_weights(key: str, location: str) -> pd.DataFrame:
 
     # read in and format data to match output of extract_data
     data = pd.read_csv(paths.FILEPATHS.BMI_DISTRIBUTION_WEIGHTS)
-    data = data.drop(['age_group_id', 'sex_id', 'year_id'], axis=1)
+    data = data.drop(["age_group_id", "sex_id", "year_id"], axis=1)
     data = data.drop_duplicates()
-    assert (len(data) == 1)
-    data['rei_id'] = int(entity.gbd_id)
-    data['sex_id'] = SEX.COMBINED
-    data['age_group_id'] = 22 # all ages
-    data['measure'] = 'ensemble_distribution_weight'
+    assert len(data) == 1
+    data["rei_id"] = int(entity.gbd_id)
+    data["sex_id"] = SEX.COMBINED
+    data["age_group_id"] = 22  # all ages
+    data["measure"] = "ensemble_distribution_weight"
 
     exposure = extract.extract_data(entity, "exposure", location_id)
     valid_ages = vi_utils.get_exposure_and_restriction_ages(exposure, entity)
@@ -830,22 +836,24 @@ def load_bmi_weights(key: str, location: str) -> pd.DataFrame:
     data = pd.concat(df)
 
     # define distributions not used in new R/E ensemble with weights of 0
-    non_distribution_cols = ['location_id', 'rei_id', 'sex_id', 'measure', 'age_group_id']
+    non_distribution_cols = ["location_id", "rei_id", "sex_id", "measure", "age_group_id"]
     distributions_in_data = [col for col in data.columns if col not in non_distribution_cols]
-    missing_distributions = [dist for dist in DISTRIBUTION_COLUMNS if dist not in distributions_in_data]
+    missing_distributions = [
+        dist for dist in DISTRIBUTION_COLUMNS if dist not in distributions_in_data
+    ]
     for missing_distribution in missing_distributions:
         data[missing_distribution] = 0
 
     data = vi_utils.normalize(data, fill_value=0, cols_to_fill=DISTRIBUTION_COLUMNS)
     data = data.filter(DEMOGRAPHIC_COLUMNS + DISTRIBUTION_COLUMNS)
     data = vi_utils.wide_to_long(data, DISTRIBUTION_COLUMNS, var_name="parameter")
-    data = vi_utils.reshape(data, value_cols=['value'])
+    data = vi_utils.reshape(data, value_cols=["value"])
 
     data = vi_utils.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(data, entity, key.measure, location)
     data = vi_utils.split_interval(data, interval_column="age", split_column_prefix="age")
     data = vi_utils.split_interval(data, interval_column="year", split_column_prefix="year")
-    data = vi_utils.sort_hierarchical_data(data).droplevel('location')
+    data = vi_utils.sort_hierarchical_data(data).droplevel("location")
 
     return data
 
