@@ -38,6 +38,7 @@ ARTIFACT_COLUMNS = pd.Index([f"draw_{i}" for i in range(DRAW_COUNT)])
 
 GBD_2020_ROUND_ID = 7
 
+
 class __Scenarios(NamedTuple):
     baseline: str = "baseline"
     # TODO - add scenarios here
