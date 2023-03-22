@@ -738,13 +738,17 @@ def load_ldlc_medication_effect(key: str, location: str) -> pd.DataFrame:
     return df
 
 
-def load_bmi_exposure(key: str, location: str) -> pd.DataFrame:
+def get_re_mean_exposure_data_from_me_id(key: str, location: str, me_id: int) -> pd.DataFrame:
+    '''Get mean exposure data for risk factors from CVD race-ethnicity project.
+    '''
+
+    key = EntityKey(key)
     entity = get_entity(key)
     location_id = utility_data.get_location_id(location)
 
     data = get_draws(
         gbd_id_type="modelable_entity_id",
-        gbd_id=data_values.BMI_MEAN_ME_ID,
+        gbd_id=me_id,
         source=SOURCES.EPI,
         location_id=location_id,
         sex_id=SEX.MALE + SEX.FEMALE,
@@ -764,23 +768,20 @@ def load_bmi_exposure(key: str, location: str) -> pd.DataFrame:
     data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS + ["parameter"])
     data = vi_utils.reshape(data, value_cols=DRAW_COLUMNS)
 
-    # replace GBD conventions with vivarium conventions
-    data = vi_utils.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(data, entity, key.measure, location)
-    data = vi_utils.split_interval(data, interval_column="age", split_column_prefix="age")
-    data = vi_utils.split_interval(data, interval_column="year", split_column_prefix="year")
-    data = vi_utils.sort_hierarchical_data(data).droplevel("location")
-
     return data
 
 
-def load_bmi_standard_deviation(key: str, location: str) -> pd.DataFrame:
+def get_re_sd_data_from_me_id(key: str, location: str, me_id: int) -> pd.DataFrame:
+    '''Get standard deviation of exposure data for risk factors from CVD race-ethnicity project.
+    '''
+
+    key = EntityKey(key)
     entity = get_entity(key)
     location_id = utility_data.get_location_id(location)
 
     data = get_draws(
         gbd_id_type="modelable_entity_id",
-        gbd_id=data_values.BMI_SD_ME_ID,
+        gbd_id=me_id,
         source=SOURCES.EPI,
         location_id=location_id,
         sex_id=SEX.MALE + SEX.FEMALE,
@@ -789,7 +790,6 @@ def load_bmi_standard_deviation(key: str, location: str) -> pd.DataFrame:
         status="best",
     )
 
-    # core.get_data processing
     exposure = extract.extract_data(entity, "exposure", location_id)
     valid_age_groups = vi_utils.get_exposure_and_restriction_ages(exposure, entity)
 
@@ -799,23 +799,18 @@ def load_bmi_standard_deviation(key: str, location: str) -> pd.DataFrame:
     data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
     data = vi_utils.reshape(data, value_cols=DRAW_COLUMNS)
 
-    # replace GBD conventions with vivarium conventions
-    data = vi_utils.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(data, entity, key.measure, location)
-    data = vi_utils.split_interval(data, interval_column="age", split_column_prefix="age")
-    data = vi_utils.split_interval(data, interval_column="year", split_column_prefix="year")
-    data = vi_utils.sort_hierarchical_data(data).droplevel("location")
-
     return data
 
 
-def load_bmi_weights(key: str, location: str) -> pd.DataFrame:
-    location_id = utility_data.get_location_id(location)
+def get_re_weights_data_from_file(key: str, location: str, file_path: str) -> pd.DataFrame:
+    '''Get ensemble weights for risk factors from CVD race-ethnicity project.
+    '''
+
     key = EntityKey(key)
     entity = get_entity(key)
+    location_id = utility_data.get_location_id(location)
 
-    # read in and format data to match output of extract_data
-    data = pd.read_csv(paths.FILEPATHS.BMI_DISTRIBUTION_WEIGHTS)
+    data = pd.read_csv(file_path)
     data = data.drop(["age_group_id", "sex_id", "year_id"], axis=1)
     data = data.drop_duplicates()
     assert len(data) == 1
@@ -849,12 +844,41 @@ def load_bmi_weights(key: str, location: str) -> pd.DataFrame:
     data = vi_utils.wide_to_long(data, DISTRIBUTION_COLUMNS, var_name="parameter")
     data = vi_utils.reshape(data, value_cols=["value"])
 
+    return data
+
+
+def transform_core_get_data_for_vivarium(key: str, location: str, data: pd.DataFrame) -> pd.DataFrame:
+    '''Take data that would be output from core.get_data and go through the processing
+    that interface.get_measure applies at this stage.
+    '''
+
+    key = EntityKey(key)
+    entity = get_entity(key)
+
     data = vi_utils.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(data, entity, key.measure, location)
     data = vi_utils.split_interval(data, interval_column="age", split_column_prefix="age")
     data = vi_utils.split_interval(data, interval_column="year", split_column_prefix="year")
     data = vi_utils.sort_hierarchical_data(data).droplevel("location")
 
+    return data
+
+
+def load_bmi_exposure(key: str, location: str) -> pd.DataFrame:
+    data = get_re_mean_exposure_data_from_me_id(key, location, data_values.BMI_MEAN_ME_ID)
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_bmi_standard_deviation(key: str, location: str) -> pd.DataFrame:
+    data = get_re_sd_data_from_me_id(key, location, data_values.BMI_SD_ME_ID)
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_bmi_weights(key: str, location: str) -> pd.DataFrame:
+    data = get_re_weights_data_from_file(key, location, paths.FILEPATHS.BMI_DISTRIBUTION_WEIGHTS)
+    data = transform_core_get_data_for_vivarium(key, location, data)
     return data
 
 
