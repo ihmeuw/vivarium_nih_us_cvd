@@ -739,8 +739,7 @@ def load_ldlc_medication_effect(key: str, location: str) -> pd.DataFrame:
 
 
 def get_re_mean_exposure_data_from_me_id(key: str, location: str, me_id: int) -> pd.DataFrame:
-    '''Get mean exposure data for risk factors from CVD race-ethnicity project.
-    '''
+    """Get mean exposure data for risk factors from CVD race-ethnicity project."""
 
     key = EntityKey(key)
     entity = get_entity(key)
@@ -772,8 +771,7 @@ def get_re_mean_exposure_data_from_me_id(key: str, location: str, me_id: int) ->
 
 
 def get_re_sd_data_from_me_id(key: str, location: str, me_id: int) -> pd.DataFrame:
-    '''Get standard deviation of exposure data for risk factors from CVD race-ethnicity project.
-    '''
+    """Get standard deviation of exposure data for risk factors from CVD race-ethnicity project."""
 
     key = EntityKey(key)
     entity = get_entity(key)
@@ -803,8 +801,7 @@ def get_re_sd_data_from_me_id(key: str, location: str, me_id: int) -> pd.DataFra
 
 
 def get_re_weights_data_from_file(key: str, location: str, file_path: str) -> pd.DataFrame:
-    '''Get ensemble weights for risk factors from CVD race-ethnicity project.
-    '''
+    """Get ensemble weights for risk factors from CVD race-ethnicity project."""
 
     key = EntityKey(key)
     entity = get_entity(key)
@@ -847,10 +844,12 @@ def get_re_weights_data_from_file(key: str, location: str, file_path: str) -> pd
     return data
 
 
-def transform_core_get_data_for_vivarium(key: str, location: str, data: pd.DataFrame) -> pd.DataFrame:
-    '''Take data that would be output from core.get_data and go through the processing
+def transform_core_get_data_for_vivarium(
+    key: str, location: str, data: pd.DataFrame
+) -> pd.DataFrame:
+    """Take data that would be output from core.get_data and go through the processing
     that interface.get_measure applies at this stage.
-    '''
+    """
 
     key = EntityKey(key)
     entity = get_entity(key)
@@ -877,7 +876,9 @@ def load_bmi_standard_deviation(key: str, location: str) -> pd.DataFrame:
 
 
 def load_bmi_weights(key: str, location: str) -> pd.DataFrame:
-    data = get_re_weights_data_from_file(key, location, paths.FILEPATHS.BMI_DISTRIBUTION_WEIGHTS)
+    data = get_re_weights_data_from_file(
+        key, location, paths.FILEPATHS.BMI_DISTRIBUTION_WEIGHTS
+    )
     data = transform_core_get_data_for_vivarium(key, location, data)
     return data
 
