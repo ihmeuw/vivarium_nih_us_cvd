@@ -877,7 +877,7 @@ def load_ldl_standard_deviation(key: str, location: str) -> pd.DataFrame:
 
 def load_ldl_weights(key: str, location: str) -> pd.DataFrame:
     data = get_re_weights_data_from_file(
-        key, location, paths.FILEPATHS.BMI_DISTRIBUTION_WEIGHTS
+        key, location, paths.FILEPATHS.LDL_DISTRIBUTION_WEIGHTS
     )
     data = transform_core_get_data_for_vivarium(key, location, data)
     return data
@@ -897,7 +897,7 @@ def load_sbp_standard_deviation(key: str, location: str) -> pd.DataFrame:
 
 def load_sbp_weights(key: str, location: str) -> pd.DataFrame:
     data = get_re_weights_data_from_file(
-        key, location, paths.FILEPATHS.BMI_DISTRIBUTION_WEIGHTS
+        key, location, paths.FILEPATHS.SBP_DISTRIBUTION_WEIGHTS
     )
     data = transform_core_get_data_for_vivarium(key, location, data)
     return data
