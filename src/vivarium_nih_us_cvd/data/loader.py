@@ -863,6 +863,46 @@ def transform_core_get_data_for_vivarium(
     return data
 
 
+def load_ldl_exposure(key: str, location: str) -> pd.DataFrame:
+    data = get_re_mean_exposure_data_from_me_id(key, location, data_values.LDL_MEAN_ME_ID)
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_ldl_standard_deviation(key: str, location: str) -> pd.DataFrame:
+    data = get_re_sd_data_from_me_id(key, location, data_values.LDL_SD_ME_ID)
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_ldl_weights(key: str, location: str) -> pd.DataFrame:
+    data = get_re_weights_data_from_file(
+        key, location, paths.FILEPATHS.BMI_DISTRIBUTION_WEIGHTS
+    )
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_sbp_exposure(key: str, location: str) -> pd.DataFrame:
+    data = get_re_mean_exposure_data_from_me_id(key, location, data_values.SBP_MEAN_ME_ID)
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_sbp_standard_deviation(key: str, location: str) -> pd.DataFrame:
+    data = get_re_sd_data_from_me_id(key, location, data_values.SBP_SD_ME_ID)
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_sbp_weights(key: str, location: str) -> pd.DataFrame:
+    data = get_re_weights_data_from_file(
+        key, location, paths.FILEPATHS.BMI_DISTRIBUTION_WEIGHTS
+    )
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
 def load_bmi_exposure(key: str, location: str) -> pd.DataFrame:
     data = get_re_mean_exposure_data_from_me_id(key, location, data_values.BMI_MEAN_ME_ID)
     data = transform_core_get_data_for_vivarium(key, location, data)
