@@ -110,9 +110,9 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.IHD_AND_HF.RESTRICTIONS: load_metadata,
         # Risk (LDL-cholesterol)
         data_keys.LDL_C.DISTRIBUTION: load_metadata,
-        data_keys.LDL_C.EXPOSURE_MEAN: load_standard_data,
-        data_keys.LDL_C.EXPOSURE_SD: load_standard_data,
-        data_keys.LDL_C.EXPOSURE_WEIGHTS: load_standard_data,
+        data_keys.LDL_C.EXPOSURE_MEAN: load_ldl_exposure,
+        data_keys.LDL_C.EXPOSURE_SD: load_ldl_standard_deviation,
+        data_keys.LDL_C.EXPOSURE_WEIGHTS: load_ldl_weights,
         data_keys.LDL_C.RELATIVE_RISK: load_standard_data,
         data_keys.LDL_C.PAF: load_standard_data,
         data_keys.LDL_C.TMRED: load_metadata,
@@ -120,9 +120,9 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.LDL_C.MEDICATION_EFFECT: load_ldlc_medication_effect,
         # Risk (systolic blood pressure)
         data_keys.SBP.DISTRIBUTION: load_metadata,
-        data_keys.SBP.EXPOSURE_MEAN: load_standard_data,
-        data_keys.SBP.EXPOSURE_SD: load_standard_data,
-        data_keys.SBP.EXPOSURE_WEIGHTS: load_standard_data,
+        data_keys.SBP.EXPOSURE_MEAN: load_sbp_exposure,
+        data_keys.SBP.EXPOSURE_SD: load_sbp_standard_deviation,
+        data_keys.SBP.EXPOSURE_WEIGHTS: load_sbp_weights,
         data_keys.SBP.RELATIVE_RISK: load_standard_data,
         data_keys.SBP.PAF: load_standard_data,
         data_keys.SBP.TMRED: load_metadata,
@@ -860,6 +860,46 @@ def transform_core_get_data_for_vivarium(
     data = vi_utils.split_interval(data, interval_column="year", split_column_prefix="year")
     data = vi_utils.sort_hierarchical_data(data).droplevel("location")
 
+    return data
+
+
+def load_ldl_exposure(key: str, location: str) -> pd.DataFrame:
+    data = get_re_mean_exposure_data_from_me_id(key, location, data_values.LDL_MEAN_ME_ID)
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_ldl_standard_deviation(key: str, location: str) -> pd.DataFrame:
+    data = get_re_sd_data_from_me_id(key, location, data_values.LDL_SD_ME_ID)
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_ldl_weights(key: str, location: str) -> pd.DataFrame:
+    data = get_re_weights_data_from_file(
+        key, location, paths.FILEPATHS.LDL_DISTRIBUTION_WEIGHTS
+    )
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_sbp_exposure(key: str, location: str) -> pd.DataFrame:
+    data = get_re_mean_exposure_data_from_me_id(key, location, data_values.SBP_MEAN_ME_ID)
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_sbp_standard_deviation(key: str, location: str) -> pd.DataFrame:
+    data = get_re_sd_data_from_me_id(key, location, data_values.SBP_SD_ME_ID)
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_sbp_weights(key: str, location: str) -> pd.DataFrame:
+    data = get_re_weights_data_from_file(
+        key, location, paths.FILEPATHS.SBP_DISTRIBUTION_WEIGHTS
+    )
+    data = transform_core_get_data_for_vivarium(key, location, data)
     return data
 
 
