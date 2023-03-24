@@ -924,25 +924,36 @@ def load_bmi_weights(key: str, location: str) -> pd.DataFrame:
 
 
 def load_fpg_standard_deviation(key: str, location: str) -> pd.DataFrame:
-    pop_structure = load_population_structure(data_keys.POPULATION.STRUCTURE, location).droplevel('location')
-    all_age_starts_and_ends = pop_structure.reset_index()[['age_start', 'age_end']].drop_duplicates()
-    year_starts = pop_structure.index.get_level_values('year_start').unique()
+    pop_structure = load_population_structure(
+        data_keys.POPULATION.STRUCTURE, location
+    ).droplevel("location")
+    all_age_starts_and_ends = pop_structure.reset_index()[
+        ["age_start", "age_end"]
+    ].drop_duplicates()
+    year_starts = pop_structure.index.get_level_values("year_start").unique()
 
     data = pd.read_csv(paths.FILEPATHS.FPG_STANDARD_DEVIATION)
 
     # fill in missing age data with 0s
-    missing_age_starts = [age_start for age_start in all_age_starts_and_ends['age_start'] if
-                          age_start not in data['age_start'].values]
+    missing_age_starts = [
+        age_start
+        for age_start in all_age_starts_and_ends["age_start"]
+        if age_start not in data["age_start"].values
+    ]
     all_missing_age_data = []
 
     for missing_age_start in missing_age_starts:
-        sex_column = pd.DataFrame(['Male', 'Female'], columns=['sex'])
+        sex_column = pd.DataFrame(["Male", "Female"], columns=["sex"])
         age_start_and_end = all_age_starts_and_ends.loc[
-            all_age_starts_and_ends['age_start'] == missing_age_start, ['age_start', 'age_end']]
+            all_age_starts_and_ends["age_start"] == missing_age_start,
+            ["age_start", "age_end"],
+        ]
         age_columns = pd.concat([age_start_and_end] * 2, ignore_index=True)
-        draw_columns = pd.DataFrame(data=[np.repeat(0.0, len(DRAW_COLUMNS))] * 2,
-                                    index=pd.Index([0, 1]),
-                                    columns=DRAW_COLUMNS)
+        draw_columns = pd.DataFrame(
+            data=[np.repeat(0.0, len(DRAW_COLUMNS))] * 2,
+            index=pd.Index([0, 1]),
+            columns=DRAW_COLUMNS,
+        )
         missing_age_data = pd.concat([sex_column, age_columns, draw_columns], axis=1)
         all_missing_age_data.append(missing_age_data)
 
@@ -955,13 +966,15 @@ def load_fpg_standard_deviation(key: str, location: str) -> pd.DataFrame:
 
     for year_start in year_starts:
         year_specific_data = data.copy()
-        year_specific_data[['year_start', 'year_end']] = year_start, year_start + 1
+        year_specific_data[["year_start", "year_end"]] = year_start, year_start + 1
         data_for_all_years.append(year_specific_data)
 
     data = pd.concat(data_for_all_years)
 
     # define and sort index
-    data = data.set_index(['sex', 'age_start', 'age_end', 'year_start', 'year_end']).sort_index()
+    data = data.set_index(
+        ["sex", "age_start", "age_end", "year_start", "year_end"]
+    ).sort_index()
 
     return data
 
