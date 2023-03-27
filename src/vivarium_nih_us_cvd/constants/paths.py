@@ -20,6 +20,7 @@ class __Filepaths(NamedTuple):
     LDL_DISTRIBUTION_WEIGHTS: Path = DATA_ROOT / "ldl_weights.csv"
     SBP_DISTRIBUTION_WEIGHTS: Path = DATA_ROOT / "sbp_weights.csv"
     BMI_DISTRIBUTION_WEIGHTS: Path = DATA_ROOT / "bmi_weights.csv"
+    FPG_STANDARD_DEVIATION: Path = DATA_ROOT / "fpg_standard_deviation.csv"
 
     @property
     def name(self):
