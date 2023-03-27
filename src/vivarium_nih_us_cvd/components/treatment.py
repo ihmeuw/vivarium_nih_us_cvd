@@ -657,9 +657,11 @@ class Treatment:
         )
         # [Treatment ramp ID G] Simulants who overcome therapeutic inertia, have
         # elevated LDLC, have elevated ASCVD, and are currently medicated
-        to_prescribe_g = overcome_therapeutic_inertia.intersection(
-            currently_medicated
-        ).difference(low_ldlc).difference(low_ascvd)
+        to_prescribe_g = (
+            overcome_therapeutic_inertia.intersection(currently_medicated)
+            .difference(low_ldlc)
+            .difference(low_ascvd)
+        )
 
         # Prescribe initial medications
         df_newly_prescribed = pd.DataFrame(index=newly_prescribed)
