@@ -451,19 +451,19 @@ MEDICATION_COVERAGE_COEFFICIENTS = __MedicationCoveragecoefficients()
 RISK_EXPOSURE_LIMITS = {
     "high_ldl_cholesterol": {
         "minimum": 0,
-        "maximum": 10,
+        "maximum": 5.5,
     },
     "high_systolic_blood_pressure": {
         "minimum": 50,
-        "maximum": 300,
+        "maximum": 200,
     },
     "high_body_mass_index_in_adults": {
         "minimum": 5,
-        "maximum": 80,
+        "maximum": 55,
     },
     "high_fasting_plasma_glucose": {
         "minimum": 1,
-        "maximum": 30,
+        "maximum": 16,
     },
 }
 
