@@ -10,6 +10,35 @@ from vivarium_public_health.risks.data_transformations import (
 from vivarium_nih_us_cvd.constants.data_values import COLUMNS, RISK_EXPOSURE_LIMITS
 
 
+class DropValueRisk(Risk):
+    """Risk which has a "drop value" applied to it in post-processing
+    Note: Requires risk exposure to not have category thresholds."""
+
+    def __init__(self, risk: str):
+        super().__init__(risk)
+
+        self.drop_value_pipeline_name = f"{self.risk.name}.drop_value"
+
+    def setup(self, builder: Builder) -> None:
+        super().setup(builder)
+
+        self.drop_value = self._get_drop_value_pipeline(builder)
+
+    def _get_drop_value_pipeline(self, builder: Builder) -> Pipeline:
+        return builder.value.register_value_producer(
+            self.drop_value_pipeline_name,
+            source=lambda index: pd.Series(-1, index=index),
+        )
+
+    def _get_exposure_pipeline(self, builder: Builder) -> Pipeline:
+        return builder.value.register_value_producer(
+            self.exposure_pipeline_name,
+            source=self._get_current_exposure,
+            requires_columns=["age", "sex"],
+            requires_values=[self.propensity_pipeline_name],
+            preferred_post_processor=get_exposure_post_processor(builder, self.risk),
+        )
+
 class AdjustedRisk(Risk):
     """Manages raw gbd exposure and adjusted/untreated exposure pipelines"""
 
