@@ -13,6 +13,7 @@ components:
             - Risk("risk_factor.ldlc_medication_adherence")
             - Risk("risk_factor.outreach")
             - Risk("risk_factor.polypill")
+            - Risk("risk_factor.lifestyle_intervention_eligibility")
 
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
@@ -112,6 +113,8 @@ configuration:
         exposure: 0
     polypill:
         exposure: 0
+    lifestyle_intervention_eligibility:
+        exposure: .0855
     intervention:
         scenario: "baseline"
     outreach_scale_up: 
