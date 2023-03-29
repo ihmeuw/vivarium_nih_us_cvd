@@ -8,26 +8,33 @@ from vivarium_public_health.risks.data_transformations import (
 )
 
 from vivarium_nih_us_cvd.constants.data_values import COLUMNS, RISK_EXPOSURE_LIMITS
+from vivarium_public_health.utilities import EntityString
 
 
 class DropValueRisk(Risk):
-    """Risk which has a "drop value" applied to it in post-processing
-    Note: Requires risk exposure to not have category thresholds."""
+    """Risk which has a "drop value" applied to it in post-processing.
+    Note: This post-processor will overwrite the post-processor for an exposure with
+    category thresholds defined in the config."""
 
     def __init__(self, risk: str):
         super().__init__(risk)
-
         self.drop_value_pipeline_name = f"{self.risk.name}.drop_value"
+
+    def __repr__(self) -> str:
+        return f"DropValueRisk({self.risk})"
+
+    #################
+    # Setup methods #
+    #################
 
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
-
         self.drop_value = self._get_drop_value_pipeline(builder)
 
     def _get_drop_value_pipeline(self, builder: Builder) -> Pipeline:
         return builder.value.register_value_producer(
             self.drop_value_pipeline_name,
-            source=lambda index: pd.Series(-1, index=index),
+            source=lambda index: pd.Series(0, index=index),
         )
 
     def _get_exposure_pipeline(self, builder: Builder) -> Pipeline:
@@ -36,10 +43,19 @@ class DropValueRisk(Risk):
             source=self._get_current_exposure,
             requires_columns=["age", "sex"],
             requires_values=[self.propensity_pipeline_name],
-            preferred_post_processor=get_exposure_post_processor(builder, self.risk),
+            preferred_post_processor=self.get_drop_value_post_processor(builder, self.risk),
         )
 
-class AdjustedRisk(Risk):
+    def get_drop_value_post_processor(self, builder: Builder, risk: EntityString):
+        drop_value_pipeline = builder.value.get_value(self.drop_value_pipeline_name)
+        def post_processor(exposure, _):
+            drop_values = drop_value_pipeline(exposure.index)
+            return (exposure - drop_values)
+
+        return post_processor
+
+
+class AdjustedRisk(DropValueRisk):
     """Manages raw gbd exposure and adjusted/untreated exposure pipelines"""
 
     def __init__(self, risk: str):
@@ -76,7 +92,7 @@ class AdjustedRisk(Risk):
             source=self._get_current_exposure,
             requires_columns=[self.multiplier_col],
             requires_values=[self.gbd_exposure_pipeline_name],
-            preferred_post_processor=get_exposure_post_processor(builder, self.risk),
+            preferred_post_processor=self.get_drop_value_post_processor(builder, self.risk),
         )
 
     def _get_population_view(self, builder: Builder) -> PopulationView:
@@ -113,7 +129,7 @@ class AdjustedRisk(Risk):
             return self.gbd_exposure(index)
 
 
-class TruncatedRisk(Risk):
+class TruncatedRisk(DropValueRisk):
     def _get_current_exposure(self, index: pd.Index) -> pd.Series:
         # Keep exposure values between defined limits
         propensity = self.propensity(index)
