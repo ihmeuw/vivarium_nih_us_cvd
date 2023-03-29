@@ -6,9 +6,9 @@ from vivarium_public_health.risks.base_risk import Risk
 from vivarium_public_health.risks.data_transformations import (
     get_exposure_post_processor,
 )
+from vivarium_public_health.utilities import EntityString
 
 from vivarium_nih_us_cvd.constants.data_values import COLUMNS, RISK_EXPOSURE_LIMITS
-from vivarium_public_health.utilities import EntityString
 
 
 class DropValueRisk(Risk):
@@ -48,9 +48,10 @@ class DropValueRisk(Risk):
 
     def get_drop_value_post_processor(self, builder: Builder, risk: EntityString):
         drop_value_pipeline = builder.value.get_value(self.drop_value_pipeline_name)
+
         def post_processor(exposure, _):
             drop_values = drop_value_pipeline(exposure.index)
-            return (exposure - drop_values)
+            return exposure - drop_values
 
         return post_processor
 
