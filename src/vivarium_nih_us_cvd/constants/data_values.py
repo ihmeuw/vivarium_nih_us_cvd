@@ -22,6 +22,8 @@ class __Columns(NamedTuple):
     LDLC_MULTIPLIER: str = "ldlc_multiplier"
     OUTREACH: str = "outreach"
     POLYPILL: str = "polypill"
+    LIFESTYLE: str = "lifestyle"
+    LAST_FPG_TEST_DATE: str = 'last_fpg_test_date'
 
     @property
     def name(self):
@@ -47,6 +49,8 @@ class __Pipelines(NamedTuple):
     LDLC_MEDICATION_ADHERENCE_EXPOSURE: str = "ldlc_medication_adherence.exposure"
     OUTREACH_EXPOSURE: str = "outreach.exposure"
     POLYPILL_EXPOSURE: str = "polypill.exposure"
+    LIFESTYLE_EXPOSURE: str = "lifestyle.exposure"
+    BMI_EXPOSURE: str = "high_body_mass_index_in_adults.exposure"
 
     @property
     def name(self):
@@ -489,7 +493,7 @@ class __OutreachEffectSBP(NamedTuple):
 
     @property
     def name(self):
-        return "sbp_multiplier"
+        return "outreach_effect_sbp"
 
 
 OUTREACH_EFFECT_SBP = __OutreachEffectSBP()
@@ -504,10 +508,26 @@ class __OutreachEffectLDLC(NamedTuple):
 
     @property
     def name(self):
-        return "sbp_multiplier"
+        return "outreach_effect_ldl"
 
 
 OUTREACH_EFFECT_LDLC = __OutreachEffectLDLC()
+
+
+class __FPGTesting(NamedTuple):
+    """parameters related to FPG testing"""
+
+    BMI_ELIGIBILITY_THRESHOLD: float = 25.0
+    AGE_ELIGIBILITY_THRESHOLD: float = 35.0
+    PROBABILITY_OF_TESTING_GIVEN_ELIGIBLE: float = .71
+    NUM_YEARS_BEFORE_SIM_START: int = 3
+
+    @property
+    def name(self):
+        return "fpg_testing"
+
+
+FPG_TESTING = __FPGTesting()
 
 
 # Define the outreach effects on primary_non_adherence (cat 1) levels

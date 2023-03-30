@@ -13,6 +13,7 @@ components:
             - Risk("risk_factor.ldlc_medication_adherence")
             - Risk("risk_factor.outreach")
             - Risk("risk_factor.polypill")
+            - Risk("risk_factor.lifestyle")
 
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
@@ -69,7 +70,8 @@ configuration:
     input_data:
         input_draw_number: 0
         location: 'Alabama'
-        artifact_path: '/ihme/costeffectiveness/artifacts/vivarium_nih_us_cvd/alabama.hdf'
+        #artifact_path: '/ihme/costeffectiveness/artifacts/vivarium_nih_us_cvd/alabama.hdf'
+        artifact_path: '/home/hussain-jafari/artifacts/alabama.hdf'
     interpolation:
         order: 0
         extrapolate: True
@@ -112,6 +114,8 @@ configuration:
         exposure: 0
     polypill:
         exposure: 0
+    lifestyle:
+        exposure: .0855
     intervention:
         scenario: "baseline"
     outreach_scale_up: 

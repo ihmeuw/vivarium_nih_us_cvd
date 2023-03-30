@@ -26,6 +26,8 @@ class Treatment:
     def setup(self, builder: Builder) -> None:
         self.randomness = builder.randomness.get_stream(self.name)
         self.scenario = self._get_scenario(builder)
+        self.clock = builder.time.clock()
+        self.step_size = builder.time.step_size()
 
         self.gbd_sbp = builder.value.get_value(data_values.PIPELINES.SBP_GBD_EXPOSURE)
         self.sbp = builder.value.get_value(data_values.PIPELINES.SBP_EXPOSURE)
@@ -39,6 +41,7 @@ class Treatment:
         )
         self.outreach = builder.value.get_value(data_values.PIPELINES.OUTREACH_EXPOSURE)
         self.polypill = builder.value.get_value(data_values.PIPELINES.POLYPILL_EXPOSURE)
+        self.bmi = builder.value.get_value(data_values.PIPELINES.BMI_EXPOSURE)
 
         self.sbp_treatment_map = self._get_sbp_treatment_map()
         self.ldlc_treatment_map = self._get_ldlc_treatment_map()
@@ -58,6 +61,8 @@ class Treatment:
             data_values.COLUMNS.LDLC_MULTIPLIER,
             data_values.COLUMNS.OUTREACH,
             data_values.COLUMNS.POLYPILL,
+            data_values.COLUMNS.LIFESTYLE,
+            data_values.COLUMNS.LAST_FPG_TEST_DATE
         ]
         columns_required_on_initialization = [
             "age",
@@ -79,6 +84,7 @@ class Treatment:
             data_values.PIPELINES.LDLC_MEDICATION_ADHERENCE_EXPOSURE,
             data_values.PIPELINES.OUTREACH_EXPOSURE,
             data_values.PIPELINES.POLYPILL_EXPOSURE,
+            data_values.PIPELINES.BMI_EXPOSURE,
         ]
 
         # Initialize simulants
@@ -257,12 +263,37 @@ class Treatment:
         )
         pop = self.initialize_medication_coverage(pop)
 
-        # Generate outreach and polypill intervention columns
+        # Generate outreach, polypill, and lifestyle intervention columns
         # NOTE: All scenarios in this simulation start with 0%
-        # intervention exposure and so there is no need to update adherence
-        # levels at this point.
+        # intervention exposure for outreach and polypill so there
+        # is no need to update adherence levels at this point.
         pop[data_values.COLUMNS.OUTREACH] = self.outreach(pop.index)
         pop[data_values.COLUMNS.POLYPILL] = self.polypill(pop.index)
+        pop[data_values.COLUMNS.LIFESTYLE] = pd.NaT
+
+        # Generate column for last FPG test date
+        bmi = self.bmi(pop.index)
+        age = pop['age']
+        is_eligible_for_testing = (age >= data_values.FPG_TESTING.AGE_ELIGIBILITY_THRESHOLD) & (bmi >= data_values.FPG_TESTING.BMI_ELIGIBILITY_THRESHOLD)
+
+        # Determine which eligible simulants get assigned a test date
+        simulants_with_test_date = self.randomness.filter_for_probability(pop[is_eligible_for_testing],
+                                                                          [data_values.FPG_TESTING.PROBABILITY_OF_TESTING_GIVEN_ELIGIBLE]*sum(is_eligible_for_testing))
+
+        # sample from dates uniformly distributed from 0 to 3 years before sim start date
+        starting_event_time = self.clock()
+        fpg_test_start_time = starting_event_time
+        # Subtract step size until we reach the first day less than or equal to 3 years before our sim starting event date
+        while fpg_test_start_time > starting_event_time - pd.DateOffset(years=data_values.FPG_TESTING.NUM_YEARS_BEFORE_SIM_START):
+            fpg_test_start_time = fpg_test_start_time - self.step_size()
+        sample_dates = pd.date_range(fpg_test_start_time, starting_event_time, freq=f"{self.step_size().days}D")
+
+        # Define last fpg test date column
+        fpg_test_date_column = pd.Series(pd.NaT, index=pop.index)
+        fpg_test_date_column[simulants_with_test_date.index] = self.randomness.choice(index=simulants_with_test_date.index,
+                                                                                      choices=sample_dates,
+                                                                                      additional_key='fpg_test_date')
+        pop[data_values.COLUMNS.LAST_FPG_TEST_DATE] = fpg_test_date_column
 
         # Generate multiplier columns
         pop[data_values.COLUMNS.SBP_MULTIPLIER] = 1
@@ -348,6 +379,8 @@ class Treatment:
                     data_values.COLUMNS.LDLC_MULTIPLIER,
                     data_values.COLUMNS.OUTREACH,
                     data_values.COLUMNS.POLYPILL,
+                    data_values.COLUMNS.LIFESTYLE,
+                    data_values.COLUMNS.LAST_FPG_TEST_DATE,
                 ]
             ]
         )
