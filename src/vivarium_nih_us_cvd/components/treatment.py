@@ -27,7 +27,6 @@ class Treatment:
         self.randomness = builder.randomness.get_stream(self.name)
         self.scenario = self._get_scenario(builder)
         self.clock = builder.time.clock()
-        self.step_size = builder.time.step_size()
 
         self.gbd_sbp = builder.value.get_value(data_values.PIPELINES.SBP_GBD_EXPOSURE)
         self.sbp = builder.value.get_value(data_values.PIPELINES.SBP_EXPOSURE)
@@ -286,24 +285,11 @@ class Treatment:
         )
 
         # sample from dates uniformly distributed from 0 to 3 years before sim start date
-        starting_event_time = self.clock()
-        fpg_test_start_time = starting_event_time
-        # Subtract step size until we reach the first day less than or equal to 3 years before our sim starting event date
-        while fpg_test_start_time >= starting_event_time - pd.DateOffset(
-            years=data_values.FPG_TESTING.NUM_YEARS_BEFORE_SIM_START
-        ):
-            fpg_test_start_time = fpg_test_start_time - self.step_size()
-        sample_dates = pd.date_range(
-            fpg_test_start_time, starting_event_time, freq=f"{self.step_size().days}D"
-        )
+        draws = self.randomness.get_draw(index=simulants_with_test_date.index, additional_key='fpg_test_date')
+        time_before_event_start = draws * pd.Timedelta(days=365.25*data_values.FPG_TESTING.NUM_YEARS_BEFORE_SIM_START)
 
-        # Define last fpg test date column
         fpg_test_date_column = pd.Series(pd.NaT, index=pop.index)
-        fpg_test_date_column[simulants_with_test_date.index] = self.randomness.choice(
-            index=simulants_with_test_date.index,
-            choices=sample_dates,
-            additional_key="fpg_test_date",
-        )
+        fpg_test_date_column[simulants_with_test_date.index] = self.clock() + pd.Timedelta(days=28) - time_before_event_start
         pop[data_values.COLUMNS.LAST_FPG_TEST_DATE] = fpg_test_date_column
 
         # Generate multiplier columns
