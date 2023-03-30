@@ -17,6 +17,7 @@ from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
+import vivarium_inputs.validation.sim as validation
 from gbd_mapping import ModelableEntity, causes, covariates, risk_factors
 from gbd_mapping import sequelae as all_sequelae
 from gbd_mapping.base_template import Tmred
@@ -25,10 +26,17 @@ from vivarium.framework.artifact import EntityKey
 from vivarium_gbd_access import gbd
 from vivarium_gbd_access.constants import ROUND_IDS, SEX, SOURCES
 from vivarium_gbd_access.utilities import get_draws
+from vivarium_inputs import extract
 from vivarium_inputs import globals as vi_globals
 from vivarium_inputs import interface
 from vivarium_inputs import utilities as vi_utils
 from vivarium_inputs import utility_data
+from vivarium_inputs.globals import (
+    DEMOGRAPHIC_COLUMNS,
+    DISTRIBUTION_COLUMNS,
+    DRAW_COLUMNS,
+    MEASURES,
+)
 from vivarium_inputs.mapping_extension import (
     alternative_risk_factors,
     healthcare_entities,
@@ -38,6 +46,7 @@ from vivarium_nih_us_cvd.constants import data_keys, data_values, paths
 from vivarium_nih_us_cvd.constants.metadata import (
     ARTIFACT_COLUMNS,
     DRAW_COUNT,
+    GBD_2020_ROUND_ID,
     PROPORTION_DATA_INDEX_COLUMNS,
 )
 from vivarium_nih_us_cvd.utilities import get_random_variable_draws
@@ -103,9 +112,9 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.IHD_AND_HF.RESTRICTIONS: load_metadata,
         # Risk (LDL-cholesterol)
         data_keys.LDL_C.DISTRIBUTION: load_metadata,
-        data_keys.LDL_C.EXPOSURE_MEAN: load_standard_data,
-        data_keys.LDL_C.EXPOSURE_SD: load_standard_data,
-        data_keys.LDL_C.EXPOSURE_WEIGHTS: load_standard_data,
+        data_keys.LDL_C.EXPOSURE_MEAN: load_ldl_exposure,
+        data_keys.LDL_C.EXPOSURE_SD: load_ldl_standard_deviation,
+        data_keys.LDL_C.EXPOSURE_WEIGHTS: load_ldl_weights,
         data_keys.LDL_C.RELATIVE_RISK: load_standard_data,
         data_keys.LDL_C.PAF: load_standard_data,
         data_keys.LDL_C.TMRED: load_metadata,
@@ -114,9 +123,9 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         # Risk (systolic blood pressure)
         data_keys.SBP.DISTRIBUTION: load_metadata,
         data_keys.SBP.CATEGORICAL_DISTRIBUTION: load_ordered_polytomous_distribution,
-        data_keys.SBP.EXPOSURE_MEAN: load_standard_data,
-        data_keys.SBP.EXPOSURE_SD: load_standard_data,
-        data_keys.SBP.EXPOSURE_WEIGHTS: load_standard_data,
+        data_keys.SBP.EXPOSURE_MEAN: load_sbp_exposure,
+        data_keys.SBP.EXPOSURE_SD: load_sbp_standard_deviation,
+        data_keys.SBP.EXPOSURE_WEIGHTS: load_sbp_weights,
         data_keys.SBP.RELATIVE_RISK: load_standard_data,
         data_keys.SBP.CATEGORICAL_RELATIVE_RISK: load_relative_risk_categorical_sbp,
         data_keys.SBP.PAF: load_standard_data,
@@ -125,9 +134,9 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.SBP.RELATIVE_RISK_SCALAR: load_metadata,
         # Risk (body mass index)
         data_keys.BMI.DISTRIBUTION: load_metadata,
-        data_keys.BMI.EXPOSURE_MEAN: load_standard_data,
+        data_keys.BMI.EXPOSURE_MEAN: load_bmi_exposure,
         data_keys.BMI.EXPOSURE_SD: load_bmi_standard_deviation,
-        data_keys.BMI.EXPOSURE_WEIGHTS: load_standard_data,
+        data_keys.BMI.EXPOSURE_WEIGHTS: load_bmi_weights,
         data_keys.BMI.RELATIVE_RISK: load_relative_risk_bmi,
         data_keys.BMI.PAF: load_paf_bmi,
         data_keys.BMI.TMRED: load_metadata,
@@ -135,7 +144,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         # Risk (fasting plasma glucose)
         data_keys.FPG.DISTRIBUTION: load_metadata,
         data_keys.FPG.EXPOSURE_MEAN: load_standard_data,
-        data_keys.FPG.EXPOSURE_SD: load_standard_data,
+        data_keys.FPG.EXPOSURE_SD: load_fpg_standard_deviation,
         data_keys.FPG.EXPOSURE_WEIGHTS: load_standard_data,
         data_keys.FPG.RELATIVE_RISK: load_standard_data,
         data_keys.FPG.PAF: load_standard_data,
@@ -195,23 +204,6 @@ def load_standard_data(key: str, location: str) -> pd.DataFrame:
     key = EntityKey(key)
     entity = get_entity(key)
     return _get_measure_wrapped(entity, key.measure, location)
-
-
-def load_bmi_standard_deviation(key: str, location: str) -> pd.DataFrame:
-    key = EntityKey(key)
-    entity = get_entity(key)
-    bmi_sd = _get_measure_wrapped(entity, key.measure, location)
-
-    def replace_outliers_by_sampling_from_reasonable_values(row: pd.Series) -> pd.Series:
-        outlier_values = row[row >= data_values.MAX_BMI_STANDARD_DEVIATION]
-        acceptable_values = row[row < data_values.MAX_BMI_STANDARD_DEVIATION]
-        # get average of 50 samples
-        new_values = [
-            np.mean(acceptable_values.sample(50, replace=True)) for _ in outlier_values
-        ]
-        return row.replace(dict(zip(outlier_values, new_values)))
-
-    return bmi_sd.apply(replace_outliers_by_sampling_from_reasonable_values)
 
 
 def load_standard_data_enforce_minimum(
@@ -925,6 +917,247 @@ def load_paf_bmi(key: str, location: str) -> pd.DataFrame:
     paf_bmi = pd.concat([standard_paf_data, heart_failure_pafs])
 
     return paf_bmi
+    
+    
+def get_re_mean_exposure_data_from_me_id(key: str, location: str, me_id: int) -> pd.DataFrame:
+    """Get mean exposure data for risk factors from CVD race-ethnicity project."""
+
+    key = EntityKey(key)
+    entity = get_entity(key)
+    location_id = utility_data.get_location_id(location)
+
+    data = get_draws(
+        gbd_id_type="modelable_entity_id",
+        gbd_id=me_id,
+        source=SOURCES.EPI,
+        location_id=location_id,
+        sex_id=SEX.MALE + SEX.FEMALE,
+        gbd_round_id=GBD_2020_ROUND_ID,
+        decomp_step="usa_re",
+        status="best",
+    )
+
+    # core.get_data processing
+    data = data[data.measure_id == MEASURES["Continuous"]]
+    data = data.drop(labels=["modelable_entity_id"], axis="columns")
+    data = vi_utils.filter_data_by_restrictions(
+        data, entity, "outer", utility_data.get_age_group_ids()
+    )
+    data = vi_utils.normalize(data, fill_value=0)
+    data["parameter"] = "continuous"
+    data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS + ["parameter"])
+    data = vi_utils.reshape(data, value_cols=DRAW_COLUMNS)
+
+    return data
+
+
+def get_re_sd_data_from_me_id(key: str, location: str, me_id: int) -> pd.DataFrame:
+    """Get standard deviation of exposure data for risk factors from CVD race-ethnicity project."""
+
+    key = EntityKey(key)
+    entity = get_entity(key)
+    location_id = utility_data.get_location_id(location)
+
+    data = get_draws(
+        gbd_id_type="modelable_entity_id",
+        gbd_id=me_id,
+        source=SOURCES.EPI,
+        location_id=location_id,
+        sex_id=SEX.MALE + SEX.FEMALE,
+        gbd_round_id=GBD_2020_ROUND_ID,
+        decomp_step="usa_re",
+        status="best",
+    )
+
+    exposure = extract.extract_data(entity, "exposure", location_id)
+    valid_age_groups = vi_utils.get_exposure_and_restriction_ages(exposure, entity)
+
+    data = data.drop(labels=["modelable_entity_id"], axis="columns")
+    data = data[data.age_group_id.isin(valid_age_groups)]
+    data = vi_utils.normalize(data, fill_value=0)
+    data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
+    data = vi_utils.reshape(data, value_cols=DRAW_COLUMNS)
+
+    return data
+
+
+def get_re_weights_data_from_file(key: str, location: str, file_path: str) -> pd.DataFrame:
+    """Get ensemble weights for risk factors from CVD race-ethnicity project."""
+
+    key = EntityKey(key)
+    entity = get_entity(key)
+    location_id = utility_data.get_location_id(location)
+
+    data = pd.read_csv(file_path)
+    data = data.drop(["age_group_id", "sex_id", "year_id"], axis=1)
+    data = data.drop_duplicates()
+    assert len(data) == 1
+    data["rei_id"] = int(entity.gbd_id)
+    data["sex_id"] = SEX.COMBINED
+    data["age_group_id"] = 22  # all ages
+    data["measure"] = "ensemble_distribution_weight"
+
+    exposure = extract.extract_data(entity, "exposure", location_id)
+    valid_ages = vi_utils.get_exposure_and_restriction_ages(exposure, entity)
+
+    data.drop("age_group_id", axis=1, inplace=True)
+    df = []
+    for age_id in valid_ages:
+        copied = data.copy()
+        copied["age_group_id"] = age_id
+        df.append(copied)
+    data = pd.concat(df)
+
+    # define distributions not used in new R/E ensemble with weights of 0
+    non_distribution_cols = ["location_id", "rei_id", "sex_id", "measure", "age_group_id"]
+    distributions_in_data = [col for col in data.columns if col not in non_distribution_cols]
+    missing_distributions = [
+        dist for dist in DISTRIBUTION_COLUMNS if dist not in distributions_in_data
+    ]
+    for missing_distribution in missing_distributions:
+        data[missing_distribution] = 0
+
+    data = vi_utils.normalize(data, fill_value=0, cols_to_fill=DISTRIBUTION_COLUMNS)
+    data = data.filter(DEMOGRAPHIC_COLUMNS + DISTRIBUTION_COLUMNS)
+    data = vi_utils.wide_to_long(data, DISTRIBUTION_COLUMNS, var_name="parameter")
+    data = vi_utils.reshape(data, value_cols=["value"])
+
+    return data
+
+
+def transform_core_get_data_for_vivarium(
+    key: str, location: str, data: pd.DataFrame
+) -> pd.DataFrame:
+    """Take data that would be output from core.get_data and go through the processing
+    that interface.get_measure applies at this stage.
+    """
+
+    key = EntityKey(key)
+    entity = get_entity(key)
+
+    data = vi_utils.scrub_gbd_conventions(data, location)
+    validation.validate_for_simulation(data, entity, key.measure, location)
+    data = vi_utils.split_interval(data, interval_column="age", split_column_prefix="age")
+    data = vi_utils.split_interval(data, interval_column="year", split_column_prefix="year")
+    data = vi_utils.sort_hierarchical_data(data).droplevel("location")
+
+    return data
+
+
+def load_ldl_exposure(key: str, location: str) -> pd.DataFrame:
+    data = get_re_mean_exposure_data_from_me_id(key, location, data_values.LDL_MEAN_ME_ID)
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_ldl_standard_deviation(key: str, location: str) -> pd.DataFrame:
+    data = get_re_sd_data_from_me_id(key, location, data_values.LDL_SD_ME_ID)
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_ldl_weights(key: str, location: str) -> pd.DataFrame:
+    data = get_re_weights_data_from_file(
+        key, location, paths.FILEPATHS.LDL_DISTRIBUTION_WEIGHTS
+    )
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_sbp_exposure(key: str, location: str) -> pd.DataFrame:
+    data = get_re_mean_exposure_data_from_me_id(key, location, data_values.SBP_MEAN_ME_ID)
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_sbp_standard_deviation(key: str, location: str) -> pd.DataFrame:
+    data = get_re_sd_data_from_me_id(key, location, data_values.SBP_SD_ME_ID)
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_sbp_weights(key: str, location: str) -> pd.DataFrame:
+    data = get_re_weights_data_from_file(
+        key, location, paths.FILEPATHS.SBP_DISTRIBUTION_WEIGHTS
+    )
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_bmi_exposure(key: str, location: str) -> pd.DataFrame:
+    data = get_re_mean_exposure_data_from_me_id(key, location, data_values.BMI_MEAN_ME_ID)
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_bmi_standard_deviation(key: str, location: str) -> pd.DataFrame:
+    data = get_re_sd_data_from_me_id(key, location, data_values.BMI_SD_ME_ID)
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_bmi_weights(key: str, location: str) -> pd.DataFrame:
+    data = get_re_weights_data_from_file(
+        key, location, paths.FILEPATHS.BMI_DISTRIBUTION_WEIGHTS
+    )
+    data = transform_core_get_data_for_vivarium(key, location, data)
+    return data
+
+
+def load_fpg_standard_deviation(key: str, location: str) -> pd.DataFrame:
+    pop_structure = load_population_structure(
+        data_keys.POPULATION.STRUCTURE, location
+    ).droplevel("location")
+    all_age_starts_and_ends = pop_structure.reset_index()[
+        ["age_start", "age_end"]
+    ].drop_duplicates()
+    year_starts = pop_structure.index.get_level_values("year_start").unique()
+
+    data = pd.read_csv(paths.FILEPATHS.FPG_STANDARD_DEVIATION)
+
+    # fill in missing age data with 0s
+    missing_age_starts = [
+        age_start
+        for age_start in all_age_starts_and_ends["age_start"]
+        if age_start not in data["age_start"].values
+    ]
+    all_missing_age_data = []
+
+    for missing_age_start in missing_age_starts:
+        sex_column = pd.DataFrame(["Male", "Female"], columns=["sex"])
+        age_start_and_end = all_age_starts_and_ends.loc[
+            all_age_starts_and_ends["age_start"] == missing_age_start,
+            ["age_start", "age_end"],
+        ]
+        age_columns = pd.concat([age_start_and_end] * 2, ignore_index=True)
+        draw_columns = pd.DataFrame(
+            data=[np.repeat(0.0, len(DRAW_COLUMNS))] * 2,
+            index=pd.Index([0, 1]),
+            columns=DRAW_COLUMNS,
+        )
+        missing_age_data = pd.concat([sex_column, age_columns, draw_columns], axis=1)
+        all_missing_age_data.append(missing_age_data)
+
+    missing_age_data = pd.concat(all_missing_age_data)
+
+    data = pd.concat([missing_age_data, data])
+
+    # duplicate for all years
+    data_for_all_years = []
+
+    for year_start in year_starts:
+        year_specific_data = data.copy()
+        year_specific_data[["year_start", "year_end"]] = year_start, year_start + 1
+        data_for_all_years.append(year_specific_data)
+
+    data = pd.concat(data_for_all_years)
+
+    # define and sort index
+    data = data.set_index(
+        ["sex", "age_start", "age_end", "year_start", "year_end"]
+    ).sort_index()
+
+    return data
 
 
 def load_medication_adherence_distribution(key: str, location: str) -> str:
