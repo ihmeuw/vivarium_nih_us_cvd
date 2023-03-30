@@ -23,7 +23,7 @@ class __Columns(NamedTuple):
     OUTREACH: str = "outreach"
     POLYPILL: str = "polypill"
     LIFESTYLE: str = "lifestyle"
-    LAST_FPG_TEST_DATE: str = 'last_fpg_test_date'
+    LAST_FPG_TEST_DATE: str = "last_fpg_test_date"
 
     @property
     def name(self):
@@ -519,7 +519,7 @@ class __FPGTesting(NamedTuple):
 
     BMI_ELIGIBILITY_THRESHOLD: float = 25.0
     AGE_ELIGIBILITY_THRESHOLD: float = 35.0
-    PROBABILITY_OF_TESTING_GIVEN_ELIGIBLE: float = .71
+    PROBABILITY_OF_TESTING_GIVEN_ELIGIBLE: float = 0.71
     NUM_YEARS_BEFORE_SIM_START: int = 3
 
     @property

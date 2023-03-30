@@ -62,7 +62,7 @@ class Treatment:
             data_values.COLUMNS.OUTREACH,
             data_values.COLUMNS.POLYPILL,
             data_values.COLUMNS.LIFESTYLE,
-            data_values.COLUMNS.LAST_FPG_TEST_DATE
+            data_values.COLUMNS.LAST_FPG_TEST_DATE,
         ]
         columns_required_on_initialization = [
             "age",
@@ -273,26 +273,37 @@ class Treatment:
 
         # Generate column for last FPG test date
         bmi = self.bmi(pop.index)
-        age = pop['age']
-        is_eligible_for_testing = (age >= data_values.FPG_TESTING.AGE_ELIGIBILITY_THRESHOLD) & (bmi >= data_values.FPG_TESTING.BMI_ELIGIBILITY_THRESHOLD)
+        age = pop["age"]
+        is_eligible_for_testing = (
+            age >= data_values.FPG_TESTING.AGE_ELIGIBILITY_THRESHOLD
+        ) & (bmi >= data_values.FPG_TESTING.BMI_ELIGIBILITY_THRESHOLD)
 
         # Determine which eligible simulants get assigned a test date
-        simulants_with_test_date = self.randomness.filter_for_probability(pop[is_eligible_for_testing],
-                                                                          [data_values.FPG_TESTING.PROBABILITY_OF_TESTING_GIVEN_ELIGIBLE]*sum(is_eligible_for_testing))
+        simulants_with_test_date = self.randomness.filter_for_probability(
+            pop[is_eligible_for_testing],
+            [data_values.FPG_TESTING.PROBABILITY_OF_TESTING_GIVEN_ELIGIBLE]
+            * sum(is_eligible_for_testing),
+        )
 
         # sample from dates uniformly distributed from 0 to 3 years before sim start date
         starting_event_time = self.clock()
         fpg_test_start_time = starting_event_time
         # Subtract step size until we reach the first day less than or equal to 3 years before our sim starting event date
-        while fpg_test_start_time > starting_event_time - pd.DateOffset(years=data_values.FPG_TESTING.NUM_YEARS_BEFORE_SIM_START):
+        while fpg_test_start_time > starting_event_time - pd.DateOffset(
+            years=data_values.FPG_TESTING.NUM_YEARS_BEFORE_SIM_START
+        ):
             fpg_test_start_time = fpg_test_start_time - self.step_size()
-        sample_dates = pd.date_range(fpg_test_start_time, starting_event_time, freq=f"{self.step_size().days}D")
+        sample_dates = pd.date_range(
+            fpg_test_start_time, starting_event_time, freq=f"{self.step_size().days}D"
+        )
 
         # Define last fpg test date column
         fpg_test_date_column = pd.Series(pd.NaT, index=pop.index)
-        fpg_test_date_column[simulants_with_test_date.index] = self.randomness.choice(index=simulants_with_test_date.index,
-                                                                                      choices=sample_dates,
-                                                                                      additional_key='fpg_test_date')
+        fpg_test_date_column[simulants_with_test_date.index] = self.randomness.choice(
+            index=simulants_with_test_date.index,
+            choices=sample_dates,
+            additional_key="fpg_test_date",
+        )
         pop[data_values.COLUMNS.LAST_FPG_TEST_DATE] = fpg_test_date_column
 
         # Generate multiplier columns
