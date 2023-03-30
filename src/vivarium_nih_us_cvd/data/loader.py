@@ -917,8 +917,8 @@ def load_paf_bmi(key: str, location: str) -> pd.DataFrame:
     paf_bmi = pd.concat([standard_paf_data, heart_failure_pafs])
 
     return paf_bmi
-    
-    
+
+
 def get_re_mean_exposure_data_from_me_id(key: str, location: str, me_id: int) -> pd.DataFrame:
     """Get mean exposure data for risk factors from CVD race-ethnicity project."""
 
