@@ -285,11 +285,17 @@ class Treatment:
         )
 
         # sample from dates uniformly distributed from 0 to 3 years before sim start date
-        draws = self.randomness.get_draw(index=simulants_with_test_date.index, additional_key='fpg_test_date')
-        time_before_event_start = draws * pd.Timedelta(days=365.25*data_values.FPG_TESTING.NUM_YEARS_BEFORE_SIM_START)
+        draws = self.randomness.get_draw(
+            index=simulants_with_test_date.index, additional_key="fpg_test_date"
+        )
+        time_before_event_start = draws * pd.Timedelta(
+            days=365.25 * data_values.FPG_TESTING.NUM_YEARS_BEFORE_SIM_START
+        )
 
         fpg_test_date_column = pd.Series(pd.NaT, index=pop.index)
-        fpg_test_date_column[simulants_with_test_date.index] = self.clock() + pd.Timedelta(days=28) - time_before_event_start
+        fpg_test_date_column[simulants_with_test_date.index] = (
+            self.clock() + pd.Timedelta(days=28) - time_before_event_start
+        )
         pop[data_values.COLUMNS.LAST_FPG_TEST_DATE] = fpg_test_date_column
 
         # Generate multiplier columns
