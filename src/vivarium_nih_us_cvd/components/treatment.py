@@ -289,7 +289,7 @@ class Treatment:
         starting_event_time = self.clock()
         fpg_test_start_time = starting_event_time
         # Subtract step size until we reach the first day less than or equal to 3 years before our sim starting event date
-        while fpg_test_start_time > starting_event_time - pd.DateOffset(
+        while fpg_test_start_time >= starting_event_time - pd.DateOffset(
             years=data_values.FPG_TESTING.NUM_YEARS_BEFORE_SIM_START
         ):
             fpg_test_start_time = fpg_test_start_time - self.step_size()
