@@ -44,6 +44,8 @@ from vivarium_inputs.mapping_extension import (
 
 from vivarium_nih_us_cvd.constants import data_keys, data_values, paths
 from vivarium_nih_us_cvd.constants.metadata import (
+    ARTIFACT_COLUMNS,
+    DRAW_COUNT,
     GBD_2020_ROUND_ID,
     PROPORTION_DATA_INDEX_COLUMNS,
 )
@@ -120,11 +122,14 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.LDL_C.MEDICATION_EFFECT: load_ldlc_medication_effect,
         # Risk (systolic blood pressure)
         data_keys.SBP.DISTRIBUTION: load_metadata,
+        data_keys.SBP.CATEGORICAL_DISTRIBUTION: load_ordered_polytomous_distribution,
         data_keys.SBP.EXPOSURE_MEAN: load_sbp_exposure,
         data_keys.SBP.EXPOSURE_SD: load_sbp_standard_deviation,
         data_keys.SBP.EXPOSURE_WEIGHTS: load_sbp_weights,
         data_keys.SBP.RELATIVE_RISK: load_standard_data,
+        data_keys.SBP.CATEGORICAL_RELATIVE_RISK: load_relative_risk_categorical_sbp,
         data_keys.SBP.PAF: load_standard_data,
+        data_keys.SBP.CATEGORICAL_PAF: load_paf_categorical_sbp,
         data_keys.SBP.TMRED: load_metadata,
         data_keys.SBP.RELATIVE_RISK_SCALAR: load_metadata,
         # Risk (body mass index)
@@ -132,8 +137,8 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.BMI.EXPOSURE_MEAN: load_bmi_exposure,
         data_keys.BMI.EXPOSURE_SD: load_bmi_standard_deviation,
         data_keys.BMI.EXPOSURE_WEIGHTS: load_bmi_weights,
-        data_keys.BMI.RELATIVE_RISK: partial(load_standard_data_enforce_minimum, 1),
-        data_keys.BMI.PAF: partial(load_standard_data_enforce_minimum, 0),
+        data_keys.BMI.RELATIVE_RISK: load_relative_risk_bmi,
+        data_keys.BMI.PAF: load_paf_bmi,
         data_keys.BMI.TMRED: load_metadata,
         data_keys.BMI.RELATIVE_RISK_SCALAR: load_metadata,
         # Risk (fasting plasma glucose)
@@ -683,6 +688,10 @@ def match_rr_to_cause_name(data: Union[str, pd.DataFrame], source_key: EntityKey
             "acute_ischemic_stroke",
             "chronic_ischemic_stroke_to_acute_ischemic_stroke",
         ],
+        "heart_failure": [
+            "heart_failure_from_ischemic_heart_disease",
+            "heart_failure_residual",
+        ],
     }
     if source_key.measure in ["relative_risk", "population_attributable_fraction"]:
         data = modify_rr_affected_entity(data, map)
@@ -736,6 +745,178 @@ def load_ldlc_medication_effect(key: str, location: str) -> pd.DataFrame:
         df.loc[med_level, :] = get_random_variable_draws(1000, seeded_distribution)
     assert df.notna().values.all()
     return df
+
+
+def load_relative_risk_categorical_sbp(key: str, location: str) -> pd.DataFrame:
+    distributions = data_values.RELATIVE_RISK_SBP_ON_HEART_FAILURE_DISTRIBUTIONS
+    population_structure = load_population_structure(
+        data_keys.POPULATION.STRUCTURE, location
+    ).droplevel("location")
+
+    # define TMREL data
+    baseline_hf_rrs = pd.DataFrame(
+        1.0, index=population_structure.index, columns=ARTIFACT_COLUMNS
+    )
+    baseline_hf_rrs["parameter"] = "cat4"
+
+    # define exposed groups data
+    exposed_groups_rrs = []
+    for sbp_category, distribution in distributions:
+        rr_data = get_random_variable_draws(DRAW_COUNT, (sbp_category, distribution))
+        # relative risks of 1 for ages without heart failure (under 15)
+        under_15_data = pd.DataFrame(
+            data=1,
+            index=population_structure.query("age_start<15").index,
+            columns=ARTIFACT_COLUMNS,
+        )
+        over_and_including_15_data = pd.DataFrame(
+            data=np.repeat(
+                [rr_data], len(population_structure.query("age_start>=15")), axis=0
+            ),
+            index=population_structure.query("age_start>=15").index,
+            columns=ARTIFACT_COLUMNS,
+        )
+
+        relative_risk_heart_failure = pd.concat([under_15_data, over_and_including_15_data])
+        relative_risk_heart_failure["parameter"] = sbp_category
+
+        exposed_groups_rrs.append(relative_risk_heart_failure)
+
+    exposed_rrs = pd.concat(exposed_groups_rrs)
+
+    # define all heart failure data
+    heart_failure_rrs = pd.concat([baseline_hf_rrs, exposed_rrs])
+    heart_failure_rrs["affected_entity"] = "heart_failure"
+    heart_failure_rrs["affected_measure"] = "incidence_rate"
+    heart_failure_rrs = heart_failure_rrs.set_index(
+        ["affected_entity", "affected_measure", "parameter"], append=True
+    )
+    heart_failure_rrs = heart_failure_rrs.sort_index()
+
+    return heart_failure_rrs
+
+
+def get_age_and_sex_from_paf_output_cols(measure_str):
+    age = measure_str.split("AGE_GROUP_")[1].split("_SEX")[0]
+    age_start = age.split("_")[0]
+    if age_start == "95":  # deal with 95_plus
+        age_end = "125"
+    else:
+        age_end = str(int(age.split("_")[-1]) + 1)
+
+    sex = measure_str.split("_SEX_")[1]
+
+    return age_start + "," + age_end + "," + sex
+
+
+def format_paf_data(entity: str, location: str) -> pd.DataFrame:
+    if (entity != "high_body_mass_index_in_adults") and (
+        entity != "high_systolic_blood_pressure"
+    ):
+        raise ValueError(
+            "entity must be high_body_mass_index_in_adults or high_systolic_blood_pressure."
+            f"You provided entity {entity}."
+        )
+
+    population_structure = load_population_structure(
+        data_keys.POPULATION.STRUCTURE, location
+    ).droplevel("location")
+
+    pafs = pd.read_hdf(paths.FILEPATHS.CALCULATED_HEART_FAILURE_PAFS)
+    pafs = pafs[[col for col in pafs.columns if entity in col]].T
+    pafs.columns = ARTIFACT_COLUMNS
+    pafs = pafs.reset_index()
+    pafs["demographics"] = pafs["index"].apply(get_age_and_sex_from_paf_output_cols)
+    pafs[["age_start", "age_end", "sex"]] = pafs["demographics"].str.split(",", expand=True)
+    pafs[["age_start", "age_end"]] = pafs[["age_start", "age_end"]].astype(float)
+    pafs["affected_entity"] = "heart_failure"
+    pafs["affected_measure"] = "incidence_rate"
+    pafs = pafs.drop(["demographics", "index"], axis=1)
+
+    # duplicate data for all years
+    year_specific_data = []
+
+    for year_start in population_structure.index.get_level_values("year_start").unique():
+        year_specific_df = pafs.copy()
+        year_specific_df["year_start"] = year_start
+        year_specific_df["year_end"] = year_start + 1
+        year_specific_data.append(year_specific_df)
+
+    pafs_for_all_years = pd.concat(year_specific_data)
+
+    # data for missing ages
+    minimum_age = pafs["age_start"].min()
+    data_for_young_ages = pd.DataFrame(
+        0,
+        columns=ARTIFACT_COLUMNS,
+        index=population_structure.query("age_start < @minimum_age").index,
+    ).reset_index()
+    data_for_young_ages["affected_entity"] = "heart_failure"
+    data_for_young_ages["affected_measure"] = "incidence_rate"
+    data_for_young_ages = data_for_young_ages[pafs_for_all_years.columns]
+
+    paf_index_columns = population_structure.index.names + [
+        "affected_entity",
+        "affected_measure",
+    ]
+    formatted_pafs = pd.concat([data_for_young_ages, pafs_for_all_years])
+    formatted_pafs = formatted_pafs.sort_values(paf_index_columns).set_index(
+        paf_index_columns
+    )
+
+    return formatted_pafs
+
+
+def load_paf_categorical_sbp(key: str, location: str) -> pd.DataFrame:
+    return format_paf_data("high_systolic_blood_pressure", location)
+
+
+def load_relative_risk_bmi(key: str, location: str) -> pd.DataFrame:
+    standard_rr_data = load_standard_data_enforce_minimum(1, key, location)
+
+    # generate draws for BMI relative risk on heart failure
+    rr_data = get_random_variable_draws(
+        DRAW_COUNT, data_values.RELATIVE_RISK_BMI_ON_HEART_FAILURE_DISTRIBUTION
+    )
+
+    # pull population structure to use as index
+    population_structure = load_population_structure(
+        data_keys.POPULATION.STRUCTURE, location
+    ).droplevel("location")
+
+    # define heart failure rr dataframe
+    # relative risks of 1 for ages without heart failure (under 15)
+    under_15_data = pd.DataFrame(
+        data=1,
+        index=population_structure.query("age_start<15").index,
+        columns=ARTIFACT_COLUMNS,
+    )
+    over_and_including_15_data = pd.DataFrame(
+        data=np.repeat([rr_data], len(population_structure.query("age_start>=15")), axis=0),
+        index=population_structure.query("age_start>=15").index,
+        columns=ARTIFACT_COLUMNS,
+    )
+    relative_risk_heart_failure = pd.concat([under_15_data, over_and_including_15_data])
+    relative_risk_heart_failure["affected_entity"] = "heart_failure"
+    relative_risk_heart_failure["affected_measure"] = "incidence_rate"
+    relative_risk_heart_failure["parameter"] = "per unit"
+    relative_risk_heart_failure = relative_risk_heart_failure.set_index(
+        ["affected_entity", "affected_measure", "parameter"], append=True
+    )
+
+    relative_risk_bmi = pd.concat([standard_rr_data, relative_risk_heart_failure])
+    relative_risk_bmi = relative_risk_bmi.sort_index()
+
+    return relative_risk_bmi
+
+
+def load_paf_bmi(key: str, location: str) -> pd.DataFrame:
+    standard_paf_data = load_standard_data_enforce_minimum(0, key, location)
+    heart_failure_pafs = format_paf_data("high_body_mass_index_in_adults", location)
+
+    paf_bmi = pd.concat([standard_paf_data, heart_failure_pafs])
+
+    return paf_bmi
 
 
 def get_re_mean_exposure_data_from_me_id(key: str, location: str, me_id: int) -> pd.DataFrame:
@@ -1012,3 +1193,7 @@ def load_medication_adherence_exposure(key: str, location: str) -> pd.DataFrame:
 
 def load_dichotomous_distribution(key: str, location: str) -> str:
     return "dichotomous"
+
+
+def load_ordered_polytomous_distribution(key: str, location: str) -> str:
+    return "ordered_polytomous"

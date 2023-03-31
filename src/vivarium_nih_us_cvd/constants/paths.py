@@ -17,6 +17,7 @@ class __Filepaths(NamedTuple):
 
     SBP_MEDICATION_EFFECTS: Path = DATA_ROOT / "drug_efficacy_sbp.csv"
     HEART_FAILURE_PROPORTIONS: Path = DATA_ROOT / "hf_props.csv"
+    CALCULATED_HEART_FAILURE_PAFS: Path = DATA_ROOT / "calculated_heart_failure_pafs.hdf"
     LDL_DISTRIBUTION_WEIGHTS: Path = DATA_ROOT / "ldl_weights.csv"
     SBP_DISTRIBUTION_WEIGHTS: Path = DATA_ROOT / "sbp_weights.csv"
     BMI_DISTRIBUTION_WEIGHTS: Path = DATA_ROOT / "bmi_weights.csv"

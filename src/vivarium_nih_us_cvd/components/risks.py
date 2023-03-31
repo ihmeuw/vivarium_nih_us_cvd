@@ -1,3 +1,6 @@
+from typing import Dict
+
+import numpy as np
 import pandas as pd
 from vivarium.framework.engine import Builder
 from vivarium.framework.population.manager import PopulationView
@@ -8,7 +11,12 @@ from vivarium_public_health.risks.data_transformations import (
 )
 from vivarium_public_health.utilities import EntityString
 
-from vivarium_nih_us_cvd.constants.data_values import COLUMNS, RISK_EXPOSURE_LIMITS
+from vivarium_nih_us_cvd.constants.data_values import (
+    CATEGORICAL_SBP_INTERVALS,
+    COLUMNS,
+    PIPELINES,
+    RISK_EXPOSURE_LIMITS,
+)
 
 
 class DropValueRisk(Risk):
@@ -131,6 +139,8 @@ class AdjustedRisk(DropValueRisk):
 
 
 class TruncatedRisk(DropValueRisk):
+    """Keep exposure values between defined limits"""
+
     def _get_current_exposure(self, index: pd.Index) -> pd.Series:
         # Keep exposure values between defined limits
         propensity = self.propensity(index)
@@ -142,3 +152,74 @@ class TruncatedRisk(DropValueRisk):
         exposures[exposures > max_exposure] = max_exposure
 
         return exposures
+
+
+class CategoricalSBPRisk:
+    """Bin continuous systolic blood pressure values into categories"""
+
+    configuration_defaults = {
+        "risk": {
+            "exposure": "data",
+            "rebinned_exposed": [],
+            "category_thresholds": [],
+        }
+    }
+
+    def __init__(self):
+        self.risk = EntityString("risk_factor.categorical_high_systolic_blood_pressure")
+        self.configuration_defaults = self._get_configuration_defaults()
+        self.exposure_pipeline_name = f"{self.risk.name}.exposure"
+
+    def __repr__(self) -> str:
+        return "CategoricalSBPRisk()"
+
+    def _get_configuration_defaults(self) -> Dict[str, Dict]:
+        return {self.risk.name: Risk.configuration_defaults["risk"]}
+
+    ##############
+    # Properties #
+    ##############
+
+    @property
+    def name(self) -> str:
+        return f"risk.{self.risk}"
+
+    #################
+    # Setup methods #
+    #################
+
+    # noinspection PyAttributeOutsideInit
+    def setup(self, builder: Builder) -> None:
+        self.continuous_exposure = builder.value.get_value(PIPELINES.SBP_EXPOSURE)
+        self.exposure = self._get_exposure_pipeline(builder)
+
+    def _get_exposure_pipeline(self, builder: Builder) -> Pipeline:
+        return builder.value.register_value_producer(
+            self.exposure_pipeline_name,
+            source=self._get_current_exposure,
+            requires_values=[PIPELINES.SBP_EXPOSURE],
+        )
+
+    ##################################
+    # Pipeline sources and modifiers #
+    ##################################
+
+    def _get_current_exposure(self, index: pd.Index) -> pd.Series:
+        continuous_exposure = self.continuous_exposure(index)
+
+        bins = [
+            0,
+            CATEGORICAL_SBP_INTERVALS.CAT3_LEFT_THRESHOLD,
+            CATEGORICAL_SBP_INTERVALS.CAT2_LEFT_THRESHOLD,
+            CATEGORICAL_SBP_INTERVALS.CAT1_LEFT_THRESHOLD,
+            np.inf,
+        ]
+
+        categorical_exposure = pd.cut(
+            continuous_exposure,
+            bins=bins,
+            labels=["cat4", "cat3", "cat2", "cat1"],
+            right=False,
+        )  # left interval is closed, right interval is open
+
+        return categorical_exposure

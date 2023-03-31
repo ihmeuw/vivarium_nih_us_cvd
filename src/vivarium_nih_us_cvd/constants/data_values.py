@@ -471,8 +471,46 @@ RISK_EXPOSURE_LIMITS = {
     },
 }
 
-MAX_BMI_STANDARD_DEVIATION = 15
 
+class __CategoricalSBPIntervals(NamedTuple):
+    """categorical sbp exposure thresholds"""
+
+    CAT3_LEFT_THRESHOLD: int = 120
+    CAT2_LEFT_THRESHOLD: int = 130
+    CAT1_LEFT_THRESHOLD: int = 140
+
+    @property
+    def name(self):
+        return "categorical_sbp_intervals"
+
+
+CATEGORICAL_SBP_INTERVALS = __CategoricalSBPIntervals()
+
+
+MAX_BMI_STANDARD_DEVIATION = 15
+RELATIVE_RISK_BMI_ON_HEART_FAILURE_DISTRIBUTION = (
+    "bmi_relative_risk_for_heart_failure",
+    get_norm(mean=1.14, ninety_five_pct_confidence_interval=(1.12, 1.16)),
+)
+
+RELATIVE_RISK_SBP_CAT3_ON_HEART_FAILURE_DISTRIBUTION = (  # sbp exposure of 120 - 130
+    "cat3",
+    get_norm(mean=1.27, ninety_five_pct_confidence_interval=(1.13, 1.43)),
+)
+RELATIVE_RISK_SBP_CAT2_ON_HEART_FAILURE_DISTRIBUTION = (  # sbp exposure of 130 - 140
+    "cat2",
+    get_norm(mean=1.5, ninety_five_pct_confidence_interval=(1.3, 1.73)),
+)
+RELATIVE_RISK_SBP_CAT1_ON_HEART_FAILURE_DISTRIBUTION = (  # sbp exposure of 140+
+    "cat1",
+    get_norm(mean=1.76, ninety_five_pct_confidence_interval=(1.43, 2.17)),
+)
+
+RELATIVE_RISK_SBP_ON_HEART_FAILURE_DISTRIBUTIONS = [
+    RELATIVE_RISK_SBP_CAT3_ON_HEART_FAILURE_DISTRIBUTION,
+    RELATIVE_RISK_SBP_CAT2_ON_HEART_FAILURE_DISTRIBUTION,
+    RELATIVE_RISK_SBP_CAT1_ON_HEART_FAILURE_DISTRIBUTION,
+]
 
 ###########################
 # Intervention Parameters #

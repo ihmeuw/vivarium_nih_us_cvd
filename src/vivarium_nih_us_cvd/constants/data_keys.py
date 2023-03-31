@@ -181,6 +181,9 @@ class __HighSBP(NamedTuple):
     DISTRIBUTION: TargetString = TargetString(
         "risk_factor.high_systolic_blood_pressure.distribution"
     )
+    CATEGORICAL_DISTRIBUTION: TargetString = TargetString(
+        "risk_factor.categorical_high_systolic_blood_pressure.distribution"
+    )
     EXPOSURE_MEAN: TargetString = TargetString(
         "risk_factor.high_systolic_blood_pressure.exposure"
     )
@@ -193,8 +196,14 @@ class __HighSBP(NamedTuple):
     RELATIVE_RISK: TargetString = TargetString(
         "risk_factor.high_systolic_blood_pressure.relative_risk"
     )
+    CATEGORICAL_RELATIVE_RISK: TargetString = TargetString(
+        "risk_factor.categorical_high_systolic_blood_pressure.relative_risk"
+    )
     PAF: TargetString = TargetString(
         "risk_factor.high_systolic_blood_pressure.population_attributable_fraction"
+    )
+    CATEGORICAL_PAF: TargetString = TargetString(
+        "risk_factor.categorical_high_systolic_blood_pressure.population_attributable_fraction"
     )
     TMRED: TargetString = TargetString("risk_factor.high_systolic_blood_pressure.tmred")
     RELATIVE_RISK_SCALAR: TargetString = TargetString(
