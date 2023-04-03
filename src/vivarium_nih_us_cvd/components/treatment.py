@@ -40,7 +40,9 @@ class Treatment:
         )
         self.outreach = builder.value.get_value(data_values.PIPELINES.OUTREACH_EXPOSURE)
         self.polypill = builder.value.get_value(data_values.PIPELINES.POLYPILL_EXPOSURE)
+        self.lifestyle = builder.value.get_value(data_values.PIPELINES.LIFESTYLE_EXPOSURE)
         self.bmi = builder.value.get_value(data_values.PIPELINES.BMI_EXPOSURE)
+        self.fpg = builder.value.get_value(data_values.PIPELINES.FPG_EXPOSURE)
 
         self.sbp_treatment_map = self._get_sbp_treatment_map()
         self.ldlc_treatment_map = self._get_ldlc_treatment_map()
@@ -83,7 +85,9 @@ class Treatment:
             data_values.PIPELINES.LDLC_MEDICATION_ADHERENCE_EXPOSURE,
             data_values.PIPELINES.OUTREACH_EXPOSURE,
             data_values.PIPELINES.POLYPILL_EXPOSURE,
+            data_values.PIPELINES.LIFESTYLE_EXPOSURE,
             data_values.PIPELINES.BMI_EXPOSURE,
+            data_values.PIPELINES.FPG_EXPOSURE,
         ]
 
         # Initialize simulants
@@ -864,16 +868,21 @@ class Treatment:
             & (fpg_not_tested_recently)
         )
 
-        # Determine which eligible simulants get assigned a test date
+        # Determine which simulants eligible for FPG testing actually get tested
         tested_simulants = self.randomness.filter_for_probability(
             pop_visitors[is_eligible_for_testing],
             [data_values.FPG_TESTING.PROBABILITY_OF_TESTING_GIVEN_ELIGIBLE]
             * sum(is_eligible_for_testing),
         )
 
+        # Test simulants for FPG
         pop_visitors.loc[
             tested_simulants.index, data_values.COLUMNS.LAST_FPG_TEST_DATE
         ] = self.clock()
+
+        fpg = self.fpg(tested_simulants.index)
+        fpg_within_bounds = (fpg >= data_values.FPG_TESTING.LOWER_ENROLLMENT_BOUND) & (fpg <= data_values.FPG_TESTING.UPPER_ENROLLMENT_BOUND)
+        enroll_if_eligible = self.lifestyle(tested_simulants.index) == data_values.LIFESTYLE_EXPOSURE.EXPOSED
 
         self.population_view.update(
             pop_visitors[

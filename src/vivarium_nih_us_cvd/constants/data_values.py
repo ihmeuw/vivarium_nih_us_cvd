@@ -51,6 +51,7 @@ class __Pipelines(NamedTuple):
     POLYPILL_EXPOSURE: str = "polypill.exposure"
     LIFESTYLE_EXPOSURE: str = "lifestyle.exposure"
     BMI_EXPOSURE: str = "high_body_mass_index_in_adults.exposure"
+    FPG_EXPOSURE: str = "high_fasting_plasma_glucose.exposure"
 
     @property
     def name(self):
@@ -559,6 +560,8 @@ class __FPGTesting(NamedTuple):
     AGE_ELIGIBILITY_THRESHOLD: float = 35.0
     PROBABILITY_OF_TESTING_GIVEN_ELIGIBLE: float = 0.71
     MIN_YEARS_BETWEEN_TESTS: int = 3
+    LOWER_ENROLLMENT_BOUND: int = 100
+    UPPER_ENROLLMENT_BOUND: int = 126
 
     @property
     def name(self):
@@ -566,6 +569,20 @@ class __FPGTesting(NamedTuple):
 
 
 FPG_TESTING = __FPGTesting()
+
+
+class __LifestyleExposure(NamedTuple):
+    """exposure categories for lifestyle intervention"""
+
+    EXPOSED: float = 'cat1'
+    UNEXPOSED: float = 'cat2'
+
+    @property
+    def name(self):
+        return "lifestyle_exposure"
+
+
+LIFESTYLE_EXPOSURE = __LifestyleExposure()
 
 
 # Define the outreach effects on primary_non_adherence (cat 1) levels
