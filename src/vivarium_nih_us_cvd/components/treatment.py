@@ -849,14 +849,10 @@ class Treatment:
 
         fpg_not_tested_recently = (
             # never been tested for FPG
-            pop_visitors[
-                data_values.COLUMNS.LAST_FPG_TEST_DATE
-            ].isna()
+            pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE].isna()
         ) | (
             # last FPG test more than 3 years ago
-            pop_visitors[
-                data_values.COLUMNS.LAST_FPG_TEST_DATE
-            ]
+            pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE]
             < self.clock()
             - pd.Timedelta(days=365.25 * data_values.FPG_TESTING.NUM_YEARS_BEFORE_SIM_START)
         )
