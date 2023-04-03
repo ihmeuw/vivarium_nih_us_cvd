@@ -848,9 +848,13 @@ class Treatment:
         age = pop_visitors["age"]
 
         fpg_not_tested_recently = (
-            pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE].isna() # never been tested for FPG
+            pop_visitors[
+                data_values.COLUMNS.LAST_FPG_TEST_DATE
+            ].isna()  # never been tested for FPG
         ) | (
-            pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE] # last FPG test more than 3 years ago
+            pop_visitors[
+                data_values.COLUMNS.LAST_FPG_TEST_DATE
+            ]  # last FPG test more than 3 years ago
             < self.clock()
             - pd.Timedelta(days=365.25 * data_values.FPG_TESTING.NUM_YEARS_BEFORE_SIM_START)
         )
