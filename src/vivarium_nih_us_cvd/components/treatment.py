@@ -872,7 +872,6 @@ class Treatment:
         pop_visitors.loc[
             tested_simulants.index, data_values.COLUMNS.LAST_FPG_TEST_DATE
         ] = self.clock()
-        breakpoint()
 
         self.population_view.update(
             pop_visitors[
