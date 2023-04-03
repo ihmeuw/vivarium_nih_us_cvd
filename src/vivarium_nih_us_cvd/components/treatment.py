@@ -289,7 +289,7 @@ class Treatment:
             index=simulants_with_test_date.index, additional_key="fpg_test_date"
         )
         time_before_event_start = draws * pd.Timedelta(
-            days=365.25 * data_values.FPG_TESTING.NUM_YEARS_BEFORE_SIM_START
+            days=365.25 * data_values.FPG_TESTING.MIN_YEARS_BETWEEN_TESTS
         )
 
         fpg_test_date_column = pd.Series(pd.NaT, index=pop.index)
@@ -494,6 +494,10 @@ class Treatment:
             pop.loc[visitors] = self.enroll_in_polypill(
                 pop_visitors=pop.loc[visitors], maybe_enroll=maybe_enroll_sbp
             )
+
+        # Move through lifestyle intervention ramp
+        # Update last FPG test date
+        self.apply_lifestyle_ramp(pop_visitors=pop.loc[visitors])
 
         self.population_view.update(
             pop[
@@ -836,6 +840,48 @@ class Treatment:
         )
 
         return pop_visitors
+
+    def apply_lifestyle_ramp(self, pop_visitors: pd.DataFrame) -> pd.DataFrame:
+        # Determine testing eligibility
+        not_already_enrolled = pop_visitors[data_values.COLUMNS.LIFESTYLE].isna()
+        bmi = self.bmi(pop_visitors.index)
+        age = pop_visitors["age"]
+
+        fpg_not_tested_recently = (
+            # never been tested for FPG
+            pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE].isna()
+        ) | (
+            # last FPG test more than 3 years ago
+            pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE]
+            < self.clock()
+            - pd.Timedelta(days=365.25 * data_values.FPG_TESTING.MIN_YEARS_BETWEEN_TESTS)
+        )
+
+        is_eligible_for_testing = (
+            (not_already_enrolled)
+            & (age >= data_values.FPG_TESTING.AGE_ELIGIBILITY_THRESHOLD)
+            & (bmi >= data_values.FPG_TESTING.BMI_ELIGIBILITY_THRESHOLD)
+            & (fpg_not_tested_recently)
+        )
+
+        # Determine which eligible simulants get assigned a test date
+        tested_simulants = self.randomness.filter_for_probability(
+            pop_visitors[is_eligible_for_testing],
+            [data_values.FPG_TESTING.PROBABILITY_OF_TESTING_GIVEN_ELIGIBLE]
+            * sum(is_eligible_for_testing),
+        )
+
+        pop_visitors.loc[
+            tested_simulants.index, data_values.COLUMNS.LAST_FPG_TEST_DATE
+        ] = self.clock()
+
+        self.population_view.update(
+            pop_visitors[
+                [
+                    data_values.COLUMNS.LAST_FPG_TEST_DATE,
+                ]
+            ]
+        )
 
     def get_measured_sbp(
         self,
