@@ -495,6 +495,10 @@ class Treatment:
                 pop_visitors=pop.loc[visitors], maybe_enroll=maybe_enroll_sbp
             )
 
+        # Move through lifestyle intervention ramp
+        # Update last FPG test date
+        self.apply_lifestyle_ramp(pop_visitors=pop.loc[visitors])
+
         self.population_view.update(
             pop[
                 [
@@ -836,6 +840,47 @@ class Treatment:
         )
 
         return pop_visitors
+
+    def apply_lifestyle_ramp(self, pop_visitors: pd.DataFrame) -> pd.DataFrame:
+        # Determine testing eligibility
+        not_already_enrolled = pop_visitors[data_values.COLUMNS.LIFESTYLE].isna()
+        bmi = self.bmi(pop_visitors.index)
+        age = pop_visitors["age"]
+
+        fpg_not_tested_recently = (
+            pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE].isna() # never been tested for FPG
+        ) | (
+            pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE] # last FPG test more than 3 years ago
+            < self.clock()
+            - pd.Timedelta(days=365.25 * data_values.FPG_TESTING.NUM_YEARS_BEFORE_SIM_START)
+        )
+
+        is_eligible_for_testing = (
+            (not_already_enrolled)
+            & (age >= data_values.FPG_TESTING.AGE_ELIGIBILITY_THRESHOLD)
+            & (bmi >= data_values.FPG_TESTING.BMI_ELIGIBILITY_THRESHOLD)
+            & (fpg_not_tested_recently)
+        )
+
+        # Determine which eligible simulants get assigned a test date
+        tested_simulants = self.randomness.filter_for_probability(
+            pop_visitors[is_eligible_for_testing],
+            [data_values.FPG_TESTING.PROBABILITY_OF_TESTING_GIVEN_ELIGIBLE]
+            * sum(is_eligible_for_testing),
+        )
+
+        pop_visitors.loc[
+            tested_simulants.index, data_values.COLUMNS.LAST_FPG_TEST_DATE
+        ] = self.clock()
+        breakpoint()
+
+        self.population_view.update(
+            pop_visitors[
+                [
+                    data_values.COLUMNS.LAST_FPG_TEST_DATE,
+                ]
+            ]
+        )
 
     def get_measured_sbp(
         self,
