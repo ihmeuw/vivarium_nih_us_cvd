@@ -289,7 +289,7 @@ class Treatment:
             index=simulants_with_test_date.index, additional_key="fpg_test_date"
         )
         time_before_event_start = draws * pd.Timedelta(
-            days=365.25 * data_values.FPG_TESTING.NUM_YEARS_BEFORE_SIM_START
+            days=365.25 * data_values.FPG_TESTING.MIN_YEARS_BETWEEN_TESTS
         )
 
         fpg_test_date_column = pd.Series(pd.NaT, index=pop.index)
@@ -854,7 +854,7 @@ class Treatment:
             # last FPG test more than 3 years ago
             pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE]
             < self.clock()
-            - pd.Timedelta(days=365.25 * data_values.FPG_TESTING.NUM_YEARS_BEFORE_SIM_START)
+            - pd.Timedelta(days=365.25 * data_values.FPG_TESTING.MIN_YEARS_BETWEEN_TESTS)
         )
 
         is_eligible_for_testing = (

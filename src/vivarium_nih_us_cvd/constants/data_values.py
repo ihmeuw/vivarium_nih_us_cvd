@@ -520,7 +520,7 @@ class __FPGTesting(NamedTuple):
     BMI_ELIGIBILITY_THRESHOLD: float = 25.0
     AGE_ELIGIBILITY_THRESHOLD: float = 35.0
     PROBABILITY_OF_TESTING_GIVEN_ELIGIBLE: float = 0.71
-    NUM_YEARS_BEFORE_SIM_START: int = 3
+    MIN_YEARS_BETWEEN_TESTS: int = 3
 
     @property
     def name(self):
