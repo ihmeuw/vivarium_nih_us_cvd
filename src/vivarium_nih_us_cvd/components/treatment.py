@@ -883,8 +883,12 @@ class Treatment:
         fpg = self.fpg(tested_simulants.index)
 
         # Enroll in lifestyle by updating lifestyle column with date of enrollment
-        fpg_within_bounds = (fpg >= data_values.FPG_TESTING.LOWER_ENROLLMENT_BOUND) & (fpg <= data_values.FPG_TESTING.UPPER_ENROLLMENT_BOUND)
-        enroll_if_fpg_within_bounds = self.lifestyle(tested_simulants.index) == data_values.LIFESTYLE_EXPOSURE.EXPOSED
+        fpg_within_bounds = (fpg >= data_values.FPG_TESTING.LOWER_ENROLLMENT_BOUND) & (
+            fpg <= data_values.FPG_TESTING.UPPER_ENROLLMENT_BOUND
+        )
+        enroll_if_fpg_within_bounds = (
+            self.lifestyle(tested_simulants.index) == data_values.LIFESTYLE_EXPOSURE.EXPOSED
+        )
         newly_enrolled = fpg_within_bounds & enroll_if_fpg_within_bounds
         tested_simulants.loc[newly_enrolled, data_values.COLUMNS.LIFESTYLE] = self.clock()
 
@@ -902,7 +906,6 @@ class Treatment:
                 ]
             ]
         )
-
 
     def get_measured_sbp(
         self,
