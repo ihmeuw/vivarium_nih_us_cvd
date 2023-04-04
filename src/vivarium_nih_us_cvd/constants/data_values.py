@@ -574,8 +574,8 @@ FPG_TESTING = __FPGTesting()
 class __LifestyleExposure(NamedTuple):
     """exposure categories for lifestyle intervention"""
 
-    EXPOSED: float = 'cat1'
-    UNEXPOSED: float = 'cat2'
+    EXPOSED: float = "cat1"
+    UNEXPOSED: float = "cat2"
 
     @property
     def name(self):
