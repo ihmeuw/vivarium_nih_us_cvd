@@ -560,8 +560,8 @@ class __FPGTesting(NamedTuple):
     AGE_ELIGIBILITY_THRESHOLD: float = 35.0
     PROBABILITY_OF_TESTING_GIVEN_ELIGIBLE: float = 0.71
     MIN_YEARS_BETWEEN_TESTS: int = 3
-    LOWER_ENROLLMENT_BOUND: int = 100
-    UPPER_ENROLLMENT_BOUND: int = 126
+    LOWER_ENROLLMENT_BOUND: float = 5.6
+    UPPER_ENROLLMENT_BOUND: float = 7.0
 
     @property
     def name(self):
