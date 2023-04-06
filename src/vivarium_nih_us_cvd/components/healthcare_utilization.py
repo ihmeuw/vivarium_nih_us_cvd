@@ -272,17 +272,9 @@ class HealthcareUtilization:
         visitors_high_ldlc = visitors.intersection(
             measured_ldlc[measured_ldlc >= data_values.LDLC_THRESHOLD.LOW].index
         )
-        visitors_on_ldlc_medication = visitors.intersection(
-            pop_visitors[
-                pop_visitors[data_values.COLUMNS.LDLC_MEDICATION]
-                != data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
-            ].index
-        )
-        # Schedule those on ldlc medication and have high ldlc or those not on
-        # ldlc medication but have high ASCVD and ldlc
-        needs_followup = (
-            visitors_on_ldlc_medication.union(visitors_high_ascvd)
-        ).intersection(visitors_high_ldlc)
+
+        # Schedule those with high ldlc and high ASCVD
+        needs_followup = visitors_high_ascvd.intersection(visitors_high_ldlc)
 
         return needs_followup
 
