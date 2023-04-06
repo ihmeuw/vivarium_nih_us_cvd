@@ -380,8 +380,6 @@ class HealthcareUtilization:
         enroll_if_fpg_within_bounds = (
             self.lifestyle(pop_visitors.index) == data_values.LIFESTYLE_EXPOSURE.EXPOSED
         )
-
-        # Enroll in lifestyle by updating enrollment date
         newly_enrolled = (
             (tested_this_step) & (fpg_within_bounds) & (enroll_if_fpg_within_bounds)
         )
