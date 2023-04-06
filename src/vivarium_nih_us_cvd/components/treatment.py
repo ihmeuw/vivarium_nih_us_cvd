@@ -814,7 +814,9 @@ class Treatment:
 
     def apply_lifestyle_ramp(self, pop_visitors: pd.DataFrame) -> pd.DataFrame:
         # Find which simulants got their FPG tested by healthcare component this step
-        tested_this_step = pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE] == self.clock()
+        tested_this_step = (
+            pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE] == self.clock()
+        )
 
         # FPG related ramping
         fpg = self.fpg(pop_visitors.index)
@@ -826,7 +828,9 @@ class Treatment:
         )
 
         # Enroll in lifestyle by updating enrollment date
-        newly_enrolled = (tested_this_step) & (fpg_within_bounds) & (enroll_if_fpg_within_bounds)
+        newly_enrolled = (
+            (tested_this_step) & (fpg_within_bounds) & (enroll_if_fpg_within_bounds)
+        )
         pop_visitors.loc[newly_enrolled, data_values.COLUMNS.LIFESTYLE] = self.clock()
 
         self.population_view.update(
