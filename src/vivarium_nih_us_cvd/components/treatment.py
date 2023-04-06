@@ -468,7 +468,6 @@ class Treatment:
             pop.loc[visitors] = self.enroll_in_polypill(
                 pop_visitors=pop.loc[visitors], maybe_enroll=maybe_enroll_sbp
             )
-
         # Move through lifestyle intervention ramp
         self.apply_lifestyle_ramp(pop_visitors=pop.loc[visitors])
 
@@ -816,7 +815,7 @@ class Treatment:
 
     def apply_lifestyle_ramp(self, pop_visitors: pd.DataFrame) -> pd.DataFrame:
         # Find which simulants got their FPG tested by healthcare component this step
-        tested_this_step = pop_visitors.loc[data_values.COLUMNS.LAST_FPG_TEST_DATE] = self.clock()
+        tested_this_step = pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE] == self.clock()
 
         # FPG related ramping
         fpg = self.fpg(pop_visitors.index)

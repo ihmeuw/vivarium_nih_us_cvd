@@ -37,6 +37,7 @@ class HealthcareUtilization:
         self.step_size = builder.time.step_size()
         self.randomness = builder.randomness.get_stream(self.name)
 
+        self.lifestyle = builder.value.get_value(data_values.PIPELINES.LIFESTYLE_EXPOSURE)
         self.bmi = builder.value.get_value(data_values.PIPELINES.BMI_EXPOSURE)
         self.fpg = builder.value.get_value(data_values.PIPELINES.FPG_EXPOSURE)
 
@@ -252,18 +253,20 @@ class HealthcareUtilization:
             visit_background, data_values.COLUMNS.VISIT_TYPE
         ] = data_values.VISIT_TYPE.BACKGROUND
 
-        # Schedule followups
+        # Test FPG and schedule followups
         all_visitors = visit_emergency.union(visit_scheduled).union(visit_background)
-        needs_followup_sbp = self.determine_followups_sbp(pop_visitors=pop.loc[all_visitors])
-        needs_followup_ldlc = self.determine_followups_ldlc(
-            pop_visitors=pop.loc[all_visitors]
-        )
+        # Get pop visitors with updated test date and update population view
+        pop_visitors = self.test_fpg(pop_visitors=pop.loc[all_visitors])
+        needs_followup_lifestyle = self.determine_followups_lifestyle(pop_visitors=pop_visitors)
+
+        needs_followup_sbp = self.determine_followups_sbp(pop_visitors=pop_visitors)
+        needs_followup_ldlc = self.determine_followups_ldlc(pop_visitors=pop_visitors)
         # Do not schedule a followup if one already exists
         has_followup_already_scheduled = pop[
             (pop[data_values.COLUMNS.SCHEDULED_VISIT_DATE] > event_time)
         ].index
 
-        to_schedule_followup = (needs_followup_sbp.union(needs_followup_ldlc)).difference(
+        to_schedule_followup = needs_followup_lifestyle.union((needs_followup_sbp.union(needs_followup_ldlc))).difference(
             has_followup_already_scheduled
         )
         pop.loc[
@@ -278,6 +281,50 @@ class HealthcareUtilization:
                 ]
             ]
         )
+
+    def test_fpg(self, pop_visitors: pd.DataFrame) -> pd.Index:
+        not_already_enrolled = pop_visitors[data_values.COLUMNS.LIFESTYLE].isna()
+        bmi = self.bmi(pop_visitors.index)
+        age = pop_visitors["age"]
+
+        fpg_not_tested_recently = (
+            # never been tested for FPG
+            pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE].isna()
+        ) | (
+            # last FPG test more than 3 years ago
+            pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE]
+            < self.clock()
+            - pd.Timedelta(days=365.25 * data_values.FPG_TESTING.MIN_YEARS_BETWEEN_TESTS)
+        )
+
+        is_eligible_for_testing = (
+            (not_already_enrolled)
+            & (age >= data_values.FPG_TESTING.AGE_ELIGIBILITY_THRESHOLD)
+            & (bmi >= data_values.FPG_TESTING.BMI_ELIGIBILITY_THRESHOLD)
+            & (fpg_not_tested_recently)
+        )
+
+        # Determine which simulants eligible for FPG testing actually get tested
+        tested_simulants = self.randomness.filter_for_probability(
+            pop_visitors[is_eligible_for_testing],
+            [data_values.FPG_TESTING.PROBABILITY_OF_TESTING_GIVEN_ELIGIBLE]
+            * sum(is_eligible_for_testing),
+        )
+
+        # Assign FPG test date to current time
+        pop_visitors.loc[
+            tested_simulants.index, data_values.COLUMNS.LAST_FPG_TEST_DATE
+        ] = self.clock()
+
+        self.population_view.update(
+            pop_visitors[
+                [
+                    data_values.COLUMNS.LAST_FPG_TEST_DATE,
+                ]
+            ]
+        )
+
+        return pop_visitors
 
     def determine_followups_sbp(self, pop_visitors: pd.DataFrame) -> pd.Index:
         """Apply SBP treatment ramp logic to determine who gets scheduled a followup"""
@@ -316,39 +363,7 @@ class HealthcareUtilization:
 
     def determine_followups_lifestyle(self, pop_visitors: pd.DataFrame) -> pd.Index:
         """Apply lifestyle intervention ramp logic to determine who gets scheduled a followup"""
-        not_already_enrolled = pop_visitors[data_values.COLUMNS.LIFESTYLE].isna()
-        bmi = self.bmi(pop_visitors.index)
-        age = pop_visitors["age"]
-
-        fpg_not_tested_recently = (
-            # never been tested for FPG
-            pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE].isna()
-        ) | (
-            # last FPG test more than 3 years ago
-            pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE]
-            < self.clock()
-            - pd.Timedelta(days=365.25 * data_values.FPG_TESTING.MIN_YEARS_BETWEEN_TESTS)
-        )
-
-        is_eligible_for_testing = (
-            (not_already_enrolled)
-            & (age >= data_values.FPG_TESTING.AGE_ELIGIBILITY_THRESHOLD)
-            & (bmi >= data_values.FPG_TESTING.BMI_ELIGIBILITY_THRESHOLD)
-            & (fpg_not_tested_recently)
-        )
-
-        # Determine which simulants eligible for FPG testing actually get tested
-        tested_simulants = self.randomness.filter_for_probability(
-            pop_visitors[is_eligible_for_testing],
-            [data_values.FPG_TESTING.PROBABILITY_OF_TESTING_GIVEN_ELIGIBLE]
-            * sum(is_eligible_for_testing),
-        )
-
-        # Test simulants for FPG
-        pop_visitors.loc[
-            tested_simulants.index, data_values.COLUMNS.LAST_FPG_TEST_DATE
-        ] = self.clock()
-        breakpoint()
+        tested_this_step = pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE] == self.clock()
 
         # FPG related ramping
         fpg = self.fpg(pop_visitors.index)
@@ -361,6 +376,8 @@ class HealthcareUtilization:
 
         # Enroll in lifestyle by updating enrollment date
         newly_enrolled = (tested_this_step) & (fpg_within_bounds) & (enroll_if_fpg_within_bounds)
+
+        return pop_visitors[newly_enrolled].index
 
     def schedule_followup(
         self,
