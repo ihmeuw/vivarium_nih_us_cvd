@@ -191,10 +191,13 @@ class HealthcareUtilization:
         pop[data_values.COLUMNS.LAST_FPG_TEST_DATE] = fpg_test_date_column
 
         self.population_view.update(
-            pop[[data_values.COLUMNS.VISIT_TYPE,
-                 data_values.COLUMNS.SCHEDULED_VISIT_DATE,
-                 data_values.COLUMNS.LAST_FPG_TEST_DATE,
-                 ]]
+            pop[
+                [
+                    data_values.COLUMNS.VISIT_TYPE,
+                    data_values.COLUMNS.SCHEDULED_VISIT_DATE,
+                    data_values.COLUMNS.LAST_FPG_TEST_DATE,
+                ]
+            ]
         )
 
     def on_time_step_cleanup(self, event: Event) -> None:
@@ -257,7 +260,9 @@ class HealthcareUtilization:
         all_visitors = visit_emergency.union(visit_scheduled).union(visit_background)
         # Get pop visitors with updated test date and update population view
         pop_visitors = self.test_fpg(pop_visitors=pop.loc[all_visitors])
-        needs_followup_lifestyle = self.determine_followups_lifestyle(pop_visitors=pop_visitors)
+        needs_followup_lifestyle = self.determine_followups_lifestyle(
+            pop_visitors=pop_visitors
+        )
 
         needs_followup_sbp = self.determine_followups_sbp(pop_visitors=pop_visitors)
         needs_followup_ldlc = self.determine_followups_ldlc(pop_visitors=pop_visitors)
@@ -266,9 +271,9 @@ class HealthcareUtilization:
             (pop[data_values.COLUMNS.SCHEDULED_VISIT_DATE] > event_time)
         ].index
 
-        to_schedule_followup = needs_followup_lifestyle.union((needs_followup_sbp.union(needs_followup_ldlc))).difference(
-            has_followup_already_scheduled
-        )
+        to_schedule_followup = needs_followup_lifestyle.union(
+            (needs_followup_sbp.union(needs_followup_ldlc))
+        ).difference(has_followup_already_scheduled)
         pop.loc[
             to_schedule_followup, data_values.COLUMNS.SCHEDULED_VISIT_DATE
         ] = self.schedule_followup(index=to_schedule_followup, event_time=event_time)
@@ -363,7 +368,9 @@ class HealthcareUtilization:
 
     def determine_followups_lifestyle(self, pop_visitors: pd.DataFrame) -> pd.Index:
         """Apply lifestyle intervention ramp logic to determine who gets scheduled a followup"""
-        tested_this_step = pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE] == self.clock()
+        tested_this_step = (
+            pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE] == self.clock()
+        )
 
         # FPG related ramping
         fpg = self.fpg(pop_visitors.index)
@@ -375,7 +382,9 @@ class HealthcareUtilization:
         )
 
         # Enroll in lifestyle by updating enrollment date
-        newly_enrolled = (tested_this_step) & (fpg_within_bounds) & (enroll_if_fpg_within_bounds)
+        newly_enrolled = (
+            (tested_this_step) & (fpg_within_bounds) & (enroll_if_fpg_within_bounds)
+        )
 
         return pop_visitors[newly_enrolled].index
 
