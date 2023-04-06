@@ -28,10 +28,10 @@ class ResultsStratifier(ResultsStratifier_):
         super().setup(builder)
 
     def _get_age_bins(self, builder: Builder) -> pd.DataFrame:
-        """Re-define youngest age bin to 7_to_24"""
+        """Re-define youngest age bin to 5_to_24"""
         age_bins = super()._get_age_bins(builder)
         age_bins = age_bins[age_bins["age_start"] >= 25.0].reset_index(drop=True)
-        age_bins.loc[len(age_bins.index)] = [7.0, 25.0, "7_to_24"]
+        age_bins.loc[len(age_bins.index)] = [5.0, 25.0, "5_to_24"]
 
         return age_bins.sort_values(["age_start"]).reset_index(drop=True)
 
