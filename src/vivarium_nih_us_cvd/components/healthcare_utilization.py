@@ -274,6 +274,9 @@ class HealthcareUtilization:
         )
 
         # Schedule those with high ldlc and high ASCVD
+        # All simulants under these conditions get scheduled a followup in our LDL-C ramp
+        # regardless of medication status or medical history, and all simulants who don't meet
+        # both conditions do not get scheduled a followup
         needs_followup = visitors_high_ascvd.intersection(visitors_high_ldlc)
 
         return needs_followup
