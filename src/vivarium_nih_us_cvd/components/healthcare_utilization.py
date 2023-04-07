@@ -259,15 +259,21 @@ class HealthcareUtilization:
         # Test FPG and enroll in lifestyle
         all_visitors = visit_emergency.union(visit_scheduled).union(visit_background)
         tested_simulants = self.test_fpg(pop_visitors=pop.loc[all_visitors])
-        newly_lifestyle_enrolled_simulants = self.determine_lifestyle_enrollment(tested_simulants=tested_simulants)
+        newly_lifestyle_enrolled_simulants = self.determine_lifestyle_enrollment(
+            tested_simulants=tested_simulants
+        )
         breakpoint()
 
         pop.loc[tested_simulants.index, data_values.COLUMNS.LAST_FPG_TEST_DATE] = self.clock()
-        pop.loc[newly_lifestyle_enrolled_simulants, data_values.COLUMNS.LIFESTYLE] = self.clock()
+        pop.loc[
+            newly_lifestyle_enrolled_simulants, data_values.COLUMNS.LIFESTYLE
+        ] = self.clock()
 
         # Schedule followups
         needs_followup_sbp = self.determine_followups_sbp(pop_visitors=pop.loc[all_visitors])
-        needs_followup_ldlc = self.determine_followups_ldlc(pop_visitors=pop.loc[all_visitors])
+        needs_followup_ldlc = self.determine_followups_ldlc(
+            pop_visitors=pop.loc[all_visitors]
+        )
         # Do not schedule a followup if one already exists
         has_followup_already_scheduled = pop[
             (pop[data_values.COLUMNS.SCHEDULED_VISIT_DATE] > event_time)
@@ -373,7 +379,7 @@ class HealthcareUtilization:
             fpg <= data_values.FPG_TESTING.UPPER_ENROLLMENT_BOUND
         )
         enroll_if_fpg_within_bounds = (
-                self.lifestyle(tested_simulants.index) == data_values.LIFESTYLE_EXPOSURE.EXPOSED
+            self.lifestyle(tested_simulants.index) == data_values.LIFESTYLE_EXPOSURE.EXPOSED
         )
         newly_enrolled = fpg_within_bounds & enroll_if_fpg_within_bounds
 
