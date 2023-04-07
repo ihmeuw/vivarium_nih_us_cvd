@@ -467,7 +467,6 @@ class Treatment:
             pop.loc[visitors] = self.enroll_in_polypill(
                 pop_visitors=pop.loc[visitors], maybe_enroll=maybe_enroll_sbp
             )
-        self.enroll_in_lifestyle(pop_visitors=pop.loc[visitors])
 
         self.population_view.update(
             pop[
@@ -810,35 +809,6 @@ class Treatment:
         )
 
         return pop_visitors
-
-    def enroll_in_lifestyle(self, pop_visitors: pd.DataFrame) -> pd.DataFrame:
-        # Find which simulants got their FPG tested by healthcare component this step
-        tested_this_step = (
-            pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE] == self.clock()
-        )
-
-        # FPG related ramping
-        fpg = self.fpg(pop_visitors.index)
-        fpg_within_bounds = (fpg >= data_values.FPG_TESTING.LOWER_ENROLLMENT_BOUND) & (
-            fpg <= data_values.FPG_TESTING.UPPER_ENROLLMENT_BOUND
-        )
-        enroll_if_fpg_within_bounds = (
-            self.lifestyle(pop_visitors.index) == data_values.LIFESTYLE_EXPOSURE.EXPOSED
-        )
-
-        # Enroll in lifestyle by updating enrollment date
-        newly_enrolled = (
-            (tested_this_step) & (fpg_within_bounds) & (enroll_if_fpg_within_bounds)
-        )
-        pop_visitors.loc[newly_enrolled, data_values.COLUMNS.LIFESTYLE] = self.clock()
-
-        self.population_view.update(
-            pop_visitors[
-                [
-                    data_values.COLUMNS.LIFESTYLE,
-                ]
-            ]
-        )
 
     def get_measured_sbp(
         self,

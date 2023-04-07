@@ -256,22 +256,24 @@ class HealthcareUtilization:
             visit_background, data_values.COLUMNS.VISIT_TYPE
         ] = data_values.VISIT_TYPE.BACKGROUND
 
-        # Test FPG and schedule followups
+        # Test FPG and enroll in lifestyle
         all_visitors = visit_emergency.union(visit_scheduled).union(visit_background)
-        # Get pop visitors with updated test date and update population view
-        pop_visitors = self.test_fpg(pop_visitors=pop.loc[all_visitors])
-        needs_followup_lifestyle = self.determine_followups_lifestyle(
-            pop_visitors=pop_visitors
-        )
+        tested_simulants = self.test_fpg(pop_visitors=pop.loc[all_visitors])
+        newly_lifestyle_enrolled_simulants = self.determine_lifestyle_enrollment(tested_simulants=tested_simulants)
+        breakpoint()
 
-        needs_followup_sbp = self.determine_followups_sbp(pop_visitors=pop_visitors)
-        needs_followup_ldlc = self.determine_followups_ldlc(pop_visitors=pop_visitors)
+        pop.loc[tested_simulants.index, data_values.COLUMNS.LAST_FPG_TEST_DATE] = self.clock()
+        pop.loc[newly_lifestyle_enrolled_simulants, data_values.COLUMNS.LIFESTYLE] = self.clock()
+
+        # Schedule followups
+        needs_followup_sbp = self.determine_followups_sbp(pop_visitors=pop.loc[all_visitors])
+        needs_followup_ldlc = self.determine_followups_ldlc(pop_visitors=pop.loc[all_visitors])
         # Do not schedule a followup if one already exists
         has_followup_already_scheduled = pop[
             (pop[data_values.COLUMNS.SCHEDULED_VISIT_DATE] > event_time)
         ].index
 
-        to_schedule_followup = needs_followup_lifestyle.union(
+        to_schedule_followup = newly_lifestyle_enrolled_simulants.union(
             (needs_followup_sbp.union(needs_followup_ldlc))
         ).difference(has_followup_already_scheduled)
         pop.loc[
@@ -281,6 +283,8 @@ class HealthcareUtilization:
         self.population_view.update(
             pop[
                 [
+                    data_values.COLUMNS.LAST_FPG_TEST_DATE,
+                    data_values.COLUMNS.LIFESTYLE,
                     data_values.COLUMNS.VISIT_TYPE,
                     data_values.COLUMNS.SCHEDULED_VISIT_DATE,
                 ]
@@ -316,20 +320,7 @@ class HealthcareUtilization:
             * sum(is_eligible_for_testing),
         )
 
-        # Assign FPG test date to current time
-        pop_visitors.loc[
-            tested_simulants.index, data_values.COLUMNS.LAST_FPG_TEST_DATE
-        ] = self.clock()
-
-        self.population_view.update(
-            pop_visitors[
-                [
-                    data_values.COLUMNS.LAST_FPG_TEST_DATE,
-                ]
-            ]
-        )
-
-        return pop_visitors
+        return tested_simulants
 
     def determine_followups_sbp(self, pop_visitors: pd.DataFrame) -> pd.Index:
         """Apply SBP treatment ramp logic to determine who gets scheduled a followup"""
@@ -374,25 +365,19 @@ class HealthcareUtilization:
 
         return needs_followup
 
-    def determine_followups_lifestyle(self, pop_visitors: pd.DataFrame) -> pd.Index:
-        """Apply lifestyle intervention ramp logic to determine who gets scheduled a followup"""
-        tested_this_step = (
-            pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE] == self.clock()
-        )
-
+    def determine_lifestyle_enrollment(self, tested_simulants: pd.DataFrame) -> pd.Index:
+        """Apply lifestyle intervention ramp logic to determine who gets enrolled"""
         # FPG related ramping
-        fpg = self.fpg(pop_visitors.index)
+        fpg = self.fpg(tested_simulants.index)
         fpg_within_bounds = (fpg >= data_values.FPG_TESTING.LOWER_ENROLLMENT_BOUND) & (
             fpg <= data_values.FPG_TESTING.UPPER_ENROLLMENT_BOUND
         )
         enroll_if_fpg_within_bounds = (
-            self.lifestyle(pop_visitors.index) == data_values.LIFESTYLE_EXPOSURE.EXPOSED
+                self.lifestyle(tested_simulants.index) == data_values.LIFESTYLE_EXPOSURE.EXPOSED
         )
-        newly_enrolled = (
-            (tested_this_step) & (fpg_within_bounds) & (enroll_if_fpg_within_bounds)
-        )
+        newly_enrolled = fpg_within_bounds & enroll_if_fpg_within_bounds
 
-        return pop_visitors[newly_enrolled].index
+        return tested_simulants[newly_enrolled].index
 
     def schedule_followup(
         self,
