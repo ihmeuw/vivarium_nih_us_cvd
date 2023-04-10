@@ -100,6 +100,8 @@ class Treatment:
         )
 
         # Register listeners
+        builder.event.register_listener('time_step', self.on_time_step)
+
         builder.event.register_listener(
             "time_step__cleanup",
             self.on_time_step_cleanup,
@@ -224,6 +226,7 @@ class Treatment:
         return adjust_target
 
     def _register_target_modifiers(self, builder: Builder) -> None:
+        # medication effects
         builder.value.register_value_modifier(
             data_values.PIPELINES.SBP_EXPOSURE,
             modifier=self.sbp_target_modifier,
@@ -239,6 +242,31 @@ class Treatment:
             requires_columns=[
                 data_values.COLUMNS.LDLC_MEDICATION,
                 data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
+            ],
+        )
+
+        # drop value modifiers
+        builder.value.register_value_modifier(
+            data_values.PIPELINES.SBP_EXPOSURE,
+            modifier=self.apply_sbp_drop_value,
+            requires_columns=[
+                data_values.COLUMNS.SBP_MEDICATION,
+            ],
+        )
+
+        builder.value.register_value_modifier(
+            data_values.PIPELINES.BMI_EXPOSURE,
+            modifier=self.apply_bmi_drop_value,
+            requires_columns=[
+                data_values.COLUMNS.SBP_MEDICATION,
+            ],
+        )
+
+        builder.value.register_value_modifier(
+            data_values.PIPELINES.FPG_EXPOSURE,
+            modifier=self.apply_fpg_drop_value,
+            requires_columns=[
+                data_values.COLUMNS.SBP_MEDICATION,
             ],
         )
 

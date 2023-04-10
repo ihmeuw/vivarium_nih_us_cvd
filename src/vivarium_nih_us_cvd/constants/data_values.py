@@ -585,6 +585,23 @@ class __LifestyleExposure(NamedTuple):
 LIFESTYLE_EXPOSURE = __LifestyleExposure()
 
 
+class __LifestyleDropValues(NamedTuple):
+    """drop values for lifestyle intervention"""
+
+    BMI_INITIAL_DROP_VALUE: float = 2.49
+    BMI_FINAL_DROP_VALUE: float = 0.71
+    FPG_INITIAL_DROP_VALUE: float = 0.3
+    FPG_FINAL_DROP_VALUE: float = 0.17
+    SBP_INITIAL_DROP_VALUE: int = 3
+    SBP_FINAL_DROP_VALUE: int = 0
+    YEARS_IN_MAINTENANCE_PERIOD: int = 1
+    YEARS_UNTIL_FINAL_DROP_VALUE: int = 3
+
+    @property
+    def name(self):
+        return "lifestyle_drop_values"
+
+
 # Define the outreach effects on primary_non_adherence (cat 1) levels
 OUTREACH_EFFECTS = {
     "sbp": {
