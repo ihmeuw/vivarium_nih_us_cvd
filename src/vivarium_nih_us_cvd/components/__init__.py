@@ -8,5 +8,5 @@ from .observers import (
     HealthcareVisitObserver,
     ResultsStratifier,
 )
-from .risks import AdjustedRisk, CategoricalSBPRisk, TruncatedRisk, UnadjustedRisk
+from .risks import AdjustedRisk, CategoricalSBPRisk, TruncatedRisk
 from .treatment import Treatment
