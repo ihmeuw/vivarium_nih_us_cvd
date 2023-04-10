@@ -47,10 +47,10 @@ components:
             - IschemicStroke()
             - IschemicHeartDiseaseAndHeartFailure()
 
-            - UnadjustedRisk("risk_factor.high_ldl_cholesterol")
+            - TruncatedRisk("risk_factor.high_ldl_cholesterol")
             - ContinuousRiskObserver("risk_factor.high_ldl_cholesterol")
             
-            - UnadjustedRisk("risk_factor.high_systolic_blood_pressure")
+            - TruncatedRisk("risk_factor.high_systolic_blood_pressure")
             - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
 
             - TruncatedRisk("risk_factor.high_body_mass_index_in_adults")
