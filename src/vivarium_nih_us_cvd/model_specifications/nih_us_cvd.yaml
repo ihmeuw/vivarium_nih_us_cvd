@@ -91,7 +91,7 @@ configuration:
             month: 1
             day: 1
         observation_start: # TODO: Implement for all observers (currently only custom observers)
-            year: 2023
+            year: 2021
             month: 1
             day: 1
         end:
