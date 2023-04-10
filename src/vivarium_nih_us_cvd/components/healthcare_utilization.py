@@ -262,7 +262,6 @@ class HealthcareUtilization:
         newly_lifestyle_enrolled_simulants = self.determine_lifestyle_enrollment(
             tested_simulants=tested_simulants
         )
-        breakpoint()
 
         pop.loc[tested_simulants.index, data_values.COLUMNS.LAST_FPG_TEST_DATE] = self.clock()
         pop.loc[
