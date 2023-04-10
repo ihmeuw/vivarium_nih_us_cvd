@@ -38,21 +38,21 @@ class ResultsStratifier(ResultsStratifier_):
     def register_stratifications(self, builder: Builder) -> None:
         super().register_stratifications(builder)
 
-        self.setup_stratification(
-            builder,
-            name=data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
-            sources=[Source(data_values.COLUMNS.SBP_MEDICATION_ADHERENCE, SourceType.COLUMN)],
-            categories={level for level in data_values.MEDICATION_ADHERENCE_TYPE},
-        )
-
-        self.setup_stratification(
-            builder,
-            name=data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
-            sources=[
-                Source(data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE, SourceType.COLUMN)
-            ],
-            categories={level for level in data_values.MEDICATION_ADHERENCE_TYPE},
-        )
+        # self.setup_stratification(
+        #     builder,
+        #     name=data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
+        #     sources=[Source(data_values.COLUMNS.SBP_MEDICATION_ADHERENCE, SourceType.COLUMN)],
+        #     categories={level for level in data_values.MEDICATION_ADHERENCE_TYPE},
+        # )
+        #
+        # self.setup_stratification(
+        #     builder,
+        #     name=data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
+        #     sources=[
+        #         Source(data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE, SourceType.COLUMN)
+        #     ],
+        #     categories={level for level in data_values.MEDICATION_ADHERENCE_TYPE},
+        # )
 
 
 class ContinuousRiskObserver:

@@ -9,12 +9,12 @@ components:
             - DiseaseObserver("ischemic_stroke")
             - DiseaseObserver("ischemic_heart_disease_and_heart_failure")
         risks:
-            - Risk("risk_factor.sbp_medication_adherence")
-            - Risk("risk_factor.ldlc_medication_adherence")
-            # these exposures are the percentage of eligible simulants who get enrolled
-            - Risk("risk_factor.outreach")
-            - Risk("risk_factor.polypill")
-            - Risk("risk_factor.lifestyle")
+#            - Risk("risk_factor.sbp_medication_adherence")
+#            - Risk("risk_factor.ldlc_medication_adherence")
+#            # these exposures are the percentage of eligible simulants who get enrolled
+#            - Risk("risk_factor.outreach")
+#            - Risk("risk_factor.polypill")
+#            - Risk("risk_factor.lifestyle")
 
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
@@ -47,10 +47,10 @@ components:
             - IschemicStroke()
             - IschemicHeartDiseaseAndHeartFailure()
 
-            - AdjustedRisk("risk_factor.high_ldl_cholesterol")
+            - UnadjustedRisk("risk_factor.high_ldl_cholesterol")
             - ContinuousRiskObserver("risk_factor.high_ldl_cholesterol")
             
-            - AdjustedRisk("risk_factor.high_systolic_blood_pressure")
+            - UnadjustedRisk("risk_factor.high_systolic_blood_pressure")
             - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
 
             - TruncatedRisk("risk_factor.high_body_mass_index_in_adults")
@@ -61,17 +61,17 @@ components:
 
             - CategoricalSBPRisk()
 
-            - HealthcareUtilization()  # NOTE: this uses Treatment() as a sub-component
-            - HealthcareVisitObserver()
-        
-            - CategoricalColumnObserver("sbp_medication")
-            - CategoricalColumnObserver("ldlc_medication")
-
-            - InterventionAdherenceEffect()
-            - LinearScaleUp("risk_factor.outreach")
-            - LinearScaleUp("risk_factor.polypill")
-            - CategoricalColumnObserver("outreach")
-            - CategoricalColumnObserver("polypill")
+#            - HealthcareUtilization()  # NOTE: this uses Treatment() as a sub-component
+#            - HealthcareVisitObserver()
+#
+#            - CategoricalColumnObserver("sbp_medication")
+#            - CategoricalColumnObserver("ldlc_medication")
+#
+#            - InterventionAdherenceEffect()
+#            - LinearScaleUp("risk_factor.outreach")
+#            - LinearScaleUp("risk_factor.polypill")
+#            - CategoricalColumnObserver("outreach")
+#            - CategoricalColumnObserver("polypill")
 
 configuration:
     input_data:
