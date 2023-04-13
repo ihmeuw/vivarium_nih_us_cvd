@@ -27,6 +27,7 @@ class Treatment:
         self.randomness = builder.randomness.get_stream(self.name)
         self.scenario = self._get_scenario(builder)
         self.clock = builder.time.clock()
+        self.step_size = builder.time.step_size()
 
         self.gbd_sbp = builder.value.get_value(data_values.PIPELINES.SBP_GBD_EXPOSURE)
         self.sbp = builder.value.get_value(data_values.PIPELINES.SBP_EXPOSURE)
@@ -42,6 +43,7 @@ class Treatment:
         self.polypill = builder.value.get_value(data_values.PIPELINES.POLYPILL_EXPOSURE)
         self.lifestyle = builder.value.get_value(data_values.PIPELINES.LIFESTYLE_EXPOSURE)
         self.bmi = builder.value.get_value(data_values.PIPELINES.BMI_EXPOSURE)
+        self.bmi_without_drop_value = builder.value.get_value("high_body_mass_index_in_adults_without_drop_value.exposure")
         self.fpg = builder.value.get_value(data_values.PIPELINES.FPG_EXPOSURE)
 
         self.sbp_treatment_map = self._get_sbp_treatment_map()
@@ -98,9 +100,6 @@ class Treatment:
             requires_values=values_required,
             requires_streams=[self.name],
         )
-
-        # Register listeners
-        builder.event.register_listener('time_step', self.on_time_step)
 
         builder.event.register_listener(
             "time_step__cleanup",
@@ -247,28 +246,89 @@ class Treatment:
 
         # drop value modifiers
         builder.value.register_value_modifier(
-            data_values.PIPELINES.SBP_EXPOSURE,
-            modifier=self.apply_sbp_drop_value,
+            data_values.PIPELINES.BMI_DROP_VALUE,
+            modifier=self._apply_lifestyle_to_bmi,
             requires_columns=[
-                data_values.COLUMNS.SBP_MEDICATION,
+                data_values.COLUMNS.LIFESTYLE,
             ],
         )
 
         builder.value.register_value_modifier(
-            data_values.PIPELINES.BMI_EXPOSURE,
-            modifier=self.apply_bmi_drop_value,
+            data_values.PIPELINES.FPG_DROP_VALUE,
+            modifier=self._apply_lifestyle_to_fpg,
             requires_columns=[
-                data_values.COLUMNS.SBP_MEDICATION,
+                data_values.COLUMNS.LIFESTYLE,
             ],
         )
 
         builder.value.register_value_modifier(
-            data_values.PIPELINES.FPG_EXPOSURE,
-            modifier=self.apply_fpg_drop_value,
+            data_values.PIPELINES.SBP_DROP_VALUE,
+            modifier=self._apply_lifestyle_to_sbp,
             requires_columns=[
-                data_values.COLUMNS.SBP_MEDICATION,
+                data_values.COLUMNS.LIFESTYLE,
             ],
         )
+
+    def _apply_lifestyle_to_bmi(self, index, target):
+        # allow for updating drop value of dead people - makes interacting with target easier
+        pop = self.population_view.get(index)
+        enrollment_dates = pop[data_values.COLUMNS.LIFESTYLE]
+        updated_drop_values = self.get_updated_drop_values(target, enrollment_dates, risk='bmi')
+
+        return updated_drop_values
+
+    def _apply_lifestyle_to_fpg(self, index, target):
+        # allow for updating drop value of dead people - makes interacting with target easier
+        pop = self.population_view.get(index)
+        enrollment_dates = pop[data_values.COLUMNS.LIFESTYLE]
+        updated_drop_values = self.get_updated_drop_values(target, enrollment_dates, risk='fpg')
+
+        return updated_drop_values
+
+    def _apply_lifestyle_to_sbp(self, index, target):
+        # allow for updating drop value of dead people - makes interacting with target easier
+        pop = self.population_view.get(index)
+        enrollment_dates = pop[data_values.COLUMNS.LIFESTYLE]
+        updated_drop_values = self.get_updated_drop_values(target, enrollment_dates, risk='sbp')
+
+        return updated_drop_values
+
+    def get_updated_drop_values(self, target, enrollment_dates, risk):
+        try:
+            initial_drop_value, final_drop_value = {
+                'bmi': (data_values.LIFESTYLE_DROP_VALUES.BMI_INITIAL_DROP_VALUE,
+                        data_values.LIFESTYLE_DROP_VALUES.BMI_FINAL_DROP_VALUE),
+                'fpg': (data_values.LIFESTYLE_DROP_VALUES.FPG_INITIAL_DROP_VALUE,
+                        data_values.LIFESTYLE_DROP_VALUES.FPG_FINAL_DROP_VALUE),
+                'sbp': (data_values.LIFESTYLE_DROP_VALUES.SBP_INITIAL_DROP_VALUE,
+                        data_values.LIFESTYLE_DROP_VALUES.SBP_FINAL_DROP_VALUE),
+            }[risk]
+        except KeyError:
+            raise ValueError(f"Unrecognized risk {risk}. Risk should be bmi, fpg, or sbp.")
+
+        # update drop value at enrollment - no change during maintenance period
+        # enrollment occurs on time step cleanup so check previous timestep
+        newly_enrolled = enrollment_dates == self.clock() - self.step_size()
+        target.loc[newly_enrolled] = initial_drop_value
+
+        # update drop value for decreasing period
+        decreasing_period_start_dates = enrollment_dates + pd.Timedelta(
+            days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_MAINTENANCE_PERIOD)
+        decreasing_period_end_dates = decreasing_period_start_dates + pd.Timedelta(
+            days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_DECREASING_PERIOD)
+
+        progress = (self.clock() - decreasing_period_start_dates) / (
+                pd.Timedelta(days=round(365.25*data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_DECREASING_PERIOD))
+        )
+        in_decreasing_period = (decreasing_period_start_dates < self.clock()) & (
+                    self.clock() <= decreasing_period_end_dates)
+        target.loc[in_decreasing_period] = initial_drop_value - progress[in_decreasing_period]*(initial_drop_value - final_drop_value)
+
+        # update drop value once final value has been reached
+        reached_final_value = self.clock() > decreasing_period_end_dates
+        target.loc[reached_final_value] = final_drop_value
+
+        return target
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         """Implements baseline medication coverage as well as adherence levels
@@ -303,7 +363,7 @@ class Treatment:
         pop[data_values.COLUMNS.LIFESTYLE] = pd.NaT
 
         # Generate column for last FPG test date
-        bmi = self.bmi(pop.index)
+        bmi = self.bmi_without_drop_value(pop.index)
         age = pop["age"]
         is_eligible_for_testing = (
             age >= data_values.FPG_TESTING.AGE_ELIGIBILITY_THRESHOLD
