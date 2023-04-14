@@ -379,7 +379,9 @@ class Treatment:
         pop = self.initialize_medication_coverage(pop)
 
         # Generate lifestyle adherence column
-        lifestyle_propensity = self.randomness.get_draw(pop_data.index, additional_key='lifestyle_propensity')
+        lifestyle_propensity = self.randomness.get_draw(
+            pop_data.index, additional_key="lifestyle_propensity"
+        )
         pop[data_values.COLUMNS.LIFESTYLE_ADHERENCE] = (
             lifestyle_propensity > data_values.LIFESTYLE_DROP_VALUES.PERCENTAGE_NON_ADHERENT
         )
