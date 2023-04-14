@@ -47,6 +47,7 @@ class __Pipelines(NamedTuple):
     LDLC_EXPOSURE: str = "high_ldl_cholesterol.exposure"
     SBP_MEDICATION_ADHERENCE_EXPOSURE: str = "sbp_medication_adherence.exposure"
     LDLC_MEDICATION_ADHERENCE_EXPOSURE: str = "ldlc_medication_adherence.exposure"
+    LIFESTYLE_ADHERENCE: str = "lifestyle_adherence"
     OUTREACH_EXPOSURE: str = "outreach.exposure"
     POLYPILL_EXPOSURE: str = "polypill.exposure"
     LIFESTYLE_EXPOSURE: str = "lifestyle.exposure"
@@ -602,6 +603,7 @@ class __LifestyleDropValues(NamedTuple):
     SBP_FINAL_DROP_VALUE: int = 0
     YEARS_IN_MAINTENANCE_PERIOD: float = 1.0
     YEARS_IN_DECREASING_PERIOD: float = 3.0
+    PERCENTAGE_NON_ADHERENT: float = 0.369
 
     @property
     def name(self):
