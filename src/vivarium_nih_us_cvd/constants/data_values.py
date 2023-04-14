@@ -53,7 +53,9 @@ class __Pipelines(NamedTuple):
     LIFESTYLE_EXPOSURE: str = "lifestyle.exposure"
     BMI_EXPOSURE: str = "high_body_mass_index_in_adults.exposure"
     FPG_EXPOSURE: str = "high_fasting_plasma_glucose.exposure"
-    BMI_WITHOUT_DROP_VALUE_EXPOSURE: str = "high_body_mass_index_in_adults_without_drop_value.exposure"
+    BMI_WITHOUT_DROP_VALUE_EXPOSURE: str = (
+        "high_body_mass_index_in_adults_without_drop_value.exposure"
+    )
     SBP_DROP_VALUE: str = "high_systolic_blood_pressure.drop_value"
     BMI_DROP_VALUE: str = "high_body_mass_index_in_adults.drop_value"
     FPG_DROP_VALUE: str = "high_fasting_plasma_glucose.drop_value"
@@ -601,11 +603,12 @@ class __LifestyleDropValues(NamedTuple):
     SBP_FINAL_DROP_VALUE: int = 0
     YEARS_IN_MAINTENANCE_PERIOD: float = 1.0
     YEARS_IN_DECREASING_PERIOD: float = 3.0
-    PERCENTAGE_NON_ADHERENT: float = .369
+    PERCENTAGE_NON_ADHERENT: float = 0.369
 
     @property
     def name(self):
         return "lifestyle_drop_values"
+
 
 LIFESTYLE_DROP_VALUES = __LifestyleDropValues()
 

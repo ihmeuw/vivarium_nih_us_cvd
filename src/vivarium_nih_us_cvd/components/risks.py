@@ -26,7 +26,9 @@ class DropValueRisk(Risk):
 
     def __init__(self, risk: str):
         super().__init__(risk)
-        self.exposure_without_drop_value_pipeline_name = f"{self.risk.name}_without_drop_value.exposure"
+        self.exposure_without_drop_value_pipeline_name = (
+            f"{self.risk.name}_without_drop_value.exposure"
+        )
         self.drop_value_pipeline_name = f"{self.risk.name}.drop_value"
 
     def __repr__(self) -> str:
@@ -38,7 +40,9 @@ class DropValueRisk(Risk):
 
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
-        self.exposure_without_drop_value = self._get_exposure_without_drop_value_pipeline(builder)
+        self.exposure_without_drop_value = self._get_exposure_without_drop_value_pipeline(
+            builder
+        )
         self.drop_value = self._get_drop_value_pipeline(builder)
 
     def _get_drop_value_pipeline(self, builder: Builder) -> Pipeline:
