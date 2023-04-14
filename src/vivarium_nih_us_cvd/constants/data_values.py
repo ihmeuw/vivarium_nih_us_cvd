@@ -16,6 +16,7 @@ class __Columns(NamedTuple):
     SBP_MEDICATION_ADHERENCE: str = "sbp_medication_adherence"
     LDLC_MEDICATION: str = "ldlc_medication"
     LDLC_MEDICATION_ADHERENCE: str = "ldlc_medication_adherence"
+    LIFESTYLE_ADHERENCE: str = "lifestyle_adherence"
     BASELINE_SBP_MEDICATION: str = "baseline_sbp_medication"
     BASELINE_LDLC_MEDICATION: str = "baseline_ldlc_medication"
     SBP_MULTIPLIER: str = "sbp_multiplier"
@@ -602,6 +603,7 @@ class __LifestyleDropValues(NamedTuple):
     SBP_FINAL_DROP_VALUE: int = 0
     YEARS_IN_MAINTENANCE_PERIOD: float = 1.0
     YEARS_IN_DECREASING_PERIOD: float = 3.0
+    PERCENTAGE_NON_ADHERENT: float = 0.369
 
     @property
     def name(self):
