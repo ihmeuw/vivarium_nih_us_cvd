@@ -43,7 +43,7 @@ class Treatment:
         self.polypill = builder.value.get_value(data_values.PIPELINES.POLYPILL_EXPOSURE)
         self.lifestyle = builder.value.get_value(data_values.PIPELINES.LIFESTYLE_EXPOSURE)
         self.bmi = builder.value.get_value(data_values.PIPELINES.BMI_EXPOSURE)
-        self.bmi_without_drop_value = builder.value.get_value("high_body_mass_index_in_adults_without_drop_value.exposure")
+        self.bmi_without_drop_value = builder.value.get_value(data_values.PIPELINES.BMI_WITHOUT_DROP_VALUE_EXPOSURE)
         self.fpg = builder.value.get_value(data_values.PIPELINES.FPG_EXPOSURE)
 
         self.sbp_treatment_map = self._get_sbp_treatment_map()
