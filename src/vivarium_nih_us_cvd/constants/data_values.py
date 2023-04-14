@@ -23,6 +23,7 @@ class __Columns(NamedTuple):
     OUTREACH: str = "outreach"
     POLYPILL: str = "polypill"
     LIFESTYLE: str = "lifestyle"
+    LIFESTYLE_ADHERENCE: str = "lifestyle_adherence"
     LAST_FPG_TEST_DATE: str = "last_fpg_test_date"
 
     @property
@@ -600,6 +601,7 @@ class __LifestyleDropValues(NamedTuple):
     SBP_FINAL_DROP_VALUE: int = 0
     YEARS_IN_MAINTENANCE_PERIOD: float = 1.0
     YEARS_IN_DECREASING_PERIOD: float = 3.0
+    PERCENTAGE_NON_ADHERENT: float = .369
 
     @property
     def name(self):

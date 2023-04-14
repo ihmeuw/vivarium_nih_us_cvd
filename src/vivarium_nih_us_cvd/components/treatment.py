@@ -60,6 +60,7 @@ class Treatment:
             data_values.COLUMNS.LDLC_MEDICATION,
             data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
             data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
+            data_values.COLUMNS.LIFESTYLE_ADHERENCE,
             data_values.COLUMNS.SBP_MULTIPLIER,
             data_values.COLUMNS.LDLC_MULTIPLIER,
             data_values.COLUMNS.OUTREACH,
@@ -354,6 +355,10 @@ class Treatment:
         )
         pop = self.initialize_medication_coverage(pop)
 
+        # Generate lifestyle adherence column
+        lifestyle_propensity = self.randomness.get_draw(pop_data.index)
+        pop[data_values.COLUMNS.LIFESTYLE_ADHERENCE] = lifestyle_propensity > data_values.LIFESTYLE_DROP_VALUES.PERCENTAGE_NON_ADHERENT
+
         # Generate outreach, polypill, and lifestyle intervention columns
         # NOTE: All scenarios in this simulation start with 0%
         # intervention exposure for outreach and polypill so there
@@ -470,6 +475,7 @@ class Treatment:
                     data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
                     data_values.COLUMNS.LDLC_MEDICATION,
                     data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
+                    data_values.COLUMNS.LIFESTYLE_ADHERENCE,
                     data_values.COLUMNS.SBP_MULTIPLIER,
                     data_values.COLUMNS.LDLC_MULTIPLIER,
                     data_values.COLUMNS.OUTREACH,
