@@ -43,7 +43,9 @@ class Treatment:
         self.polypill = builder.value.get_value(data_values.PIPELINES.POLYPILL_EXPOSURE)
         self.lifestyle = builder.value.get_value(data_values.PIPELINES.LIFESTYLE_EXPOSURE)
         self.bmi = builder.value.get_value(data_values.PIPELINES.BMI_EXPOSURE)
-        self.bmi_without_drop_value = builder.value.get_value(data_values.PIPELINES.BMI_WITHOUT_DROP_VALUE_EXPOSURE)
+        self.bmi_without_drop_value = builder.value.get_value(
+            data_values.PIPELINES.BMI_WITHOUT_DROP_VALUE_EXPOSURE
+        )
         self.fpg = builder.value.get_value(data_values.PIPELINES.FPG_EXPOSURE)
 
         self.sbp_treatment_map = self._get_sbp_treatment_map()
@@ -273,7 +275,9 @@ class Treatment:
         # allow for updating drop value of dead people - makes interacting with target easier
         pop = self.population_view.get(index)
         enrollment_dates = pop[data_values.COLUMNS.LIFESTYLE]
-        updated_drop_values = self.get_updated_drop_values(target, enrollment_dates, risk='bmi')
+        updated_drop_values = self.get_updated_drop_values(
+            target, enrollment_dates, risk="bmi"
+        )
 
         return updated_drop_values
 
@@ -281,7 +285,9 @@ class Treatment:
         # allow for updating drop value of dead people - makes interacting with target easier
         pop = self.population_view.get(index)
         enrollment_dates = pop[data_values.COLUMNS.LIFESTYLE]
-        updated_drop_values = self.get_updated_drop_values(target, enrollment_dates, risk='fpg')
+        updated_drop_values = self.get_updated_drop_values(
+            target, enrollment_dates, risk="fpg"
+        )
 
         return updated_drop_values
 
@@ -289,19 +295,27 @@ class Treatment:
         # allow for updating drop value of dead people - makes interacting with target easier
         pop = self.population_view.get(index)
         enrollment_dates = pop[data_values.COLUMNS.LIFESTYLE]
-        updated_drop_values = self.get_updated_drop_values(target, enrollment_dates, risk='sbp')
+        updated_drop_values = self.get_updated_drop_values(
+            target, enrollment_dates, risk="sbp"
+        )
 
         return updated_drop_values
 
     def get_updated_drop_values(self, target, enrollment_dates, risk):
         try:
             initial_drop_value, final_drop_value = {
-                'bmi': (data_values.LIFESTYLE_DROP_VALUES.BMI_INITIAL_DROP_VALUE,
-                        data_values.LIFESTYLE_DROP_VALUES.BMI_FINAL_DROP_VALUE),
-                'fpg': (data_values.LIFESTYLE_DROP_VALUES.FPG_INITIAL_DROP_VALUE,
-                        data_values.LIFESTYLE_DROP_VALUES.FPG_FINAL_DROP_VALUE),
-                'sbp': (data_values.LIFESTYLE_DROP_VALUES.SBP_INITIAL_DROP_VALUE,
-                        data_values.LIFESTYLE_DROP_VALUES.SBP_FINAL_DROP_VALUE),
+                "bmi": (
+                    data_values.LIFESTYLE_DROP_VALUES.BMI_INITIAL_DROP_VALUE,
+                    data_values.LIFESTYLE_DROP_VALUES.BMI_FINAL_DROP_VALUE,
+                ),
+                "fpg": (
+                    data_values.LIFESTYLE_DROP_VALUES.FPG_INITIAL_DROP_VALUE,
+                    data_values.LIFESTYLE_DROP_VALUES.FPG_FINAL_DROP_VALUE,
+                ),
+                "sbp": (
+                    data_values.LIFESTYLE_DROP_VALUES.SBP_INITIAL_DROP_VALUE,
+                    data_values.LIFESTYLE_DROP_VALUES.SBP_FINAL_DROP_VALUE,
+                ),
             }[risk]
         except KeyError:
             raise ValueError(f"Unrecognized risk {risk}. Risk should be bmi, fpg, or sbp.")
@@ -313,16 +327,25 @@ class Treatment:
 
         # update drop value for decreasing period
         decreasing_period_start_dates = enrollment_dates + pd.Timedelta(
-            days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_MAINTENANCE_PERIOD)
+            days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_MAINTENANCE_PERIOD
+        )
         decreasing_period_end_dates = decreasing_period_start_dates + pd.Timedelta(
-            days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_DECREASING_PERIOD)
+            days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_DECREASING_PERIOD
+        )
 
         progress = (self.clock() - decreasing_period_start_dates) / (
-                pd.Timedelta(days=round(365.25*data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_DECREASING_PERIOD))
+            pd.Timedelta(
+                days=round(
+                    365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_DECREASING_PERIOD
+                )
+            )
         )
         in_decreasing_period = (decreasing_period_start_dates < self.clock()) & (
-                    self.clock() <= decreasing_period_end_dates)
-        target.loc[in_decreasing_period] = initial_drop_value - progress[in_decreasing_period]*(initial_drop_value - final_drop_value)
+            self.clock() <= decreasing_period_end_dates
+        )
+        target.loc[in_decreasing_period] = initial_drop_value - progress[
+            in_decreasing_period
+        ] * (initial_drop_value - final_drop_value)
 
         # update drop value once final value has been reached
         reached_final_value = self.clock() > decreasing_period_end_dates
