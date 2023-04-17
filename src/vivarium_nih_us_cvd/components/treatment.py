@@ -321,25 +321,27 @@ class Treatment:
         except KeyError:
             raise ValueError(f"Unrecognized risk {risk}. Risk should be bmi, fpg, or sbp.")
 
-        # update drop value at enrollment - no change during maintenance period
-        # enrollment occurs on time step cleanup so check previous timestep
-        newly_enrolled = enrollment_dates == self.clock() - self.step_size()
-        target.loc[newly_enrolled] = initial_drop_value
+        # drop value at enrollment and during maintenance period
+        step_sizes_in_maintenance = round(
+            (365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_MAINTENANCE_PERIOD)
+            / self.step_size().days
+        )
+        decreasing_period_start_dates = enrollment_dates + pd.Timedelta(
+            days=self.step_size().days * step_sizes_in_maintenance
+        )
+        at_initial_drop_value = self.clock() <= decreasing_period_start_dates
+        target.loc[at_initial_drop_value] = initial_drop_value
 
         # update drop value for decreasing period
-        decreasing_period_start_dates = enrollment_dates + pd.Timedelta(
-            days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_MAINTENANCE_PERIOD
+        step_sizes_in_decreasing_period = round(
+            (365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_DECREASING_PERIOD)
+            / self.step_size().days
         )
         decreasing_period_end_dates = decreasing_period_start_dates + pd.Timedelta(
-            days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_DECREASING_PERIOD
+            days=self.step_size().days * step_sizes_in_decreasing_period
         )
-
         progress = (self.clock() - decreasing_period_start_dates) / (
-            pd.Timedelta(
-                days=round(
-                    365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_DECREASING_PERIOD
-                )
-            )
+            pd.Timedelta(days=self.step_size().days * step_sizes_in_decreasing_period)
         )
         in_decreasing_period = (decreasing_period_start_dates < self.clock()) & (
             self.clock() <= decreasing_period_end_dates
@@ -351,6 +353,12 @@ class Treatment:
         # update drop value once final value has been reached
         reached_final_value = self.clock() > decreasing_period_end_dates
         target.loc[reached_final_value] = final_drop_value
+
+        # don't update drop values for non-adherent simulants
+        target = (
+            target
+            * self.population_view.get(target.index)[data_values.COLUMNS.LIFESTYLE_ADHERENCE]
+        )
 
         return target
 
