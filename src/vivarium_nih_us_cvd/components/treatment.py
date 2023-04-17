@@ -68,7 +68,6 @@ class Treatment:
             data_values.COLUMNS.OUTREACH,
             data_values.COLUMNS.POLYPILL,
             data_values.COLUMNS.LIFESTYLE,
-            data_values.COLUMNS.LAST_FPG_TEST_DATE,
         ]
         columns_required_on_initialization = [
             "age",
@@ -80,7 +79,7 @@ class Treatment:
         self.population_view = builder.population.get_view(
             columns_required_on_initialization
             + columns_created
-            + [data_values.COLUMNS.VISIT_TYPE]
+            + [data_values.COLUMNS.VISIT_TYPE, data_values.COLUMNS.LAST_FPG_TEST_DATE]
         )
 
         values_required = [
@@ -516,7 +515,6 @@ class Treatment:
                     data_values.COLUMNS.OUTREACH,
                     data_values.COLUMNS.POLYPILL,
                     data_values.COLUMNS.LIFESTYLE,
-                    data_values.COLUMNS.LAST_FPG_TEST_DATE,
                 ]
             ]
         )
@@ -627,10 +625,6 @@ class Treatment:
             pop.loc[visitors] = self.enroll_in_polypill(
                 pop_visitors=pop.loc[visitors], maybe_enroll=maybe_enroll_sbp
             )
-
-        # Move through lifestyle intervention ramp
-        # Update last FPG test date
-        self.apply_lifestyle_ramp(pop_visitors=pop.loc[visitors])
 
         self.population_view.update(
             pop[
@@ -973,68 +967,6 @@ class Treatment:
         )
 
         return pop_visitors
-
-    def apply_lifestyle_ramp(self, pop_visitors: pd.DataFrame) -> pd.DataFrame:
-        # Determine testing eligibility
-        not_already_enrolled = pop_visitors[data_values.COLUMNS.LIFESTYLE].isna()
-        bmi = self.bmi(pop_visitors.index)
-        age = pop_visitors["age"]
-
-        fpg_not_tested_recently = (
-            # never been tested for FPG
-            pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE].isna()
-        ) | (
-            # last FPG test more than 3 years ago
-            pop_visitors[data_values.COLUMNS.LAST_FPG_TEST_DATE]
-            < self.clock()
-            - pd.Timedelta(days=365.25 * data_values.FPG_TESTING.MIN_YEARS_BETWEEN_TESTS)
-        )
-
-        is_eligible_for_testing = (
-            (not_already_enrolled)
-            & (age >= data_values.FPG_TESTING.AGE_ELIGIBILITY_THRESHOLD)
-            & (bmi >= data_values.FPG_TESTING.BMI_ELIGIBILITY_THRESHOLD)
-            & (fpg_not_tested_recently)
-        )
-
-        # Determine which simulants eligible for FPG testing actually get tested
-        tested_simulants = self.randomness.filter_for_probability(
-            pop_visitors[is_eligible_for_testing],
-            [data_values.FPG_TESTING.PROBABILITY_OF_TESTING_GIVEN_ELIGIBLE]
-            * sum(is_eligible_for_testing),
-        )
-
-        # Test simulants for FPG
-        pop_visitors.loc[
-            tested_simulants.index, data_values.COLUMNS.LAST_FPG_TEST_DATE
-        ] = self.clock()
-
-        fpg = self.fpg(tested_simulants.index)
-
-        # Enroll in lifestyle by updating lifestyle column with date of enrollment
-        fpg_within_bounds = (fpg >= data_values.FPG_TESTING.LOWER_ENROLLMENT_BOUND) & (
-            fpg <= data_values.FPG_TESTING.UPPER_ENROLLMENT_BOUND
-        )
-        enroll_if_fpg_within_bounds = (
-            self.lifestyle(tested_simulants.index) == data_values.LIFESTYLE_EXPOSURE.EXPOSED
-        )
-        newly_enrolled = fpg_within_bounds & enroll_if_fpg_within_bounds
-        tested_simulants.loc[newly_enrolled, data_values.COLUMNS.LIFESTYLE] = self.clock()
-
-        self.population_view.update(
-            pop_visitors[
-                [
-                    data_values.COLUMNS.LAST_FPG_TEST_DATE,
-                ]
-            ]
-        )
-        self.population_view.update(
-            tested_simulants[
-                [
-                    data_values.COLUMNS.LIFESTYLE,
-                ]
-            ]
-        )
 
     def get_measured_sbp(
         self,
