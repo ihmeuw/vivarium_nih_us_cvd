@@ -322,26 +322,20 @@ class Treatment:
             raise ValueError(f"Unrecognized risk {risk}. Risk should be bmi, fpg, or sbp.")
 
         # drop value at enrollment and during maintenance period
-        step_sizes_in_maintenance = round(
-            (365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_MAINTENANCE_PERIOD)
-            / self.step_size().days
-        )
         decreasing_period_start_dates = enrollment_dates + pd.Timedelta(
-            days=self.step_size().days * step_sizes_in_maintenance
+            days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_MAINTENANCE_PERIOD
         )
         at_initial_drop_value = self.clock() <= decreasing_period_start_dates
         target.loc[at_initial_drop_value] = initial_drop_value
 
         # update drop value for decreasing period
-        step_sizes_in_decreasing_period = round(
-            (365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_DECREASING_PERIOD)
-            / self.step_size().days
-        )
         decreasing_period_end_dates = decreasing_period_start_dates + pd.Timedelta(
-            days=self.step_size().days * step_sizes_in_decreasing_period
+            days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_DECREASING_PERIOD
         )
         progress = (self.clock() - decreasing_period_start_dates) / (
-            pd.Timedelta(days=self.step_size().days * step_sizes_in_decreasing_period)
+            pd.Timedelta(
+                days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_DECREASING_PERIOD
+            )
         )
         in_decreasing_period = (decreasing_period_start_dates < self.clock()) & (
             self.clock() <= decreasing_period_end_dates
