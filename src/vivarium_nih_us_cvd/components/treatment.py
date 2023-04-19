@@ -299,7 +299,6 @@ class Treatment:
 
         return updated_drop_values
 
-
     def get_updated_drop_values(self, target, enrollment_dates, risk):
         try:
             initial_drop_value, final_drop_value = {
