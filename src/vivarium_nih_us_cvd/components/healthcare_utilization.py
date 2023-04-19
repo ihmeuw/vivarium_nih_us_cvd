@@ -38,6 +38,7 @@ class HealthcareUtilization:
         self.randomness = builder.randomness.get_stream(self.name)
 
         self.lifestyle = builder.value.get_value(data_values.PIPELINES.LIFESTYLE_EXPOSURE)
+        self.bmi_raw = builder.value.get_value(data_values.PIPELINES.BMI_RAW_EXPOSURE)
         self.bmi = builder.value.get_value(data_values.PIPELINES.BMI_EXPOSURE)
         self.fpg = builder.value.get_value(data_values.PIPELINES.FPG_EXPOSURE)
 
@@ -163,7 +164,7 @@ class HealthcareUtilization:
         )
 
         # Generate column for last FPG test date
-        bmi = self.bmi(pop.index)
+        bmi = self.bmi_raw(pop.index)
         age = pop["age"]
         is_eligible_for_testing = (
             age >= data_values.FPG_TESTING.AGE_ELIGIBILITY_THRESHOLD

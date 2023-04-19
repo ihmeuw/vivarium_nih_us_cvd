@@ -26,9 +26,7 @@ class DropValueRisk(Risk):
 
     def __init__(self, risk: str):
         super().__init__(risk)
-        self.exposure_without_drop_value_pipeline_name = (
-            f"{self.risk.name}_without_drop_value.exposure"
-        )
+        self.raw_exposure_pipeline_name = f"{self.risk.name}.raw_exposure"
         self.drop_value_pipeline_name = f"{self.risk.name}.drop_value"
 
     def __repr__(self) -> str:
@@ -40,9 +38,7 @@ class DropValueRisk(Risk):
 
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
-        self.exposure_without_drop_value = self._get_exposure_without_drop_value_pipeline(
-            builder
-        )
+        self.raw_exposure = self._get_raw_exposure_pipeline(builder)
         self.drop_value = self._get_drop_value_pipeline(builder)
 
     def _get_drop_value_pipeline(self, builder: Builder) -> Pipeline:
@@ -51,9 +47,9 @@ class DropValueRisk(Risk):
             source=lambda index: pd.Series(0, index=index),
         )
 
-    def _get_exposure_without_drop_value_pipeline(self, builder: Builder) -> Pipeline:
+    def _get_raw_exposure_pipeline(self, builder: Builder) -> Pipeline:
         return builder.value.register_value_producer(
-            self.exposure_without_drop_value_pipeline_name,
+            self.raw_exposure_pipeline_name,
             source=self._get_current_exposure,
             requires_columns=["age", "sex"],
             requires_values=[self.propensity_pipeline_name],

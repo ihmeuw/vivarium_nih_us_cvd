@@ -43,9 +43,7 @@ class Treatment:
         self.polypill = builder.value.get_value(data_values.PIPELINES.POLYPILL_EXPOSURE)
         self.lifestyle = builder.value.get_value(data_values.PIPELINES.LIFESTYLE_EXPOSURE)
         self.bmi = builder.value.get_value(data_values.PIPELINES.BMI_EXPOSURE)
-        self.bmi_without_drop_value = builder.value.get_value(
-            data_values.PIPELINES.BMI_WITHOUT_DROP_VALUE_EXPOSURE
-        )
+        self.bmi_raw = builder.value.get_value(data_values.PIPELINES.BMI_RAW_EXPOSURE)
         self.fpg = builder.value.get_value(data_values.PIPELINES.FPG_EXPOSURE)
 
         self.sbp_treatment_map = self._get_sbp_treatment_map()
@@ -301,6 +299,7 @@ class Treatment:
 
         return updated_drop_values
 
+
     def get_updated_drop_values(self, target, enrollment_dates, risk):
         try:
             initial_drop_value, final_drop_value = {
@@ -396,7 +395,7 @@ class Treatment:
         pop[data_values.COLUMNS.LIFESTYLE] = pd.NaT
 
         # Generate column for last FPG test date
-        bmi = self.bmi_without_drop_value(pop.index)
+        bmi = self.bmi_raw(pop.index)
         age = pop["age"]
         is_eligible_for_testing = (
             age >= data_values.FPG_TESTING.AGE_ELIGIBILITY_THRESHOLD
