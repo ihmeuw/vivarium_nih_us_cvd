@@ -163,4 +163,4 @@ configuration:
                 day: 1
         value:
             start: 0.0855
-            end: 0.5
+            end: 0.0855
