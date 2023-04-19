@@ -70,6 +70,7 @@ components:
             - InterventionAdherenceEffect()
             - LinearScaleUp("risk_factor.outreach")
             - LinearScaleUp("risk_factor.polypill")
+            - LinearScaleUp("risk_factor.lifestyle")
             - CategoricalColumnObserver("outreach")
             - CategoricalColumnObserver("polypill")
 
@@ -150,3 +151,16 @@ configuration:
         value:
             start: 0
             end: 0
+    lifestyle_scale_up:
+        date:
+            start:
+                year: 2023
+                month: 1
+                day: 1
+            end:
+                year: 2024
+                month: 1
+                day: 1
+        value:
+            start: 0.0855
+            end: 0.5
