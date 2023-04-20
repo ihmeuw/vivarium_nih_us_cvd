@@ -269,7 +269,6 @@ class Treatment:
             ],
         )
 
-
     def _apply_lifestyle(self, index: pd.Index, target: pd.Series, risk: str):
         # allow for updating drop value of dead people - makes interacting with target easier
         pop = self.population_view.get(index)
