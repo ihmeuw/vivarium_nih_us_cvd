@@ -269,35 +269,25 @@ class Treatment:
             ],
         )
 
-    def _apply_lifestyle_to_bmi(self, index, target):
+
+    def _apply_lifestyle(self, index: pd.Index, target: pd.Series, risk: str):
         # allow for updating drop value of dead people - makes interacting with target easier
         pop = self.population_view.get(index)
         enrollment_dates = pop[data_values.COLUMNS.LIFESTYLE]
         updated_drop_values = self.get_updated_drop_values(
-            target, enrollment_dates, risk="bmi"
+            target, enrollment_dates, risk=risk
         )
 
         return updated_drop_values
+
+    def _apply_lifestyle_to_bmi(self, index, target):
+        return self._apply_lifestyle(index, target, risk="bmi")
 
     def _apply_lifestyle_to_fpg(self, index, target):
-        # allow for updating drop value of dead people - makes interacting with target easier
-        pop = self.population_view.get(index)
-        enrollment_dates = pop[data_values.COLUMNS.LIFESTYLE]
-        updated_drop_values = self.get_updated_drop_values(
-            target, enrollment_dates, risk="fpg"
-        )
-
-        return updated_drop_values
+        return self._apply_lifestyle(index, target, risk="fpg")
 
     def _apply_lifestyle_to_sbp(self, index, target):
-        # allow for updating drop value of dead people - makes interacting with target easier
-        pop = self.population_view.get(index)
-        enrollment_dates = pop[data_values.COLUMNS.LIFESTYLE]
-        updated_drop_values = self.get_updated_drop_values(
-            target, enrollment_dates, risk="sbp"
-        )
-
-        return updated_drop_values
+        return self._apply_lifestyle(index, target, risk="sbp")
 
     def get_updated_drop_values(self, target, enrollment_dates, risk):
         try:
