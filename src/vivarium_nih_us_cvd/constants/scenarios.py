@@ -58,6 +58,8 @@ class __InterventionScenarios(NamedTuple):
         "polypill_medication_only_100",
         polypill_affects_sbp_medication=True,
     )
+    LIFESTYLE_50: InterventionScenario = InterventionScenario("lifestyle_50")
+    LIFESTYLE_100: InterventionScenario = InterventionScenario("lifestyle_100")
 
     def __getitem__(self, item) -> InterventionScenario:
         for scenario in self:
