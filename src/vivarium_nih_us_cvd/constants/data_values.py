@@ -16,6 +16,7 @@ class __Columns(NamedTuple):
     SBP_MEDICATION_ADHERENCE: str = "sbp_medication_adherence"
     LDLC_MEDICATION: str = "ldlc_medication"
     LDLC_MEDICATION_ADHERENCE: str = "ldlc_medication_adherence"
+    LIFESTYLE_ADHERENCE: str = "lifestyle_adherence"
     BASELINE_SBP_MEDICATION: str = "baseline_sbp_medication"
     BASELINE_LDLC_MEDICATION: str = "baseline_ldlc_medication"
     SBP_MULTIPLIER: str = "sbp_multiplier"
@@ -52,6 +53,10 @@ class __Pipelines(NamedTuple):
     LIFESTYLE_EXPOSURE: str = "lifestyle.exposure"
     BMI_EXPOSURE: str = "high_body_mass_index_in_adults.exposure"
     FPG_EXPOSURE: str = "high_fasting_plasma_glucose.exposure"
+    BMI_RAW_EXPOSURE: str = "high_body_mass_index_in_adults.raw_exposure"
+    SBP_DROP_VALUE: str = "high_systolic_blood_pressure.drop_value"
+    BMI_DROP_VALUE: str = "high_body_mass_index_in_adults.drop_value"
+    FPG_DROP_VALUE: str = "high_fasting_plasma_glucose.drop_value"
 
     @property
     def name(self):
@@ -583,6 +588,27 @@ class __LifestyleExposure(NamedTuple):
 
 
 LIFESTYLE_EXPOSURE = __LifestyleExposure()
+
+
+class __LifestyleDropValues(NamedTuple):
+    """drop values for lifestyle intervention"""
+
+    BMI_INITIAL_DROP_VALUE: float = 2.49
+    BMI_FINAL_DROP_VALUE: float = 0.71
+    FPG_INITIAL_DROP_VALUE: float = 0.3
+    FPG_FINAL_DROP_VALUE: float = 0.17
+    SBP_INITIAL_DROP_VALUE: int = 3
+    SBP_FINAL_DROP_VALUE: int = 0
+    YEARS_IN_MAINTENANCE_PERIOD: float = 1.0
+    YEARS_IN_DECREASING_PERIOD: float = 3.0
+    PERCENTAGE_NON_ADHERENT: float = 0.369
+
+    @property
+    def name(self):
+        return "lifestyle_drop_values"
+
+
+LIFESTYLE_DROP_VALUES = __LifestyleDropValues()
 
 
 # Define the outreach effects on primary_non_adherence (cat 1) levels
