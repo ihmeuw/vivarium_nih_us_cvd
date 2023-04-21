@@ -181,6 +181,7 @@ class __LDLCThreshold(NamedTuple):
     """ldl-c exposure thresholds"""
 
     LOW: float = 1.81
+    MEDIUM: float = 2.91
     HIGH: float = 4.91
 
     @property

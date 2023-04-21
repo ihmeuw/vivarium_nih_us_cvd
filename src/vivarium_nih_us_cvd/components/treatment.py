@@ -768,9 +768,11 @@ class Treatment:
         )
 
         # Generate other useful helper indexes
+        old_pop = pop_visitors[pop_visitors['age'] >= 75].index
         low_ascvd = ascvd[ascvd < data_values.ASCVD_THRESHOLD.LOW].index
         high_ascvd = ascvd[ascvd >= data_values.ASCVD_THRESHOLD.HIGH].index
         low_ldlc = measured_ldlc[measured_ldlc < data_values.LDLC_THRESHOLD.LOW].index
+        above_medium_ldlc = measured_ldlc[measured_ldlc >= data_values.LDLC_THRESHOLD.MEDIUM].index
         high_ldlc = measured_ldlc[measured_ldlc >= data_values.LDLC_THRESHOLD.HIGH].index
         mask_history_mi = (
             pop_visitors[models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME]
@@ -781,26 +783,27 @@ class Treatment:
             != models.ISCHEMIC_STROKE_SUSCEPTIBLE_STATE_NAME
         )
         history_mi_or_is = pop_visitors[mask_history_mi | mask_history_is].index
-        newly_prescribed = (
+        newly_prescribed_young = (
             overcome_therapeutic_inertia.difference(currently_medicated)
             .difference(low_ascvd)
             .difference(low_ldlc)
+            .difference(old_pop)
         )
 
         # [Treatment ramp ID D] Simulants who overcome therapeutic inertia, have
         # elevated LDLC, are not currently medicated, have elevated ASCVD, and
         # have a history of MI or IS
-        to_prescribe_d = newly_prescribed.intersection(history_mi_or_is)
+        to_prescribe_d = newly_prescribed_young.intersection(history_mi_or_is)
         # [Treatment ramp ID E] Simulants who overcome therapeutic inertia, have
         # elevated LDLC, are not currently medicated, have elevated ASCVD, have
         # no history of MI or IS, and who have high LDLC or ASCVD
-        to_prescribe_e = newly_prescribed.difference(to_prescribe_d).intersection(
+        to_prescribe_e = newly_prescribed_young.difference(to_prescribe_d).intersection(
             high_ascvd.union(high_ldlc)
         )
         # [Treatment ramp ID F] Simulants who overcome therapeutic inertia, have
         # elevated LDLC, are not currently medicated, have elevated ASCVD, have
         # no history of MI or IS, but who do NOT have high LDLC or ASCVD
-        to_prescribe_f = newly_prescribed.difference(to_prescribe_d).difference(
+        to_prescribe_f = newly_prescribed_young.difference(to_prescribe_d).difference(
             to_prescribe_e
         )
         # [Treatment ramp ID G] Simulants who overcome therapeutic inertia, have
@@ -810,8 +813,11 @@ class Treatment:
             .difference(low_ldlc)
             .difference(low_ascvd)
         )
+        # [Treatment ramp ID F2] Simulants who are 75+ with high LDL
+        to_prescribe_f2 = overcome_therapeutic_inertia.intersection(currently_medicated).intersection(old_pop).intersection(above_medium_ldlc)
 
         # Prescribe initial medications
+        newly_prescribed = newly_prescribed_young.union(to_prescribe_f2)
         df_newly_prescribed = pd.DataFrame(index=newly_prescribed)
         df_newly_prescribed.loc[
             to_prescribe_d,
@@ -823,6 +829,10 @@ class Treatment:
         ] = data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_e"].values()
         df_newly_prescribed.loc[
             to_prescribe_f,
+            data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_f"].keys(),
+        ] = data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_f"].values()
+        df_newly_prescribed.loc[
+            to_prescribe_f2,
             data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_f"].keys(),
         ] = data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_f"].values()
         pop_visitors.loc[
@@ -855,7 +865,7 @@ class Treatment:
         ).map(self.ldlc_treatment_map)
 
         # Determine potential new outreach enrollees; applies to groups
-        # 'newly_prescribed' (d, e, f) and simulants already on medication
+        # 'newly_prescribed' (d, e, f, f2) and simulants already on medication
         if self.scenario.is_outreach_scenario:
             maybe_enroll = newly_prescribed.union(currently_medicated)
         else:
