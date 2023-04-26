@@ -768,11 +768,13 @@ class Treatment:
         )
 
         # Generate other useful helper indexes
-        old_pop = pop_visitors[pop_visitors['age'] >= 75].index
+        old_pop = pop_visitors[pop_visitors["age"] >= 75].index
         low_ascvd = ascvd[ascvd < data_values.ASCVD_THRESHOLD.LOW].index
         high_ascvd = ascvd[ascvd >= data_values.ASCVD_THRESHOLD.HIGH].index
         low_ldlc = measured_ldlc[measured_ldlc < data_values.LDLC_THRESHOLD.LOW].index
-        above_medium_ldlc = measured_ldlc[measured_ldlc >= data_values.LDLC_THRESHOLD.MEDIUM].index
+        above_medium_ldlc = measured_ldlc[
+            measured_ldlc >= data_values.LDLC_THRESHOLD.MEDIUM
+        ].index
         high_ldlc = measured_ldlc[measured_ldlc >= data_values.LDLC_THRESHOLD.HIGH].index
         mask_history_mi = (
             pop_visitors[models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME]
@@ -813,11 +815,15 @@ class Treatment:
             .difference(low_ldlc)
             .difference(low_ascvd)
         )
-        # [Treatment ramp ID F2] Simulants who are 75+ with high LDL and not currently medicated
-        to_prescribe_f2 = overcome_therapeutic_inertia.difference(currently_medicated).intersection(old_pop).intersection(above_medium_ldlc)
+        # [Treatment ramp ID F2] Simulants who are 75+ with above medium LDL and not currently medicated
+        newly_prescribed_old = (
+            overcome_therapeutic_inertia.difference(currently_medicated)
+            .intersection(old_pop)
+            .intersection(above_medium_ldlc)
+        )
 
         # Prescribe initial medications
-        newly_prescribed = newly_prescribed_young.union(to_prescribe_f2)
+        newly_prescribed = newly_prescribed_young.union(newly_prescribed_old)
         df_newly_prescribed = pd.DataFrame(index=newly_prescribed)
         df_newly_prescribed.loc[
             to_prescribe_d,
@@ -832,7 +838,7 @@ class Treatment:
             data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_f"].keys(),
         ] = data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_f"].values()
         df_newly_prescribed.loc[
-            to_prescribe_f2,
+            newly_prescribed_old,
             data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_f"].keys(),
         ] = data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_f"].values()
         pop_visitors.loc[
