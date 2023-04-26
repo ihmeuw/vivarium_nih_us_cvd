@@ -813,8 +813,8 @@ class Treatment:
             .difference(low_ldlc)
             .difference(low_ascvd)
         )
-        # [Treatment ramp ID F2] Simulants who are 75+ with high LDL
-        to_prescribe_f2 = overcome_therapeutic_inertia.intersection(currently_medicated).intersection(old_pop).intersection(above_medium_ldlc)
+        # [Treatment ramp ID F2] Simulants who are 75+ with high LDL and not currently medicated
+        to_prescribe_f2 = overcome_therapeutic_inertia.difference(currently_medicated).intersection(old_pop).intersection(above_medium_ldlc)
 
         # Prescribe initial medications
         newly_prescribed = newly_prescribed_young.union(to_prescribe_f2)
