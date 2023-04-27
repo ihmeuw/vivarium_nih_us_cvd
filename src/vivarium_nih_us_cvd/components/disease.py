@@ -1,9 +1,14 @@
 import pandas as pd
-from vivarium_public_health.disease import DiseaseModel, DiseaseState, SusceptibleState, TransientDiseaseState
+from vivarium.framework.engine import Builder
+from vivarium_public_health.disease import (
+    DiseaseModel,
+    DiseaseState,
+    SusceptibleState,
+    TransientDiseaseState,
+)
 
 from vivarium_nih_us_cvd.constants import data_keys, models
 from vivarium_nih_us_cvd.constants.metadata import ARTIFACT_INDEX_COLUMNS
-from vivarium.framework.engine import Builder
 
 
 def IschemicStroke():
@@ -84,64 +89,97 @@ def IschemicHeartDiseaseAndHeartFailure():
             "excess_mortality_rate": lambda _, builder: builder.data.load(
                 data_keys.IHD_AND_HF.EMR_ACUTE_MI
             ),
-    },
+        },
     )
     # transient states
     transient_susceptible_state = TransientDiseaseState(
-        'transient_susceptible_state',
+        "transient_susceptible_state",
     )
     transient_post_mi_state = TransientDiseaseState(
-        'transient_post_mi_state',
+        "transient_post_mi_state",
     )
 
     # transitions out of suspectible state
     susceptible.allow_self_transitions()
+
     def transient_susceptible_incidence_rate(_, builder: Builder) -> pd.DataFrame:
-        acute_mi_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_ACUTE_MI).set_index(ARTIFACT_INDEX_COLUMNS)
-        hf_ihd_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_HF_IHD).set_index(ARTIFACT_INDEX_COLUMNS)
-        hf_residual_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_HF_RESIDUAL).set_index(ARTIFACT_INDEX_COLUMNS)
+        acute_mi_incidence = builder.data.load(
+            data_keys.IHD_AND_HF.INCIDENCE_ACUTE_MI
+        ).set_index(ARTIFACT_INDEX_COLUMNS)
+        hf_ihd_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_HF_IHD).set_index(
+            ARTIFACT_INDEX_COLUMNS
+        )
+        hf_residual_incidence = builder.data.load(
+            data_keys.IHD_AND_HF.INCIDENCE_HF_RESIDUAL
+        ).set_index(ARTIFACT_INDEX_COLUMNS)
         return (acute_mi_incidence + hf_ihd_incidence + hf_residual_incidence).reset_index()
 
     susceptible.add_transition(
         transient_susceptible_state,
         source_data_type="rate",
-        get_data_functions={'incidence_rate': transient_susceptible_incidence_rate},
+        get_data_functions={"incidence_rate": transient_susceptible_incidence_rate},
     )
 
     def acute_mi_after_susceptible_proportion(_, builder: Builder) -> pd.DataFrame:
-        acute_mi_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_ACUTE_MI).set_index(ARTIFACT_INDEX_COLUMNS)
-        hf_ihd_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_HF_IHD).set_index(ARTIFACT_INDEX_COLUMNS)
-        hf_residual_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_HF_RESIDUAL).set_index(ARTIFACT_INDEX_COLUMNS)
-        return (acute_mi_incidence / (acute_mi_incidence + hf_ihd_incidence + hf_residual_incidence)).reset_index()
+        acute_mi_incidence = builder.data.load(
+            data_keys.IHD_AND_HF.INCIDENCE_ACUTE_MI
+        ).set_index(ARTIFACT_INDEX_COLUMNS)
+        hf_ihd_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_HF_IHD).set_index(
+            ARTIFACT_INDEX_COLUMNS
+        )
+        hf_residual_incidence = builder.data.load(
+            data_keys.IHD_AND_HF.INCIDENCE_HF_RESIDUAL
+        ).set_index(ARTIFACT_INDEX_COLUMNS)
+        return (
+            acute_mi_incidence
+            / (acute_mi_incidence + hf_ihd_incidence + hf_residual_incidence)
+        ).reset_index()
 
     transient_susceptible_state.add_transition(
         acute_myocardial_infarction,
         source_data_type="proportion",
-        get_data_functions={'proportion': acute_mi_after_susceptible_proportion},
+        get_data_functions={"proportion": acute_mi_after_susceptible_proportion},
     )
 
     def hf_ihd_after_susceptible_proportion(_, builder: Builder) -> pd.DataFrame:
-        acute_mi_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_ACUTE_MI).set_index(ARTIFACT_INDEX_COLUMNS)
-        hf_ihd_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_HF_IHD).set_index(ARTIFACT_INDEX_COLUMNS)
-        hf_residual_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_HF_RESIDUAL).set_index(ARTIFACT_INDEX_COLUMNS)
-        return (hf_ihd_incidence / (acute_mi_incidence + hf_ihd_incidence + hf_residual_incidence)).reset_index()
+        acute_mi_incidence = builder.data.load(
+            data_keys.IHD_AND_HF.INCIDENCE_ACUTE_MI
+        ).set_index(ARTIFACT_INDEX_COLUMNS)
+        hf_ihd_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_HF_IHD).set_index(
+            ARTIFACT_INDEX_COLUMNS
+        )
+        hf_residual_incidence = builder.data.load(
+            data_keys.IHD_AND_HF.INCIDENCE_HF_RESIDUAL
+        ).set_index(ARTIFACT_INDEX_COLUMNS)
+        return (
+            hf_ihd_incidence / (acute_mi_incidence + hf_ihd_incidence + hf_residual_incidence)
+        ).reset_index()
 
     transient_susceptible_state.add_transition(
         heart_failure_from_ihd,
         source_data_type="proportion",
-        get_data_functions={'proportion': hf_ihd_after_susceptible_proportion},
+        get_data_functions={"proportion": hf_ihd_after_susceptible_proportion},
     )
 
     def hf_resiudal_after_susceptible_proportion(_, builder: Builder) -> pd.DataFrame:
-        acute_mi_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_ACUTE_MI).set_index(ARTIFACT_INDEX_COLUMNS)
-        hf_ihd_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_HF_IHD).set_index(ARTIFACT_INDEX_COLUMNS)
-        hf_residual_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_HF_RESIDUAL).set_index(ARTIFACT_INDEX_COLUMNS)
-        return (hf_residual_incidence / (acute_mi_incidence + hf_ihd_incidence + hf_residual_incidence)).reset_index()
+        acute_mi_incidence = builder.data.load(
+            data_keys.IHD_AND_HF.INCIDENCE_ACUTE_MI
+        ).set_index(ARTIFACT_INDEX_COLUMNS)
+        hf_ihd_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_HF_IHD).set_index(
+            ARTIFACT_INDEX_COLUMNS
+        )
+        hf_residual_incidence = builder.data.load(
+            data_keys.IHD_AND_HF.INCIDENCE_HF_RESIDUAL
+        ).set_index(ARTIFACT_INDEX_COLUMNS)
+        return (
+            hf_residual_incidence
+            / (acute_mi_incidence + hf_ihd_incidence + hf_residual_incidence)
+        ).reset_index()
 
     transient_susceptible_state.add_transition(
         residual_heart_failure,
         source_data_type="proportion",
-        get_data_functions={'proportion': hf_resiudal_after_susceptible_proportion},
+        get_data_functions={"proportion": hf_resiudal_after_susceptible_proportion},
     )
 
     # transitions out of heart failure from IHD state
@@ -149,7 +187,11 @@ def IschemicHeartDiseaseAndHeartFailure():
     heart_failure_from_ihd.add_transition(
         acute_myocardial_infarction_and_heart_failure,
         source_data_type="rate",
-        get_data_functions={"transition_rate": lambda builder, *_: builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_ACUTE_MI)}
+        get_data_functions={
+            "transition_rate": lambda builder, *_: builder.data.load(
+                data_keys.IHD_AND_HF.INCIDENCE_ACUTE_MI
+            )
+        },
     )
 
     # transitions out of acute MI states
@@ -163,36 +205,48 @@ def IschemicHeartDiseaseAndHeartFailure():
     post_myocardial_infarction.allow_self_transitions()
 
     def transient_post_mi_transition_rate(builder: Builder, *_) -> pd.DataFrame:
-        acute_mi_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_ACUTE_MI).set_index(ARTIFACT_INDEX_COLUMNS)
-        hf_ihd_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_HF_IHD).set_index(ARTIFACT_INDEX_COLUMNS)
+        acute_mi_incidence = builder.data.load(
+            data_keys.IHD_AND_HF.INCIDENCE_ACUTE_MI
+        ).set_index(ARTIFACT_INDEX_COLUMNS)
+        hf_ihd_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_HF_IHD).set_index(
+            ARTIFACT_INDEX_COLUMNS
+        )
         return (acute_mi_incidence + hf_ihd_incidence).reset_index()
 
     post_myocardial_infarction.add_transition(
         transient_post_mi_state,
         source_data_type="rate",
-        get_data_functions={'transition_rate': transient_post_mi_transition_rate},
+        get_data_functions={"transition_rate": transient_post_mi_transition_rate},
     )
 
     def acute_mi_after_post_mi_proportion(_, builder: Builder) -> pd.DataFrame:
-        acute_mi_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_ACUTE_MI).set_index(ARTIFACT_INDEX_COLUMNS)
-        hf_ihd_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_HF_IHD).set_index(ARTIFACT_INDEX_COLUMNS)
+        acute_mi_incidence = builder.data.load(
+            data_keys.IHD_AND_HF.INCIDENCE_ACUTE_MI
+        ).set_index(ARTIFACT_INDEX_COLUMNS)
+        hf_ihd_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_HF_IHD).set_index(
+            ARTIFACT_INDEX_COLUMNS
+        )
         return (acute_mi_incidence / (acute_mi_incidence + hf_ihd_incidence)).reset_index()
 
     transient_post_mi_state.add_transition(
         acute_myocardial_infarction,
         source_data_type="proportion",
-        get_data_functions={'proportion': acute_mi_after_post_mi_proportion},
+        get_data_functions={"proportion": acute_mi_after_post_mi_proportion},
     )
 
     def hf_ihd_out_of_post_mi_proportion(_, builder: Builder) -> pd.DataFrame:
-        acute_mi_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_ACUTE_MI).set_index(ARTIFACT_INDEX_COLUMNS)
-        hf_ihd_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_HF_IHD).set_index(ARTIFACT_INDEX_COLUMNS)
+        acute_mi_incidence = builder.data.load(
+            data_keys.IHD_AND_HF.INCIDENCE_ACUTE_MI
+        ).set_index(ARTIFACT_INDEX_COLUMNS)
+        hf_ihd_incidence = builder.data.load(data_keys.IHD_AND_HF.INCIDENCE_HF_IHD).set_index(
+            ARTIFACT_INDEX_COLUMNS
+        )
         return (hf_ihd_incidence / (acute_mi_incidence + hf_ihd_incidence)).reset_index()
 
     transient_post_mi_state.add_transition(
         heart_failure_from_ihd,
         source_data_type="proportion",
-        get_data_functions={'proportion': hf_ihd_out_of_post_mi_proportion},
+        get_data_functions={"proportion": hf_ihd_out_of_post_mi_proportion},
     )
 
     return DiseaseModel(
