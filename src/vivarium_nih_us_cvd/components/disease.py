@@ -161,7 +161,7 @@ def IschemicHeartDiseaseAndHeartFailure():
         get_data_functions={"proportion": hf_ihd_after_susceptible_proportion},
     )
 
-    def hf_resiudal_after_susceptible_proportion(_, builder: Builder) -> pd.DataFrame:
+    def hf_residual_after_susceptible_proportion(_, builder: Builder) -> pd.DataFrame:
         acute_mi_incidence = builder.data.load(
             data_keys.IHD_AND_HF.INCIDENCE_ACUTE_MI
         ).set_index(ARTIFACT_INDEX_COLUMNS)
@@ -179,7 +179,7 @@ def IschemicHeartDiseaseAndHeartFailure():
     transient_susceptible_state.add_transition(
         residual_heart_failure,
         source_data_type="proportion",
-        get_data_functions={"proportion": hf_resiudal_after_susceptible_proportion},
+        get_data_functions={"proportion": hf_residual_after_susceptible_proportion},
     )
 
     # transitions out of heart failure from IHD state
