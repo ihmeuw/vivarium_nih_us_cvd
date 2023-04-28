@@ -7,6 +7,7 @@ from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import PopulationView
 from vivarium.framework.time import get_time_stamp
+from vivarium_public_health.metrics.disease import DiseaseObserver as DiseaseObserver_
 from vivarium_public_health.metrics.stratification import (
     ResultsStratifier as ResultsStratifier_,
 )
@@ -14,6 +15,7 @@ from vivarium_public_health.metrics.stratification import Source, SourceType
 from vivarium_public_health.utilities import EntityString, to_years
 
 from vivarium_nih_us_cvd.constants import data_values
+from vivarium_public_health.disease.transition import TransitionString
 
 
 class ResultsStratifier(ResultsStratifier_):
@@ -334,3 +336,16 @@ class CategoricalColumnObserver:
     def metrics(self, index: pd.Index, metrics: Dict) -> Dict:
         metrics.update(self.counts)
         return metrics
+
+
+class TransientIHDandHFObserver(DiseaseObserver_):
+    def _get_transitions(self, builder: Builder) -> List[TransitionString]:
+        transitions = [TransitionString('susceptible_to_ischemic_heart_disease_and_heart_failure_TO_acute_myocardial_infarction'),
+                     TransitionString('susceptible_to_ischemic_heart_disease_and_heart_failure_TO_heart_failure_from_ischemic_heart_disease'),
+                     TransitionString('susceptible_to_ischemic_heart_disease_and_heart_failure_TO_heart_failure_residual'),
+                     TransitionString('post_myocardial_infarction_TO_acute_myocardial_infarction'),
+                     TransitionString('post_myocardial_infarction_TO_heart_failure_from_ischemic_heart_disease'),
+                     TransitionString('acute_myocardial_infarction_TO_post_myocardial_infarction'),
+                     TransitionString('heart_failure_from_ischemic_heart_disease_TO_acute_myocardial_infarction_and_heart_failure'),
+                     TransitionString('acute_myocardial_infarction_and_heart_failure_TO_heart_failure_from_ischemic_heart_disease')]
+        return transitions
