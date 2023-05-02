@@ -116,7 +116,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.LDL_C.EXPOSURE_SD: load_ldl_standard_deviation,
         data_keys.LDL_C.EXPOSURE_WEIGHTS: load_ldl_weights,
         data_keys.LDL_C.RELATIVE_RISK: load_standard_data,
-        data_keys.LDL_C.PAF: load_standard_data,
+        data_keys.LDL_C.PAF: load_paf_ldl,
         data_keys.LDL_C.TMRED: load_metadata,
         data_keys.LDL_C.RELATIVE_RISK_SCALAR: load_metadata,
         data_keys.LDL_C.MEDICATION_EFFECT: load_ldlc_medication_effect,
@@ -128,7 +128,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.SBP.EXPOSURE_WEIGHTS: load_sbp_weights,
         data_keys.SBP.RELATIVE_RISK: load_standard_data,
         data_keys.SBP.CATEGORICAL_RELATIVE_RISK: load_relative_risk_categorical_sbp,
-        data_keys.SBP.PAF: load_standard_data,
+        data_keys.SBP.PAF: load_paf_sbp,
         data_keys.SBP.CATEGORICAL_PAF: load_paf_categorical_sbp,
         data_keys.SBP.TMRED: load_metadata,
         data_keys.SBP.RELATIVE_RISK_SCALAR: load_metadata,
@@ -796,79 +796,12 @@ def load_relative_risk_categorical_sbp(key: str, location: str) -> pd.DataFrame:
     return heart_failure_rrs
 
 
-def get_age_and_sex_from_paf_output_cols(measure_str):
-    age = measure_str.split("AGE_GROUP_")[1].split("_SEX")[0]
-    age_start = age.split("_")[0]
-    if age_start == "95":  # deal with 95_plus
-        age_end = "125"
-    else:
-        age_end = str(int(age.split("_")[-1]) + 1)
-
-    sex = measure_str.split("_SEX_")[1]
-
-    return age_start + "," + age_end + "," + sex
-
-
-def format_paf_data(entity: str, location: str) -> pd.DataFrame:
-    if (entity != "high_body_mass_index_in_adults") and (
-        entity != "high_systolic_blood_pressure"
-    ):
-        raise ValueError(
-            "entity must be high_body_mass_index_in_adults or high_systolic_blood_pressure."
-            f"You provided entity {entity}."
-        )
-
-    population_structure = load_population_structure(
-        data_keys.POPULATION.STRUCTURE, location
-    ).droplevel("location")
-
-    pafs = pd.read_hdf(paths.FILEPATHS.CALCULATED_HEART_FAILURE_PAFS)
-    pafs = pafs[[col for col in pafs.columns if entity in col]].T
-    pafs.columns = ARTIFACT_COLUMNS
-    pafs = pafs.reset_index()
-    pafs["demographics"] = pafs["index"].apply(get_age_and_sex_from_paf_output_cols)
-    pafs[["age_start", "age_end", "sex"]] = pafs["demographics"].str.split(",", expand=True)
-    pafs[["age_start", "age_end"]] = pafs[["age_start", "age_end"]].astype(float)
-    pafs["affected_entity"] = "heart_failure"
-    pafs["affected_measure"] = "incidence_rate"
-    pafs = pafs.drop(["demographics", "index"], axis=1)
-
-    # duplicate data for all years
-    year_specific_data = []
-
-    for year_start in population_structure.index.get_level_values("year_start").unique():
-        year_specific_df = pafs.copy()
-        year_specific_df["year_start"] = year_start
-        year_specific_df["year_end"] = year_start + 1
-        year_specific_data.append(year_specific_df)
-
-    pafs_for_all_years = pd.concat(year_specific_data)
-
-    # data for missing ages
-    minimum_age = pafs["age_start"].min()
-    data_for_young_ages = pd.DataFrame(
-        0,
-        columns=ARTIFACT_COLUMNS,
-        index=population_structure.query("age_start < @minimum_age").index,
-    ).reset_index()
-    data_for_young_ages["affected_entity"] = "heart_failure"
-    data_for_young_ages["affected_measure"] = "incidence_rate"
-    data_for_young_ages = data_for_young_ages[pafs_for_all_years.columns]
-
-    paf_index_columns = population_structure.index.names + [
-        "affected_entity",
-        "affected_measure",
-    ]
-    formatted_pafs = pd.concat([data_for_young_ages, pafs_for_all_years])
-    formatted_pafs = formatted_pafs.sort_values(paf_index_columns).set_index(
-        paf_index_columns
-    )
-
-    return formatted_pafs
+def load_paf_sbp(key: str, location: str) -> pd.DataFrame:
+    return format_paf_data("high_systolic_blood_pressure", location)
 
 
 def load_paf_categorical_sbp(key: str, location: str) -> pd.DataFrame:
-    return format_paf_data("high_systolic_blood_pressure", location)
+    return format_paf_data("categorical_high_systolic_blood_pressure", location)
 
 
 def load_relative_risk_bmi(key: str, location: str) -> pd.DataFrame:
@@ -911,12 +844,7 @@ def load_relative_risk_bmi(key: str, location: str) -> pd.DataFrame:
 
 
 def load_paf_bmi(key: str, location: str) -> pd.DataFrame:
-    standard_paf_data = load_standard_data_enforce_minimum(0, key, location)
-    heart_failure_pafs = format_paf_data("high_body_mass_index_in_adults", location)
-
-    paf_bmi = pd.concat([standard_paf_data, heart_failure_pafs])
-
-    return paf_bmi
+    return format_paf_data("high_body_mass_index_in_adults", location)
 
 
 def get_re_mean_exposure_data_from_me_id(key: str, location: str, me_id: int) -> pd.DataFrame:
@@ -1062,6 +990,93 @@ def load_ldl_weights(key: str, location: str) -> pd.DataFrame:
     )
     data = transform_core_get_data_for_vivarium(key, location, data)
     return data
+
+
+def get_age_and_sex_from_paf_output_cols(measure_str):
+    age = measure_str.split("AGE_GROUP_")[1].split("_SEX")[0]
+    age_start = age.split("_")[0]
+    if age_start == "95":  # deal with 95_plus
+        age_end = "125"
+    else:
+        age_end = str(int(age.split("_")[-1]) + 1)
+
+    sex = measure_str.split("_SEX_")[1]
+
+    return age_start + "," + age_end + "," + sex
+
+
+def format_paf_data(entity: str, location: str) -> pd.DataFrame:
+    allowed_entities = ['high_ldl_cholesterol', 'high_body_mass_index_in_adults', 'high_systolic_blood_pressure']
+    if entity not in allowed_entities:
+        raise ValueError(
+            "entity must be high_ldl_cholesterol, high_body_mass_index_in_adults, or high_systolic_blood_pressure."
+            f"You provided entity {entity}."
+        )
+
+    population_structure = load_population_structure(
+        data_keys.POPULATION.STRUCTURE, location
+    ).droplevel("location")
+
+    pafs = pd.read_hdf(paths.FILEPATHS.CALCULATED_PAFS)
+    pafs = pafs[[col for col in pafs.columns if '.' + entity in col]].T # use dot so high sbp doesn't include categorical high sbp
+    pafs.columns = ARTIFACT_COLUMNS
+    pafs = pafs.reset_index()
+    pafs["demographics"] = pafs["index"].apply(get_age_and_sex_from_paf_output_cols)
+    pafs[["age_start", "age_end", "sex"]] = pafs["demographics"].str.split(",", expand=True)
+    pafs[["age_start", "age_end"]] = pafs[["age_start", "age_end"]].astype(float)
+
+    affected_entity_col = pd.Series([output_col.split('.')[-2] for output_col in pafs['index']])
+    affected_entity_col = affected_entity_col.replace('heart_failure_residual', 'heart_failure')
+    affected_measure_col = pd.Series([output_col.split('.')[-1].split('_AGE_GROUP')[0] for output_col in pafs['index']])
+    pafs['affected_entity'] = affected_entity_col
+    pafs['affected_measure'] = affected_measure_col
+    pafs = pafs.drop(["demographics", "index"], axis=1)
+
+    # duplicate data for all years
+    year_specific_data = []
+
+    for year_start in population_structure.index.get_level_values("year_start").unique():
+        year_specific_df = pafs.copy()
+        year_specific_df["year_start"] = year_start
+        year_specific_df["year_end"] = year_start + 1
+        year_specific_data.append(year_specific_df)
+
+    pafs_for_all_years = pd.concat(year_specific_data)
+
+    # data for missing ages
+    minimum_age = pafs["age_start"].min()
+    data_for_young_ages = pd.DataFrame(
+        0,
+        columns=ARTIFACT_COLUMNS,
+        index=population_structure.query("age_start < @minimum_age").index,
+    ).reset_index()
+
+    data_for_young_ages_all_measures = []
+
+    # duplicate data for all entity/measure pairs
+    entity_measure_pairs = (affected_entity_col + '.' + affected_measure_col).unique()
+    for entity_measure_pair in entity_measure_pairs:
+        measure_specific_data = data_for_young_ages.copy()
+        measure_specific_data['affected_entity'] = entity_measure_pair.split('.')[0]
+        measure_specific_data['affected_measure'] = entity_measure_pair.split('.')[1]
+        data_for_young_ages_all_measures.append(measure_specific_data)
+
+    data_for_young_ages = pd.concat(data_for_young_ages_all_measures)
+    data_for_young_ages = data_for_young_ages[pafs_for_all_years.columns]
+
+    paf_index_columns = population_structure.index.names + [
+        "affected_entity",
+        "affected_measure",
+    ]
+    sort_cols = ['sex', 'age_start', 'affected_entity', 'affected_measure', 'year_start']
+    formatted_pafs = pd.concat([data_for_young_ages, pafs_for_all_years])
+    formatted_pafs = formatted_pafs.sort_values(sort_cols).set_index(paf_index_columns)
+
+    return formatted_pafs
+
+
+def load_paf_ldl(key: str, location: str) -> pd.DataFrame:
+    return format_paf_data("high_ldl_cholesterol", location)
 
 
 def load_sbp_exposure(key: str, location: str) -> pd.DataFrame:
