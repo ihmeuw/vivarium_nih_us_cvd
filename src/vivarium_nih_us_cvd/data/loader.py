@@ -1022,10 +1022,10 @@ def get_age_and_sex_from_paf_output_cols(measure_str):
 
 
 def format_paf_data(entity: str, location: str) -> pd.DataFrame:
-    allowed_entities = ['high_ldl_cholesterol', 'high_body_mass_index_in_adults', 'high_systolic_blood_pressure']
+    allowed_entities = ['high_ldl_cholesterol', 'high_body_mass_index_in_adults', 'high_systolic_blood_pressure', 'categorical_high_systolic_blood_pressure']
     if entity not in allowed_entities:
         raise ValueError(
-            "entity must be high_ldl_cholesterol, high_body_mass_index_in_adults, or high_systolic_blood_pressure."
+            "entity must be high_ldl_cholesterol, high_body_mass_index_in_adults, high_systolic_blood_pressure, or categorical_high_systolic_blood_pressure."
             f"You provided entity {entity}."
         )
 
