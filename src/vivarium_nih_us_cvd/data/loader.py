@@ -679,20 +679,32 @@ def modify_rr_affected_entity(data: pd.DataFrame, mod_map: Dict[str, List[str]])
 
 def match_rr_to_cause_name(data: Union[str, pd.DataFrame], source_key: EntityKey):
     # Need to make relative risk data match causes in the model
-    map = {
-        "ischemic_heart_disease": [
-            "acute_myocardial_infarction",
-            "post_myocardial_infarction_to_acute_myocardial_infarction",
-        ],
-        "ischemic_stroke": [
-            "acute_ischemic_stroke",
-            "chronic_ischemic_stroke_to_acute_ischemic_stroke",
-        ],
+    is_calculated_paf = (source_key == data_keys.LDL_C.PAF) or \
+                        (source_key == data_keys.SBP.PAF) or \
+                        (source_key == data_keys.BMI.PAF)
+
+    if is_calculated_paf:
+        map = {
         "heart_failure": [
             "heart_failure_from_ischemic_heart_disease",
             "heart_failure_residual",
         ],
-    }
+        }
+    else:
+        map = {
+            "ischemic_heart_disease": [
+                "acute_myocardial_infarction",
+                "post_myocardial_infarction_to_acute_myocardial_infarction",
+            ],
+            "ischemic_stroke": [
+                "acute_ischemic_stroke",
+                "chronic_ischemic_stroke_to_acute_ischemic_stroke",
+            ],
+            "heart_failure": [
+                "heart_failure_from_ischemic_heart_disease",
+                "heart_failure_residual",
+            ],
+        }
     if source_key.measure in ["relative_risk", "population_attributable_fraction"]:
         data = modify_rr_affected_entity(data, map)
     return data
