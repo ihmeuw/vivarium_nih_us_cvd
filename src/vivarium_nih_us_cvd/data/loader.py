@@ -679,20 +679,26 @@ def modify_rr_affected_entity(data: pd.DataFrame, mod_map: Dict[str, List[str]])
 
 def match_rr_to_cause_name(data: Union[str, pd.DataFrame], source_key: EntityKey):
     # Need to make relative risk data match causes in the model
-    is_calculated_paf = (source_key == data_keys.LDL_C.PAF) or \
-                        (source_key == data_keys.SBP.PAF) or \
-                        (source_key == data_keys.BMI.PAF)
+    is_calculated_paf = (
+        (source_key == data_keys.LDL_C.PAF)
+        or (source_key == data_keys.SBP.PAF)
+        or (source_key == data_keys.BMI.PAF)
+    )
 
     if is_calculated_paf:
         map = {
-        "acute_myocardial_infarction": ["acute_myocardial_infarction"],
-        "post_myocardial_infarction_to_acute_myocardial_infarction": ["post_myocardial_infarction_to_acute_myocardial_infarction"],
-        "acute_ischemic_stroke": ["acute_ischemic_stroke"],
-        "chronic_ischemic_stroke_to_acute_ischemic_stroke": ["chronic_ischemic_stroke_to_acute_ischemic_stroke"],
-        "heart_failure": [
-            "heart_failure_from_ischemic_heart_disease",
-            "heart_failure_residual",
-        ],
+            "acute_myocardial_infarction": ["acute_myocardial_infarction"],
+            "post_myocardial_infarction_to_acute_myocardial_infarction": [
+                "post_myocardial_infarction_to_acute_myocardial_infarction"
+            ],
+            "acute_ischemic_stroke": ["acute_ischemic_stroke"],
+            "chronic_ischemic_stroke_to_acute_ischemic_stroke": [
+                "chronic_ischemic_stroke_to_acute_ischemic_stroke"
+            ],
+            "heart_failure": [
+                "heart_failure_from_ischemic_heart_disease",
+                "heart_failure_residual",
+            ],
         }
     else:
         map = {
@@ -1022,7 +1028,12 @@ def get_age_and_sex_from_paf_output_cols(measure_str):
 
 
 def format_paf_data(entity: str, location: str) -> pd.DataFrame:
-    allowed_entities = ['high_ldl_cholesterol', 'high_body_mass_index_in_adults', 'high_systolic_blood_pressure', 'categorical_high_systolic_blood_pressure']
+    allowed_entities = [
+        "high_ldl_cholesterol",
+        "high_body_mass_index_in_adults",
+        "high_systolic_blood_pressure",
+        "categorical_high_systolic_blood_pressure",
+    ]
     if entity not in allowed_entities:
         raise ValueError(
             "entity must be high_ldl_cholesterol, high_body_mass_index_in_adults, high_systolic_blood_pressure, or categorical_high_systolic_blood_pressure."
@@ -1034,18 +1045,26 @@ def format_paf_data(entity: str, location: str) -> pd.DataFrame:
     ).droplevel("location")
 
     pafs = pd.read_hdf(paths.FILEPATHS.CALCULATED_PAFS)
-    pafs = pafs[[col for col in pafs.columns if '.' + entity in col]].T # use dot so high sbp doesn't include categorical high sbp
+    pafs = pafs[
+        [col for col in pafs.columns if "." + entity in col]
+    ].T  # use dot so high sbp doesn't include categorical high sbp
     pafs.columns = ARTIFACT_COLUMNS
     pafs = pafs.reset_index()
     pafs["demographics"] = pafs["index"].apply(get_age_and_sex_from_paf_output_cols)
     pafs[["age_start", "age_end", "sex"]] = pafs["demographics"].str.split(",", expand=True)
     pafs[["age_start", "age_end"]] = pafs[["age_start", "age_end"]].astype(float)
 
-    affected_entity_col = pd.Series([output_col.split('.')[-2] for output_col in pafs['index']])
-    affected_entity_col = affected_entity_col.replace('heart_failure_residual', 'heart_failure')
-    affected_measure_col = pd.Series([output_col.split('.')[-1].split('_AGE_GROUP')[0] for output_col in pafs['index']])
-    pafs['affected_entity'] = affected_entity_col
-    pafs['affected_measure'] = affected_measure_col
+    affected_entity_col = pd.Series(
+        [output_col.split(".")[-2] for output_col in pafs["index"]]
+    )
+    affected_entity_col = affected_entity_col.replace(
+        "heart_failure_residual", "heart_failure"
+    )
+    affected_measure_col = pd.Series(
+        [output_col.split(".")[-1].split("_AGE_GROUP")[0] for output_col in pafs["index"]]
+    )
+    pafs["affected_entity"] = affected_entity_col
+    pafs["affected_measure"] = affected_measure_col
     pafs = pafs.drop(["demographics", "index"], axis=1)
 
     # duplicate data for all years
@@ -1070,11 +1089,11 @@ def format_paf_data(entity: str, location: str) -> pd.DataFrame:
     data_for_young_ages_all_measures = []
 
     # duplicate data for all entity/measure pairs
-    entity_measure_pairs = (affected_entity_col + '.' + affected_measure_col).unique()
+    entity_measure_pairs = (affected_entity_col + "." + affected_measure_col).unique()
     for entity_measure_pair in entity_measure_pairs:
         measure_specific_data = data_for_young_ages.copy()
-        measure_specific_data['affected_entity'] = entity_measure_pair.split('.')[0]
-        measure_specific_data['affected_measure'] = entity_measure_pair.split('.')[1]
+        measure_specific_data["affected_entity"] = entity_measure_pair.split(".")[0]
+        measure_specific_data["affected_measure"] = entity_measure_pair.split(".")[1]
         data_for_young_ages_all_measures.append(measure_specific_data)
 
     data_for_young_ages = pd.concat(data_for_young_ages_all_measures)
@@ -1084,7 +1103,7 @@ def format_paf_data(entity: str, location: str) -> pd.DataFrame:
         "affected_entity",
         "affected_measure",
     ]
-    sort_cols = ['sex', 'age_start', 'affected_entity', 'affected_measure', 'year_start']
+    sort_cols = ["sex", "age_start", "affected_entity", "affected_measure", "year_start"]
     formatted_pafs = pd.concat([data_for_young_ages, pafs_for_all_years])
     formatted_pafs = formatted_pafs.sort_values(sort_cols).set_index(paf_index_columns)
 
