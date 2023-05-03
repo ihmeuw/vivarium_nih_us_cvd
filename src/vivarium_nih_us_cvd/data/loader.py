@@ -687,6 +687,7 @@ def match_rr_to_cause_name(data: Union[str, pd.DataFrame], source_key: EntityKey
 
     if is_calculated_paf:
         map = {
+            # not explicitly including these will delete them from the data
             "acute_myocardial_infarction": ["acute_myocardial_infarction"],
             "post_myocardial_infarction_to_acute_myocardial_infarction": [
                 "post_myocardial_infarction_to_acute_myocardial_infarction"
