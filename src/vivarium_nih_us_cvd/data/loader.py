@@ -685,6 +685,10 @@ def match_rr_to_cause_name(data: Union[str, pd.DataFrame], source_key: EntityKey
 
     if is_calculated_paf:
         map = {
+        "acute_myocardial_infarction": ["acute_myocardial_infarction"],
+        "post_myocardial_infarction_to_acute_myocardial_infarction": ["post_myocardial_infarction_to_acute_myocardial_infarction"],
+        "acute_ischemic_stroke": ["acute_ischemic_stroke"],
+        "chronic_ischemic_stroke_to_acute_ischemic_stroke": ["chronic_ischemic_stroke_to_acute_ischemic_stroke"],
         "heart_failure": [
             "heart_failure_from_ischemic_heart_disease",
             "heart_failure_residual",
