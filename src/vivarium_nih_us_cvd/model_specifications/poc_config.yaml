@@ -33,11 +33,11 @@ configuration:
             month: 1
             day: 1
         observation_start: # TODO: Implement for all observers (currently only custom observers)
-            year: 2040
+            year: 2021
             month: 1
             day: 1
         end:
-            year: 2023
+            year: 2040
             month: 12
             day: 31
         step_size: 28 # Days
