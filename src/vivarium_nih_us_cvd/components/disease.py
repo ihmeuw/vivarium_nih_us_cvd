@@ -99,7 +99,7 @@ def IschemicHeartDiseaseAndHeartFailure():
         "transient_post_mi_state",
     )
 
-    # transitions out of suspectible state
+    # transitions out of susceptible state
     susceptible.allow_self_transitions()
 
     def transient_susceptible_incidence_rate(_, builder: Builder) -> pd.DataFrame:

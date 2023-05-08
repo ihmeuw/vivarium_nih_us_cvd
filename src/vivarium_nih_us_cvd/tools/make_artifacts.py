@@ -26,7 +26,6 @@ from vivarium_nih_us_cvd.utilities import (
 
 
 def running_from_cluster() -> bool:
-
     import vivarium_cluster_tools as vct
 
     on_cluster = True

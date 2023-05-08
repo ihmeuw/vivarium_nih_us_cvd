@@ -1,0 +1,54 @@
+components:
+    vivarium_public_health:
+        population:
+            - BasePopulation()
+            - Mortality()
+        metrics:
+            - ResultsStratifier()
+            - MortalityObserver()
+            - DisabilityObserver()
+            - DiseaseObserver("ischemic_stroke")
+
+    vivarium_nih_us_cvd:
+        components:
+            - Causes()
+#            - Risks()
+
+configuration:
+    input_data:
+        input_draw_number: 0
+        location: 'Alabama'
+        artifact_path: '/home/rmudambi/scratch/alabama.hdf'
+    interpolation:
+        order: 0
+        extrapolate: True
+    randomness:
+        map_size: 1_000_000
+        key_columns: ['entrance_time', 'age']
+        random_seed: 0
+    time:
+        start:
+            year: 2021 # Includes two years for burn-in
+            month: 1
+            day: 1
+        observation_start: # TODO: Implement for all observers (currently only custom observers)
+            year: 2023
+            month: 1
+            day: 1
+        end:
+            year: 2023
+            month: 12
+            day: 31
+        step_size: 28 # Days
+    population:
+        population_size: 50_000
+        age_start: 5
+        age_end: 125
+        exit_age: 125
+
+    observers:
+        default:
+            - 'age'
+            - 'sex'
+            - 'year'
+
