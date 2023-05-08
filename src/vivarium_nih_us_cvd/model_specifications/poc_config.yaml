@@ -8,6 +8,7 @@ components:
             - MortalityObserver()
             - DisabilityObserver()
             - DiseaseObserver("ischemic_stroke")
+            - DiseaseObserver("ischemic_heart_disease_and_heart_failure")
 
     vivarium_nih_us_cvd:
         components:
@@ -32,7 +33,7 @@ configuration:
             month: 1
             day: 1
         observation_start: # TODO: Implement for all observers (currently only custom observers)
-            year: 2023
+            year: 2040
             month: 1
             day: 1
         end:
