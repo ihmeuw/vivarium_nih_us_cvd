@@ -8,12 +8,12 @@ components:
             - MortalityObserver()
             - DisabilityObserver()
             - DiseaseObserver("ischemic_stroke")
-            - DiseaseObserver("ischemic_heart_disease_and_heart_failure")
+#            - DiseaseObserver("ischemic_heart_disease_and_heart_failure")
 
     vivarium_nih_us_cvd:
         components:
             - Causes()
-#            - Risks()
+            - TransientIHDAndHFObserver("ischemic_heart_disease_and_heart_failure")
 
 configuration:
     input_data:
