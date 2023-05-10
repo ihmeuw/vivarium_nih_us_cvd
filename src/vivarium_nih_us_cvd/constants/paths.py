@@ -11,6 +11,8 @@ MODEL_SPEC_DIR = BASE_DIR / "model_specifications"
 RESULTS_ROOT = Path(f"/share/costeffectiveness/results/{metadata.PROJECT_NAME}/")
 DATA_ROOT = BASE_DIR / "data"
 
+CAUSE_RISK_CONFIG = BASE_DIR / "configuration" / "cause_risk.yaml"
+
 
 class __Filepaths(NamedTuple):
     """Specific filepaths container"""
