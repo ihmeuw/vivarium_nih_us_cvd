@@ -52,6 +52,8 @@ causes:
                 source: "susceptible"
                 sink: "acute_ischemic_stroke"
                 data_type: "rate"
+                get_data_functions:
+                    incidence_rate: "cause.ischemic_stroke.incidence_rate"
             acute_ischemic_stroke_to_chronic_ischemic_stroke:
                 source: "acute_ischemic_stroke"
                 sink: "chronic_ischemic_stroke"

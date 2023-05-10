@@ -33,7 +33,7 @@ def IschemicStroke():
 
     susceptible.allow_self_transitions()
     data_funcs = {
-        "incidence_rate": lambda _, builder: builder.data.load(
+        "incidence_rate": lambda builder, *_: builder.data.load(
             data_keys.ISCHEMIC_STROKE.INCIDENCE_RATE_ACUTE
         )
     }
