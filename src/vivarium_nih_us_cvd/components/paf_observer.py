@@ -6,7 +6,6 @@ from vivarium_public_health.utilities import EntityString, TargetString
 
 
 class PAFObserver:
-
     configuration_defaults = {
         "stratification": {
             "paf": {

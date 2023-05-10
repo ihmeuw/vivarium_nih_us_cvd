@@ -1,0 +1,61 @@
+#causes:
+#    ischemic_stroke:
+#        states:
+#            susceptible:
+#                cause_type: "cause"                             # default
+#                allow_self_transitions: True                    # default
+#                side_effect: None                               # default
+#                cleanup_function: None                          # default
+#            acute_ischemic_stroke:
+#                cause_type: "sequela"
+#                side_effect: None                               # default
+#                allow_self_transitions: True                    # default
+#                cleanup_function: None                          # default
+#                get_data_functions:
+#                    prevalence: None                            # default
+#                    birth_prevalence: None                      # default
+#                    # todo figure out how to record this - it's a lambda function in the code
+#                    dwell_time: "28 days"
+#                    disability_weight: None                     # default
+#                    excess_mortality_rate: None                 # default
+#            chronic_ischemic_stroke:
+#                cause_type: "sequela"
+#                side_effect: None                               # default
+#                allow_self_transitions: True                    # default
+#                cleanup_function: None                          # default
+#        transitions:
+#            acute_ischemic_stroke_incidence:
+#                source: "susceptible"
+#                sink: "acute_ischemic_stroke"
+#                data_type: "rate"
+#                get_data_functions:
+#                    incidence_rate: None                        # default
+#                    transition_rate: None                       # default
+#                    remission_rate: None                        # default
+#                    proportion: None                            # default
+
+causes:
+    ischemic_stroke:
+        states:
+            susceptible: {}
+            acute_ischemic_stroke:
+                cause_type: "sequela"
+                get_data_functions:
+                    dwell_time: "28 days"
+            chronic_ischemic_stroke:
+                cause_type: "sequela"
+        transitions:
+            acute_ischemic_stroke_incidence:
+                source: "susceptible"
+                sink: "acute_ischemic_stroke"
+                data_type: "rate"
+            acute_ischemic_stroke_to_chronic_ischemic_stroke:
+                source: "acute_ischemic_stroke"
+                sink: "chronic_ischemic_stroke"
+                data_type: null
+            chronic_ischemic_stroke_to_acute_ischemic_stroke:
+                source: "chronic_ischemic_stroke"
+                sink: "acute_ischemic_stroke"
+                data_type: "rate"
+                get_data_functions:
+                    transition_rate: "cause.ischemic_stroke.incidence_rate"
