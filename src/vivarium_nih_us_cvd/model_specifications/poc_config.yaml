@@ -8,18 +8,17 @@ components:
             - MortalityObserver()
             - DisabilityObserver()
             - DiseaseObserver("ischemic_stroke")
-            - DiseaseObserver("ischemic_heart_disease_and_heart_failure")
 
     vivarium_nih_us_cvd:
         components:
             - Causes()
-#            - Risks()
+            - TransientIHDAndHFObserver("ischemic_heart_disease_and_heart_failure")
 
 configuration:
     input_data:
         input_draw_number: 0
         location: 'Alabama'
-        artifact_path: '/home/rmudambi/scratch/alabama.hdf'
+        artifact_path: '/mnt/team/simulation_science/costeffectiveness/artifacts/vivarium_nih_us_cvd/alabama.hdf'
     interpolation:
         order: 0
         extrapolate: True
