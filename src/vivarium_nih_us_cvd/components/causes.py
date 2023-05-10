@@ -1,3 +1,4 @@
+from importlib import import_module
 from typing import Any, Callable, Dict, List, Union
 
 import pandas as pd
@@ -9,6 +10,7 @@ from vivarium_public_health.disease import (
     DiseaseState,
     RecoveredState,
     SusceptibleState,
+    TransientDiseaseState,
 )
 from vivarium_public_health.utilities import TargetString
 
@@ -84,6 +86,7 @@ class Causes:
             for state_name, state_config in cause_config.states.items():
                 default_states_config[state_name] = {
                     "cause_type": "cause",
+                    "transient": False,
                     "allow_self_transitions": True,
                     "side_effect": None,
                     "cleanup_function": None,
@@ -133,6 +136,9 @@ class Causes:
                 for name in data_getters_config.keys()
             }
 
+        if state_config.transient:
+            return TransientDiseaseState(state_name, **state_kwargs)
+
         state = {
             "susceptible": SusceptibleState(cause_name, **state_kwargs),
             "recovered": RecoveredState(cause_name, **state_kwargs),
@@ -149,11 +155,17 @@ class Causes:
     ) -> Callable[[Any, Builder], Any]:
         if isinstance(getter, float):
             return lambda builder, *_: getter
+
         try:
             timedelta = pd.Timedelta(getter)
-            return lambda *_: timedelta
+            return lambda builder, *_: timedelta
         except ValueError:
             pass
+
+        if ":" in getter:
+            module, method = getter.split(":")
+            return getattr(import_module(module), method)
+
         try:
             target_string = TargetString(getter)
             return lambda builder, *_: builder.data.load(target_string)
