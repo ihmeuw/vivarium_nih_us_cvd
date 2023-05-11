@@ -32,17 +32,17 @@ def make_measure_data(data):
         deaths=get_measure_data(data, "deaths"),
         state_person_time=get_measure_data(data, "state_person_time"),
         transition_count=get_transition_count_measure_data(data, "transition_count"),
-        # risk_exposure_time=get_measure_data(data, "risk_exposure_time"),
-        # healthcare_visits=get_measure_data(data, "healthcare_visits"),
-        # sbp_medication_person_time=get_medication_person_time_data(
-        #     data, "sbp_medication_person_time"
-        # ),
-        # ldlc_medication_person_time=get_medication_person_time_data(
-        #     data, "ldlc_medication_person_time"
-        # ),
-        # intervention_person_time=get_intervention_person_time_data(
-        #     data, "intervention_person_time"
-        # ),
+        risk_exposure_time=get_measure_data(data, "risk_exposure_time"),
+        healthcare_visits=get_measure_data(data, "healthcare_visits"),
+        sbp_medication_person_time=get_medication_person_time_data(
+            data, "sbp_medication_person_time"
+        ),
+        ldlc_medication_person_time=get_medication_person_time_data(
+            data, "ldlc_medication_person_time"
+        ),
+        intervention_person_time=get_intervention_person_time_data(
+            data, "intervention_person_time"
+        ),
     )
     return measure_data
 
@@ -53,11 +53,11 @@ class MeasureData(NamedTuple):
     deaths: pd.DataFrame
     state_person_time: pd.DataFrame
     transition_count: pd.DataFrame
-    # risk_exposure_time: pd.DataFrame
-    # healthcare_visits: pd.DataFrame
-    # sbp_medication_person_time: pd.DataFrame
-    # ldlc_medication_person_time: pd.DataFrame
-    # intervention_person_time: pd.DataFrame
+    risk_exposure_time: pd.DataFrame
+    healthcare_visits: pd.DataFrame
+    sbp_medication_person_time: pd.DataFrame
+    ldlc_medication_person_time: pd.DataFrame
+    intervention_person_time: pd.DataFrame
 
     def dump(self, output_dir: Path):
         for key, df in self._asdict().items():

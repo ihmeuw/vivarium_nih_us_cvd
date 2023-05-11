@@ -6,7 +6,7 @@ from vivarium_public_health.disease import (
     TransientDiseaseState,
 )
 
-from vivarium_nih_us_cvd.configuration import (
+from vivarium_nih_us_cvd.components.causes.get_data_functions import (
     acute_mi_after_post_mi_proportion,
     acute_mi_after_susceptible_proportion,
     hf_ihd_after_susceptible_proportion,
