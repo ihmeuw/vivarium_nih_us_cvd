@@ -18,7 +18,7 @@ RANDOM_SEED_COLUMN = "random_seed"
 
 OUTPUT_INPUT_DRAW_COLUMN = "input_data.input_draw_number"
 OUTPUT_RANDOM_SEED_COLUMN = "randomness.random_seed"
-OUTPUT_SCENARIO_COLUMN = "scenario"
+OUTPUT_SCENARIO_COLUMN = "intervention.scenario"
 
 STANDARD_COLUMNS = {
     "total_ylls": TOTAL_YLLS_COLUMN,
@@ -56,11 +56,11 @@ COLUMN_TEMPLATES = {
     "ylds": YLDS_COLUMN_TEMPLATE,
     "state_person_time": STATE_PERSON_TIME_COLUMN_TEMPLATE,
     "transition_count": TRANSITION_COUNT_COLUMN_TEMPLATE,
-    # "risk_exposure_time": RISK_EXPOSURE_TIME_TEMPLATE,
-    # "healthcare_visits": VISIT_COUNT_TEMPLATE,
-    # "sbp_medication_person_time": SBP_MEDICATION_PERSON_TIME_TEMPLATE,
-    # "ldlc_medication_person_time": LDLC_MEDICATION_PERSON_TIME_TEMPLATE,
-    # "intervention_person_time": INTERVENTION_PERSON_TIME_TEMPLATE,
+    "risk_exposure_time": RISK_EXPOSURE_TIME_TEMPLATE,
+    "healthcare_visits": VISIT_COUNT_TEMPLATE,
+    "sbp_medication_person_time": SBP_MEDICATION_PERSON_TIME_TEMPLATE,
+    "ldlc_medication_person_time": LDLC_MEDICATION_PERSON_TIME_TEMPLATE,
+    "intervention_person_time": INTERVENTION_PERSON_TIME_TEMPLATE,
 }
 
 NON_COUNT_TEMPLATES = []
@@ -87,14 +87,14 @@ AGE_GROUPS = (
 CAUSES_OF_DISABILITY = (
     models.ACUTE_ISCHEMIC_STROKE_STATE_NAME,
     models.CHRONIC_ISCHEMIC_STROKE_STATE_NAME,
-    # models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME,
-    # models.HEART_FAILURE_FROM_ISCHEMIC_HEART_DISEASE_STATE_NAME,
-    # models.ACUTE_MYOCARDIAL_INFARCTION_AND_HEART_FAILURE_STATE_NAME,
-    # models.HEART_FAILURE_RESIDUAL_STATE_NAME,
+    models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME,
+    models.HEART_FAILURE_FROM_ISCHEMIC_HEART_DISEASE_STATE_NAME,
+    models.ACUTE_MYOCARDIAL_INFARCTION_AND_HEART_FAILURE_STATE_NAME,
+    models.HEART_FAILURE_RESIDUAL_STATE_NAME,
 )
 CAUSES_OF_DEATH = CAUSES_OF_DISABILITY + (
     "other_causes",
-    # models.POST_MYOCARDIAL_INFARCTION_STATE_NAME,  # SDB - Post MI has no disability weight
+    models.POST_MYOCARDIAL_INFARCTION_STATE_NAME,  # SDB - Post MI has no disability weight
 )
 RISKS = (
     "high_ldl_cholesterol",

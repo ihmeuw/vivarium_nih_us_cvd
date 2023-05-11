@@ -1,3 +1,5 @@
+from .causes import Causes
+from .disease import IschemicHeartDiseaseAndHeartFailure, IschemicStroke
 from .get_data_functions import (
     acute_mi_after_post_mi_proportion,
     acute_mi_after_susceptible_proportion,
