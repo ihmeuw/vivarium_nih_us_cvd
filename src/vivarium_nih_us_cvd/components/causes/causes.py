@@ -41,8 +41,8 @@ class Causes:
     def get_disease_models(self) -> List:
         disease_models = []
 
-        full_config = ConfigTree(layers=["default", "model_spec"])
-        full_config.update(CAUSE_RISK_CONFIG, layer="model_spec")
+        full_config = ConfigTree(layers=["default", "cause_model_spec"])
+        full_config.update(CAUSE_RISK_CONFIG, layer="cause_model_spec")
         self.add_default_config_layer(full_config)
         config = full_config.causes
 
@@ -90,30 +90,7 @@ class Causes:
                     "allow_self_transitions": True,
                     "side_effect": None,
                     "cleanup_function": None,
-                    # "get_data_functions": {
-                    #     data_type: None
-                    #     for data_type in [
-                    #         "prevalence",
-                    #         "birth_prevalence",
-                    #         "dwell_time",
-                    #         "disability_weight",
-                    #         "excess_mortality_rate",
-                    #     ]
-                    # }
                 }
-
-            # for transitions_name, transition_config in cause_config.transitions.items():
-            #     default_transitions_config[transitions_name] = {
-            #         "get_data_functions": {
-            #             data_type: None
-            #             for data_type in [
-            #                 "incidence_rate",
-            #                 "transition_rate",
-            #                 "remission_rate",
-            #                 "proportion",
-            #             ]
-            #         }
-            #     }
 
         config.update(default_config, layer="default")
         config.freeze()
@@ -162,8 +139,8 @@ class Causes:
         except ValueError:
             pass
 
-        if ":" in getter:
-            module, method = getter.split(":")
+        if "::" in getter:
+            module, method = getter.split("::")
             return getattr(import_module(module), method)
 
         try:

@@ -93,25 +93,25 @@ causes:
                 sink: "transient_susceptible_state"
                 data_type: "rate"
                 get_data_functions:
-                    incidence_rate: "vivarium_nih_us_cvd.configuration:transient_susceptible_incidence_rate"
+                    incidence_rate: "vivarium_nih_us_cvd.components.causes::transient_susceptible_incidence_rate"
             transient_acute_mi_incidence:
                 source: "transient_susceptible_state"
                 sink: "acute_myocardial_infarction"
                 data_type: "proportion"
                 get_data_functions:
-                    proportion: "vivarium_nih_us_cvd.configuration:acute_mi_after_susceptible_proportion"
+                    proportion: "vivarium_nih_us_cvd.components.causes::acute_mi_after_susceptible_proportion"
             transient_heart_failure_ihd_incidence:
                 source: "transient_susceptible_state"
                 sink: "heart_failure_from_ischemic_heart_disease"
                 data_type: "proportion"
                 get_data_functions:
-                    proportion: "vivarium_nih_us_cvd.configuration:hf_ihd_after_susceptible_proportion"
+                    proportion: "vivarium_nih_us_cvd.components.causes::hf_ihd_after_susceptible_proportion"
             transient_heart_failure_residual_incidence:
                 source: "transient_susceptible_state"
                 sink: "heart_failure_residual"
                 data_type: "proportion"
                 get_data_functions:
-                    proportion: "vivarium_nih_us_cvd.configuration:hf_residual_after_susceptible_proportion"
+                    proportion: "vivarium_nih_us_cvd.components.causes::hf_residual_after_susceptible_proportion"
             acute_mi_to_post_mi:
                 source: "acute_myocardial_infarction"
                 sink: "post_myocardial_infarction"
@@ -121,19 +121,19 @@ causes:
                 sink: "transient_post_mi_state"
                 data_type: "rate"
                 get_data_functions:
-                    transition_rate: "vivarium_nih_us_cvd.configuration:transient_post_mi_transition_rate"
+                    transition_rate: "vivarium_nih_us_cvd.components.causes::transient_post_mi_transition_rate"
             transient_post_mi_to_acute_mi:
                 source: "transient_post_mi_state"
                 sink: "acute_myocardial_infarction"
                 data_type: "proportion"
                 get_data_functions:
-                    proportion: "vivarium_nih_us_cvd.configuration:hf_residual_after_susceptible_proportion"
+                    proportion: "vivarium_nih_us_cvd.components.causes::hf_residual_after_susceptible_proportion"
             transient_post_mi_to_heart_failure:
                 source: "transient_post_mi_state"
                 sink: "heart_failure_from_ischemic_heart_disease"
                 data_type: "proportion"
                 get_data_functions:
-                    proportion: "vivarium_nih_us_cvd.configuration:hf_ihd_out_of_post_mi_proportion"
+                    proportion: "vivarium_nih_us_cvd.components.causes::hf_ihd_out_of_post_mi_proportion"
             heart_failure_to_acute_mi_and_heart_failure:
                 source: "heart_failure_from_ischemic_heart_disease"
                 sink: "acute_myocardial_infarction_and_heart_failure"
