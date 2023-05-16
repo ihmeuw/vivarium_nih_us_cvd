@@ -62,7 +62,7 @@ components:
             - CategoricalSBPRisk()
 #
             - HealthcareUtilization()  # NOTE: this uses Treatment() as a sub-component
-            - HealthcareVisitObserver()
+#            - HealthcareVisitObserver()
 #
 #            - CategoricalColumnObserver("sbp_medication")
 #            - CategoricalColumnObserver("ldlc_medication")
