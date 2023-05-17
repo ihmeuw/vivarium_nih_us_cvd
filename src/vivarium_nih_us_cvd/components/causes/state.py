@@ -20,7 +20,7 @@ class MultiTransitionState(BaseDiseaseState):
         between them.
         """
         super().__init__(cause, **kwargs)
-        self.transient_state = TransientDiseaseState(f"transient_{cause}")
+        self.transient_state = TransientDiseaseState(f"transient_{self.state_id}")
         self.rate_transition = self.get_rate_transition()
         self._sub_components = self.get_sub_components()
 
@@ -56,7 +56,7 @@ class MultiTransitionState(BaseDiseaseState):
             # Adds the rate to the output state to the CompositeRateTransition
             self.rate_transition.add_transition(output.state_id, get_data_functions)
 
-            def probability(index: pd.Index) -> pd.Series:
+            def get_probability(index: pd.Index) -> pd.Series:
                 """
                 Computes the probability of transitioning to the output state
                 given that a simulant has already transitioned to the transient
@@ -64,12 +64,12 @@ class MultiTransitionState(BaseDiseaseState):
 
                 p = rate_input_to_output / rate_input_to_transient
                 """
-                numerator = self.rate_transition.get_rate_to_state(index, output)
-                denominator = self.rate_transition.get_transition_rate(index)
-                return numerator / denominator
+                rate_to_state = self.rate_transition.get_rate_to_state(index, output)
+                total_transition_rate = self.rate_transition.get_transition_rate(index)
+                return rate_to_state / total_transition_rate
 
             transition = Transition(
-                self.transient_state, output, probability_func=probability
+                self.transient_state, output, probability_func=get_probability
             )
             self.transient_state.transition_set.append(transition)
 
@@ -80,6 +80,4 @@ class MultiTransitionState(BaseDiseaseState):
 
 
 class MultiTransitionSusceptibleState(MultiTransitionState, SusceptibleState):
-    # def __init__(self, cause: str, **kwargs):
-    #     super().__init__(cause, **kwargs)
     pass
