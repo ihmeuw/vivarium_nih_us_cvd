@@ -4,6 +4,7 @@ import pandas as pd
 from vivarium.framework.state_machine import Transition
 from vivarium_public_health.disease import (
     BaseDiseaseState,
+    DiseaseState,
     SusceptibleState,
     TransientDiseaseState,
 )
@@ -80,4 +81,8 @@ class MultiTransitionState(BaseDiseaseState):
 
 
 class MultiTransitionSusceptibleState(MultiTransitionState, SusceptibleState):
+    pass
+
+
+class MultiTransitionDiseaseState(MultiTransitionState, DiseaseState):
     pass

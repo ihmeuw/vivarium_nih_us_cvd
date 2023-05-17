@@ -2,7 +2,7 @@ import pandas as pd
 from vivarium_public_health.disease import DiseaseModel, DiseaseState, SusceptibleState
 
 from vivarium_nih_us_cvd.components.causes.state import (
-    MultiTransitionState,
+    MultiTransitionDiseaseState,
     MultiTransitionSusceptibleState,
 )
 from vivarium_nih_us_cvd.constants import data_keys, models
@@ -59,7 +59,7 @@ def IschemicHeartDiseaseAndHeartFailure():
         get_data_functions={"dwell_time": lambda *args: pd.Timedelta(days=28)},
     )
 
-    post_myocardial_infarction = MultiTransitionState(
+    post_myocardial_infarction = MultiTransitionDiseaseState(
         models.POST_MYOCARDIAL_INFARCTION_STATE_NAME
     )
     # states with heart failure
