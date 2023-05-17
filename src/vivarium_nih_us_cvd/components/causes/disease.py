@@ -1,9 +1,5 @@
 import pandas as pd
-from vivarium_public_health.disease import (
-    DiseaseModel,
-    DiseaseState,
-    SusceptibleState,
-)
+from vivarium_public_health.disease import DiseaseModel, DiseaseState, SusceptibleState
 
 from vivarium_nih_us_cvd.components.causes.state import (
     MultiTransitionState,

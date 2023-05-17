@@ -57,7 +57,9 @@ class CompositeRateTransition(Transition):
         Calculates the exit rate from the input state. This is the sum of each
         of the subsidiary rates.
         """
-        rates = pd.concat([rate(index) for rate in self.transition_pipelines.values()], axis=1)
+        rates = pd.concat(
+            [rate(index) for rate in self.transition_pipelines.values()], axis=1
+        )
         return rates.sum(axis=1)
 
     ##################
