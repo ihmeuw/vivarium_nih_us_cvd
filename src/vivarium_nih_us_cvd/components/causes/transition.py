@@ -38,7 +38,9 @@ class CompositeRateTransition(Transition):
         self.transition_pipelines = self._register_transition_pipelines(builder)
         self.transition_pafs = self._register_paf_pipelines(builder)
 
-        self.get_transition_rate = builder.value.register_rate_producer(
+        # registering value producer not a rate producer, because the sub rates
+        # are already scaled to the time-step
+        self.get_transition_rate = builder.value.register_value_producer(
             f"{self.input_state.state_id}.composite_exit_rate",
             source=self.compute_transition_rate,
             requires_values=[
