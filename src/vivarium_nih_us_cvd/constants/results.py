@@ -56,17 +56,17 @@ COLUMN_TEMPLATES = {
     "ylds": YLDS_COLUMN_TEMPLATE,
     "state_person_time": STATE_PERSON_TIME_COLUMN_TEMPLATE,
     "transition_count": TRANSITION_COUNT_COLUMN_TEMPLATE,
-    "risk_exposure_time": RISK_EXPOSURE_TIME_TEMPLATE,
-    "healthcare_visits": VISIT_COUNT_TEMPLATE,
-    "sbp_medication_person_time": SBP_MEDICATION_PERSON_TIME_TEMPLATE,
-    "ldlc_medication_person_time": LDLC_MEDICATION_PERSON_TIME_TEMPLATE,
-    "intervention_person_time": INTERVENTION_PERSON_TIME_TEMPLATE,
+    # "risk_exposure_time": RISK_EXPOSURE_TIME_TEMPLATE,
+    # "healthcare_visits": VISIT_COUNT_TEMPLATE,
+    # "sbp_medication_person_time": SBP_MEDICATION_PERSON_TIME_TEMPLATE,
+    # "ldlc_medication_person_time": LDLC_MEDICATION_PERSON_TIME_TEMPLATE,
+    # "intervention_person_time": INTERVENTION_PERSON_TIME_TEMPLATE,
 }
 
 NON_COUNT_TEMPLATES = []
 
 SEXES = ("male", "female")
-YEARS = tuple(range(2023, 2041))
+YEARS = tuple(range(2021, 2023))
 AGE_GROUPS = (
     "25_to_29",
     "30_to_34",
