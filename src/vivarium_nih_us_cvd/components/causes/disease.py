@@ -71,7 +71,7 @@ def IschemicHeartDiseaseAndHeartFailure():
     )
     # states with heart failure
     heart_failure_emr_data_funcs = {
-        "excess_mortality_rate": lambda _, builder: builder.data.load(
+        "excess_mortality_rate": lambda builder, _: builder.data.load(
             data_keys.IHD_AND_HF.EMR_HF
         )
     }
@@ -90,10 +90,10 @@ def IschemicHeartDiseaseAndHeartFailure():
         cause_type="cause",
         get_data_functions={
             "dwell_time": lambda *args: pd.Timedelta(days=28),
-            "disability_weight": lambda _, builder: builder.data.load(
+            "disability_weight": lambda builder, _: builder.data.load(
                 data_keys.IHD_AND_HF.DISABILITY_WEIGHT_ACUTE_MI
             ),
-            "excess_mortality_rate": lambda _, builder: builder.data.load(
+            "excess_mortality_rate": lambda builder, _: builder.data.load(
                 data_keys.IHD_AND_HF.EMR_ACUTE_MI
             ),
         },
