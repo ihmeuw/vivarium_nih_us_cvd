@@ -1,19 +1,9 @@
 import pandas as pd
-from vivarium_public_health.disease import (
-    DiseaseModel,
-    DiseaseState,
-    SusceptibleState,
-    TransientDiseaseState,
-)
+from vivarium_public_health.disease import DiseaseModel, DiseaseState, SusceptibleState
 
-from vivarium_nih_us_cvd.components.causes.get_data_functions import (
-    acute_mi_after_post_mi_proportion,
-    acute_mi_after_susceptible_proportion,
-    hf_ihd_after_susceptible_proportion,
-    hf_ihd_out_of_post_mi_proportion,
-    hf_residual_after_susceptible_proportion,
-    transient_post_mi_transition_rate,
-    transient_susceptible_incidence_rate,
+from vivarium_nih_us_cvd.components.causes.state import (
+    MultiTransitionDiseaseState,
+    MultiTransitionSusceptibleState,
 )
 from vivarium_nih_us_cvd.constants import data_keys, models
 
@@ -58,16 +48,19 @@ def IschemicStroke():
 
 
 def IschemicHeartDiseaseAndHeartFailure():
-    susceptible = SusceptibleState(models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME)
+    susceptible = MultiTransitionSusceptibleState(
+        models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME
+    )
+
     # states without heart failure
     acute_myocardial_infarction = DiseaseState(
         models.ACUTE_MYOCARDIAL_INFARCTION_STATE_NAME,
         cause_type="cause",
         get_data_functions={"dwell_time": lambda *args: pd.Timedelta(days=28)},
     )
-    post_myocardial_infarction = DiseaseState(
-        models.POST_MYOCARDIAL_INFARCTION_STATE_NAME,
-        cause_type="cause",
+
+    post_myocardial_infarction = MultiTransitionDiseaseState(
+        models.POST_MYOCARDIAL_INFARCTION_STATE_NAME
     )
     # states with heart failure
     heart_failure_emr_data_funcs = {
@@ -98,35 +91,38 @@ def IschemicHeartDiseaseAndHeartFailure():
             ),
         },
     )
-    # transient states
-    transient_susceptible_state = TransientDiseaseState("transient_susceptible_state")
-    transient_post_mi_state = TransientDiseaseState("transient_post_mi_state")
 
     # transitions out of susceptible state
     susceptible.allow_self_transitions()
 
     susceptible.add_transition(
-        transient_susceptible_state,
-        source_data_type="rate",
-        get_data_functions={"incidence_rate": transient_susceptible_incidence_rate},
-    )
-
-    transient_susceptible_state.add_transition(
         acute_myocardial_infarction,
-        source_data_type="proportion",
-        get_data_functions={"proportion": acute_mi_after_susceptible_proportion},
+        source_data_type="rate",
+        get_data_functions={
+            "incidence_rate": lambda builder, cause: builder.data.load(
+                data_keys.IHD_AND_HF.INCIDENCE_ACUTE_MI
+            )
+        },
     )
 
-    transient_susceptible_state.add_transition(
+    susceptible.add_transition(
         heart_failure_from_ihd,
-        source_data_type="proportion",
-        get_data_functions={"proportion": hf_ihd_after_susceptible_proportion},
+        source_data_type="rate",
+        get_data_functions={
+            "incidence_rate": lambda builder, cause: builder.data.load(
+                data_keys.IHD_AND_HF.INCIDENCE_HF_IHD
+            )
+        },
     )
 
-    transient_susceptible_state.add_transition(
+    susceptible.add_transition(
         residual_heart_failure,
-        source_data_type="proportion",
-        get_data_functions={"proportion": hf_residual_after_susceptible_proportion},
+        source_data_type="rate",
+        get_data_functions={
+            "incidence_rate": lambda builder, cause: builder.data.load(
+                data_keys.IHD_AND_HF.INCIDENCE_HF_RESIDUAL
+            )
+        },
     )
 
     # transitions out of heart failure from IHD state
@@ -152,29 +148,29 @@ def IschemicHeartDiseaseAndHeartFailure():
     post_myocardial_infarction.allow_self_transitions()
 
     post_myocardial_infarction.add_transition(
-        transient_post_mi_state,
-        source_data_type="rate",
-        get_data_functions={"transition_rate": transient_post_mi_transition_rate},
-    )
-
-    transient_post_mi_state.add_transition(
         acute_myocardial_infarction,
-        source_data_type="proportion",
-        get_data_functions={"proportion": acute_mi_after_post_mi_proportion},
+        source_data_type="rate",
+        get_data_functions={
+            "transition_rate": lambda builder, *_: builder.data.load(
+                data_keys.IHD_AND_HF.INCIDENCE_ACUTE_MI
+            )
+        },
     )
 
-    transient_post_mi_state.add_transition(
+    post_myocardial_infarction.add_transition(
         heart_failure_from_ihd,
-        source_data_type="proportion",
-        get_data_functions={"proportion": hf_ihd_out_of_post_mi_proportion},
+        source_data_type="rate",
+        get_data_functions={
+            "transition_rate": lambda builder, *_: builder.data.load(
+                data_keys.IHD_AND_HF.INCIDENCE_HF_IHD
+            )
+        },
     )
 
     return DiseaseModel(
         models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME,
         states=[
             susceptible,
-            transient_susceptible_state,
-            transient_post_mi_state,
             acute_myocardial_infarction,
             post_myocardial_infarction,
             heart_failure_from_ihd,

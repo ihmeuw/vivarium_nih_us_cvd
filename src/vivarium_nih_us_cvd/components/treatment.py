@@ -173,7 +173,7 @@ class Treatment:
                 df_efficacy.loc[
                     df_efficacy["value"].isna(), data_values.COLUMNS.SBP_MEDICATION
                 ]
-            ) == {data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION}
+            ).issubset({data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION})
             df_efficacy.loc[
                 df_efficacy[data_values.COLUMNS.SBP_MEDICATION]
                 == data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION,

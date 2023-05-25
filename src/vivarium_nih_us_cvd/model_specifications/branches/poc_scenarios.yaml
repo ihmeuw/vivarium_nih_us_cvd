@@ -3,4 +3,4 @@ random_seed_count: 15
 
 branches:
   - intervention:
-    scenario: [ 'baseline' ]
+      scenario: 'baseline'

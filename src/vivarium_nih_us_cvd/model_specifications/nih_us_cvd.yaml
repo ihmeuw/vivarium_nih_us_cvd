@@ -7,7 +7,6 @@ components:
             - MortalityObserver()
             - DisabilityObserver()
             - DiseaseObserver("ischemic_stroke")
-            - DiseaseObserver("ischemic_heart_disease_and_heart_failure")
         risks:
             - Risk("risk_factor.sbp_medication_adherence")
             - Risk("risk_factor.ldlc_medication_adherence")
@@ -46,10 +45,11 @@ components:
 
             - IschemicStroke()
             - IschemicHeartDiseaseAndHeartFailure()
+            - TransientIHDAndHFObserver("ischemic_heart_disease_and_heart_failure")
 
             - AdjustedRisk("risk_factor.high_ldl_cholesterol")
             - ContinuousRiskObserver("risk_factor.high_ldl_cholesterol")
-            
+
             - AdjustedRisk("risk_factor.high_systolic_blood_pressure")
             - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
 
@@ -63,7 +63,7 @@ components:
 
             - HealthcareUtilization()  # NOTE: this uses Treatment() as a sub-component
             - HealthcareVisitObserver()
-        
+
             - CategoricalColumnObserver("sbp_medication")
             - CategoricalColumnObserver("ldlc_medication")
 
