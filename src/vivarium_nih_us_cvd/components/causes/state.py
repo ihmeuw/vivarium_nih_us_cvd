@@ -8,6 +8,7 @@ from vivarium_public_health.disease import (
     SusceptibleState,
     TransientDiseaseState,
 )
+from vivarium_public_health.disease.transition import TransitionString
 
 from vivarium_nih_us_cvd.components.causes.transition import CompositeRateTransition
 
@@ -41,6 +42,17 @@ class MultiTransitionState(BaseDiseaseState):
     def get_sub_components(self) -> List:
         """Sets the state's transition set and transient state as subcomponents"""
         return [self.transition_set, self.transient_state]
+
+    ##################
+    # Public methods #
+    ##################
+
+    def get_transition_names(self) -> List[str]:
+        transitions = []
+        for trans in self.transient_state.transition_set.transitions:
+            _, _, _, _, end_state = trans.name.split(".")
+            transitions.append(TransitionString(f"{self.state_id}_TO_{end_state}"))
+        return transitions
 
     def add_transition(
         self,
