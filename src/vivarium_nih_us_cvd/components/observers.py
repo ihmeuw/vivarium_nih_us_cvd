@@ -1,12 +1,7 @@
-from collections import Counter
 from typing import Dict, List
 
 import pandas as pd
-from vivarium.config_tree import ConfigTree
 from vivarium.framework.engine import Builder
-from vivarium.framework.event import Event
-from vivarium.framework.population import PopulationView
-from vivarium.framework.time import get_time_stamp
 from vivarium_public_health.metrics.stratification import (
     ResultsStratifier as ResultsStratifier_,
 )
