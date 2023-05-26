@@ -2,26 +2,59 @@ components:
     vivarium_public_health:
         population:
             - BasePopulation()
-        metrics:
-            - ResultsStratifier()
 
     vivarium_nih_us_cvd:
         components:
-            # heart failure
-            - IschemicHeartDiseaseAndHeartFailure()
+            - ResultsStratifier()
+            # causes
+            - Causes()
             # risks
             - TruncatedRisk("risk_factor.high_systolic_blood_pressure")
             - CategoricalSBPRisk()
             - TruncatedRisk("risk_factor.high_body_mass_index_in_adults")
             # risk effects
+            - # heart failure PAFs
             - PAFCalculationRiskEffect("risk_factor.categorical_high_systolic_blood_pressure", "cause.heart_failure_from_ischemic_heart_disease.incidence_rate")
             - PAFCalculationRiskEffect("risk_factor.categorical_high_systolic_blood_pressure", "cause.heart_failure_residual.incidence_rate")
             - PAFCalculationRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_from_ischemic_heart_disease.incidence_rate")
             - PAFCalculationRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_residual.incidence_rate")
 
+            # all other PAFs
+            - PAFCalculationRiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
+            - PAFCalculationRiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+            - PAFCalculationRiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_ischemic_stroke.incidence_rate")
+            - PAFCalculationRiskEffect("risk_factor.high_ldl_cholesterol", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
+
+            - PAFCalculationRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_myocardial_infarction.incidence_rate")
+            - PAFCalculationRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+            - PAFCalculationRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_ischemic_stroke.incidence_rate")
+            - PAFCalculationRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
+
+            - PAFCalculationRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.acute_myocardial_infarction.incidence_rate")
+            - PAFCalculationRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+            - PAFCalculationRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.acute_ischemic_stroke.incidence_rate")
+            - PAFCalculationRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
+
             # PAF observers
+            # heart failure PAFs
             - PAFObserver("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_residual.incidence_rate")
             - PAFObserver("risk_factor.categorical_high_systolic_blood_pressure", "cause.heart_failure_residual.incidence_rate")
+
+            # all other PAFs
+            - PAFObserver("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
+            - PAFObserver("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+            - PAFObserver("risk_factor.high_ldl_cholesterol", "cause.acute_ischemic_stroke.incidence_rate")
+            - PAFObserver("risk_factor.high_ldl_cholesterol", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
+
+            - PAFObserver("risk_factor.high_systolic_blood_pressure", "cause.acute_myocardial_infarction.incidence_rate")
+            - PAFObserver("risk_factor.high_systolic_blood_pressure", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+            - PAFObserver("risk_factor.high_systolic_blood_pressure", "cause.acute_ischemic_stroke.incidence_rate")
+            - PAFObserver("risk_factor.high_systolic_blood_pressure", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
+
+            - PAFObserver("risk_factor.high_body_mass_index_in_adults", "cause.acute_myocardial_infarction.incidence_rate")
+            - PAFObserver("risk_factor.high_body_mass_index_in_adults", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+            - PAFObserver("risk_factor.high_body_mass_index_in_adults", "cause.acute_ischemic_stroke.incidence_rate")
+            - PAFObserver("risk_factor.high_body_mass_index_in_adults", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
 
 configuration:
     input_data:
