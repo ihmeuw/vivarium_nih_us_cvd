@@ -1045,7 +1045,7 @@ def format_paf_data(entity: str, location: str) -> pd.DataFrame:
         data_keys.POPULATION.STRUCTURE, location
     ).droplevel("location")
 
-    pafs = pd.read_hdf(paths.FILEPATHS.CALCULATED_PAFS)
+    pafs = pd.read_hdf(paths.CALCULATED_PAFS_ROOT + location.lower() +'_pafs.hdf')
     pafs = pafs[
         [col for col in pafs.columns if "." + entity in col]
     ].T  # use dot so high sbp doesn't include categorical high sbp
