@@ -10,6 +10,7 @@ ARTIFACT_ROOT = Path(f"/share/costeffectiveness/artifacts/{metadata.PROJECT_NAME
 MODEL_SPEC_DIR = BASE_DIR / "model_specifications"
 RESULTS_ROOT = Path(f"/share/costeffectiveness/results/{metadata.PROJECT_NAME}/")
 DATA_ROOT = BASE_DIR / "data"
+CALCULATED_PAFS_ROOT = DATA_ROOT / "calculated_pafs"
 
 CAUSE_RISK_CONFIG = BASE_DIR / "components" / "causes" / "causes.yaml"
 
@@ -19,7 +20,6 @@ class __Filepaths(NamedTuple):
 
     SBP_MEDICATION_EFFECTS: Path = DATA_ROOT / "drug_efficacy_sbp.csv"
     HEART_FAILURE_PROPORTIONS: Path = DATA_ROOT / "hf_props.csv"
-    CALCULATED_PAFS: Path = DATA_ROOT / "calculated_pafs.hdf"
     LDL_DISTRIBUTION_WEIGHTS: Path = DATA_ROOT / "ldl_weights.csv"
     SBP_DISTRIBUTION_WEIGHTS: Path = DATA_ROOT / "sbp_weights.csv"
     BMI_DISTRIBUTION_WEIGHTS: Path = DATA_ROOT / "bmi_weights.csv"
