@@ -154,9 +154,9 @@ class __HighLDLCholesterol(NamedTuple):
     RELATIVE_RISK: TargetString = TargetString(
         "risk_factor.high_ldl_cholesterol.relative_risk"
     )
-    PAF: TargetString = TargetString(
-        "risk_factor.high_ldl_cholesterol.population_attributable_fraction"
-    )
+#    PAF: TargetString = TargetString(
+#        "risk_factor.high_ldl_cholesterol.population_attributable_fraction"
+#    )
     TMRED: TargetString = TargetString("risk_factor.high_ldl_cholesterol.tmred")
     RELATIVE_RISK_SCALAR: TargetString = TargetString(
         "risk_factor.high_ldl_cholesterol.relative_risk_scalar"
@@ -199,12 +199,12 @@ class __HighSBP(NamedTuple):
     CATEGORICAL_RELATIVE_RISK: TargetString = TargetString(
         "risk_factor.categorical_high_systolic_blood_pressure.relative_risk"
     )
-    PAF: TargetString = TargetString(
-        "risk_factor.high_systolic_blood_pressure.population_attributable_fraction"
-    )
-    CATEGORICAL_PAF: TargetString = TargetString(
-        "risk_factor.categorical_high_systolic_blood_pressure.population_attributable_fraction"
-    )
+#    PAF: TargetString = TargetString(
+#        "risk_factor.high_systolic_blood_pressure.population_attributable_fraction"
+#    )
+#    CATEGORICAL_PAF: TargetString = TargetString(
+#        "risk_factor.categorical_high_systolic_blood_pressure.population_attributable_fraction"
+#    )
     TMRED: TargetString = TargetString("risk_factor.high_systolic_blood_pressure.tmred")
     RELATIVE_RISK_SCALAR: TargetString = TargetString(
         "risk_factor.high_systolic_blood_pressure.relative_risk_scalar"
@@ -238,9 +238,9 @@ class __HighBMI(NamedTuple):
     RELATIVE_RISK: TargetString = TargetString(
         "risk_factor.high_body_mass_index_in_adults.relative_risk"
     )
-    PAF: TargetString = TargetString(
-        "risk_factor.high_body_mass_index_in_adults.population_attributable_fraction"
-    )
+#    PAF: TargetString = TargetString(
+#        "risk_factor.high_body_mass_index_in_adults.population_attributable_fraction"
+#    )
     TMRED: TargetString = TargetString("risk_factor.high_body_mass_index_in_adults.tmred")
     RELATIVE_RISK_SCALAR: TargetString = TargetString(
         "risk_factor.high_body_mass_index_in_adults.relative_risk_scalar"
@@ -274,9 +274,9 @@ class __HighFPG(NamedTuple):
     RELATIVE_RISK: TargetString = TargetString(
         "risk_factor.high_fasting_plasma_glucose.relative_risk"
     )
-    PAF: TargetString = TargetString(
-        "risk_factor.high_fasting_plasma_glucose.population_attributable_fraction"
-    )
+#    PAF: TargetString = TargetString(
+#        "risk_factor.high_fasting_plasma_glucose.population_attributable_fraction"
+#    )
     TMRED: TargetString = TargetString("risk_factor.high_fasting_plasma_glucose.tmred")
     RELATIVE_RISK_SCALAR: TargetString = TargetString(
         "risk_factor.high_fasting_plasma_glucose.relative_risk_scalar"
