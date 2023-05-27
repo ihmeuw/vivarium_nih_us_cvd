@@ -116,7 +116,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.LDL_C.EXPOSURE_SD: load_ldl_standard_deviation,
         data_keys.LDL_C.EXPOSURE_WEIGHTS: load_ldl_weights,
         data_keys.LDL_C.RELATIVE_RISK: load_standard_data,
-        data_keys.LDL_C.PAF: load_paf_ldl,
+#        data_keys.LDL_C.PAF: load_paf_ldl,
         data_keys.LDL_C.TMRED: load_metadata,
         data_keys.LDL_C.RELATIVE_RISK_SCALAR: load_metadata,
         data_keys.LDL_C.MEDICATION_EFFECT: load_ldlc_medication_effect,
@@ -128,8 +128,8 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.SBP.EXPOSURE_WEIGHTS: load_sbp_weights,
         data_keys.SBP.RELATIVE_RISK: load_standard_data,
         data_keys.SBP.CATEGORICAL_RELATIVE_RISK: load_relative_risk_categorical_sbp,
-        data_keys.SBP.PAF: load_paf_sbp,
-        data_keys.SBP.CATEGORICAL_PAF: load_paf_categorical_sbp,
+#        data_keys.SBP.PAF: load_paf_sbp,
+#        data_keys.SBP.CATEGORICAL_PAF: load_paf_categorical_sbp,
         data_keys.SBP.TMRED: load_metadata,
         data_keys.SBP.RELATIVE_RISK_SCALAR: load_metadata,
         # Risk (body mass index)
@@ -138,7 +138,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.BMI.EXPOSURE_SD: load_bmi_standard_deviation,
         data_keys.BMI.EXPOSURE_WEIGHTS: load_bmi_weights,
         data_keys.BMI.RELATIVE_RISK: load_relative_risk_bmi,
-        data_keys.BMI.PAF: load_paf_bmi,
+#        data_keys.BMI.PAF: load_paf_bmi,
         data_keys.BMI.TMRED: load_metadata,
         data_keys.BMI.RELATIVE_RISK_SCALAR: load_metadata,
         # Risk (fasting plasma glucose)
@@ -147,7 +147,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.FPG.EXPOSURE_SD: load_fpg_standard_deviation,
         data_keys.FPG.EXPOSURE_WEIGHTS: load_standard_data,
         data_keys.FPG.RELATIVE_RISK: load_standard_data,
-        data_keys.FPG.PAF: load_standard_data,
+#        data_keys.FPG.PAF: load_standard_data,
         data_keys.FPG.TMRED: load_metadata,
         data_keys.FPG.RELATIVE_RISK_SCALAR: load_metadata,
         # Risk (ldlc medication adherence)
@@ -679,12 +679,12 @@ def modify_rr_affected_entity(data: pd.DataFrame, mod_map: Dict[str, List[str]])
 
 def match_rr_to_cause_name(data: Union[str, pd.DataFrame], source_key: EntityKey):
     # Need to make relative risk data match causes in the model
-    is_calculated_paf = (
-        (source_key == data_keys.LDL_C.PAF)
-        or (source_key == data_keys.SBP.PAF)
-        or (source_key == data_keys.BMI.PAF)
-    )
-
+#    is_calculated_paf = (
+#        (source_key == data_keys.LDL_C.PAF)
+#        or (source_key == data_keys.SBP.PAF)
+#        or (source_key == data_keys.BMI.PAF)
+#    )
+    is_calculated_paf = False
     if is_calculated_paf:
         map = {
             # not explicitly including these will delete them from the data
@@ -763,7 +763,7 @@ def load_ldlc_medication_effect(key: str, location: str) -> pd.DataFrame:
         [l.DESCRIPTION for l in data_values.LDLC_MEDICATION_EFFICACY],
         name=data_values.COLUMNS.LDLC_MEDICATION,
     )
-    df = pd.DataFrame(index=index, columns=draws, dtype=np.float)
+    df = pd.DataFrame(index=index, columns=draws, dtype=float)
     for med_level, seeded_distribution in data_values.LDLC_MEDICATION_EFFICACY:
         df.loc[med_level, :] = get_random_variable_draws(1000, seeded_distribution)
     assert df.notna().values.all()

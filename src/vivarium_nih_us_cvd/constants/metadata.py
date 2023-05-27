@@ -18,6 +18,7 @@ MAKE_ARTIFACT_SLEEP = 10
 
 LOCATIONS = [
     "Alabama",
+    "Washington",
 ]
 
 ARTIFACT_INDEX_COLUMNS = [
