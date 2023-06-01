@@ -5,10 +5,11 @@ import vivarium_nih_us_cvd
 from vivarium_nih_us_cvd.constants import metadata
 
 BASE_DIR = Path(vivarium_nih_us_cvd.__file__).resolve().parent
+BASE_OUTPUT_DIR = Path("/mnt/team/simulation_science/costeffectiveness")
 
-ARTIFACT_ROOT = Path(f"/share/costeffectiveness/artifacts/{metadata.PROJECT_NAME}/")
+ARTIFACT_ROOT = BASE_OUTPUT_DIR / "artifacts" / metadata.PROJECT_NAME
 MODEL_SPEC_DIR = BASE_DIR / "model_specifications"
-RESULTS_ROOT = Path(f"/share/costeffectiveness/results/{metadata.PROJECT_NAME}/")
+RESULTS_ROOT = BASE_OUTPUT_DIR / "results" / metadata.PROJECT_NAME
 DATA_ROOT = BASE_DIR / "data"
 CALCULATED_PAFS_ROOT = DATA_ROOT / "calculated_pafs"
 
