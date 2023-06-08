@@ -49,8 +49,12 @@ def check_for_existing(
     )
     locations = set([sanitize_location(loc) for loc in metadata.LOCATIONS])
     location = sanitize_location(location)
-    existing = locations.intersection(existing_artifacts)
-    if existing and (location == "all" or location in existing):
+    if location == "all":
+        existing = locations.intersection(existing_artifacts)
+    else:
+        existing = [location] if location in existing_artifacts else None
+
+    if existing:
         if not append:
             click.confirm(
                 f"Existing artifacts found for {existing}. Do you want to delete and rebuild?",
