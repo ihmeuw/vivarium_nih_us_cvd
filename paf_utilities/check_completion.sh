@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# This is not a well fleshed out script. Modify as needed!
+
 if [ $# -ne 1 ]; then
     echo "Usage: $0 <parent_directory>"
     exit 1

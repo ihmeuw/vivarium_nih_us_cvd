@@ -1,12 +1,12 @@
 #!/bin/bash
 
-artifactver="v1-20230608"
+artifactver="v1-20230613"
 artifactdir="/mnt/team/simulation_science/costeffectiveness/artifacts/vivarium_nih_us_cvd/51-locations"
 
-queue="all.q"
+queue="long.q"
 runtime="00:20:00"
 mem=3
-project="proj_simscience"
+project="proj_simscience_prod"
 
 
 psimulate_cmd="$1"
