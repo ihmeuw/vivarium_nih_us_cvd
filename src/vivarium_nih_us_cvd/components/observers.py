@@ -38,10 +38,11 @@ class ResultsStratifier(ResultsStratifier_):
 
         # FIXME: MIC-4083 simulants can age past 125
         max_age = age_bins["age_end"].max()
-        age_bins.loc[age_bins["age_end"] == max_age, "age_end"] += builder.configuration.time.step_size / 365.25
-        
+        age_bins.loc[age_bins["age_end"] == max_age, "age_end"] += (
+            builder.configuration.time.step_size / 365.25
+        )
+
         return age_bins.sort_values(["age_start"]).reset_index(drop=True)
-    
 
     def get_age_bins(self, builder: Builder) -> pd.DataFrame:
         """Re-define youngest age bin to 5_to_24"""
@@ -51,7 +52,9 @@ class ResultsStratifier(ResultsStratifier_):
 
         # FIXME: MIC-4083 simulants can age past 125
         max_age = age_bins["age_end"].max()
-        age_bins.loc[age_bins["age_end"] == max_age, "age_end"] += builder.configuration.time.step_size / 365.25
+        age_bins.loc[age_bins["age_end"] == max_age, "age_end"] += (
+            builder.configuration.time.step_size / 365.25
+        )
 
         return age_bins.sort_values(["age_start"]).reset_index(drop=True)
 
