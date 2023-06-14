@@ -15,7 +15,7 @@ locations=(
 "california" \
 "colorado" \
 "connecticut" \
-"celaware" \
+"delaware" \
 "district_of_columbia" \
 "florida" \
 "georgia" \
