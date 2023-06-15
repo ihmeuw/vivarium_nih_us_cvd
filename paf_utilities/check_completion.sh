@@ -3,7 +3,8 @@
 # This is not a well fleshed out script. Modify as needed!
 
 if [ $# -ne 1 ]; then
-    echo "Usage: $0 <parent_directory>"
+    echo "Usage: $0 <paf simulations root>"
+    echo "Please provide the path to the PAF simulations root"
     exit 1
 fi
 
@@ -21,13 +22,13 @@ for subfolder in "$parent_dir"/*/; do
     latest_log=$(echo "$log_files" | tail -n 1)
 
     # If a log file is found, perform grep on it and extract the matching pattern
+    #   Looks for either the last instance of "Finished: ####" or "No jobs to run, exiting"
     if [[ -n $latest_log ]]; then
-        # grep_result=$(grep -o "with .* rows" "$latest_log")
-        grep_result=$(grep -o -P "(?<=with ).*(?= rows)|No jobs to run" "$latest_log")
+        grep_result=$(grep -oP "Finished: \K\d+|No jobs to run, exiting" "$latest_log" | tail -1)
         if [[ -n $grep_result ]]; then
             echo "$subfolder_name: $grep_result"
         else
-            echo "$subfolder_name: BAD"
+            echo "$subfolder_name: BAD ($latest_log)"
         fi
     fi
 

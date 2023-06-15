@@ -1,19 +1,18 @@
 #!/bin/bash
 
-artifactver="v1-20230613"
-artifactdir="/mnt/team/simulation_science/costeffectiveness/artifacts/vivarium_nih_us_cvd/51-locations"
-
-queue="long.q"
+queue="all.q"
 runtime="00:20:00"
 mem=3
 project="proj_simscience_prod"
 
 
 psimulate_cmd="$1"
-location="$2"
+artifact_ver="$2"
+artifact_dir="$3"
+location="$4"
 
 
-outputdir="$artifactdir/$artifactver"
+outputdir="$artifact_dir/$artifact_ver"
 if [ "$psimulate_cmd" == "run" ]; then
     cmd="psimulate run src/vivarium_nih_us_cvd/model_specifications/paf_calculation.yaml src/vivarium_nih_us_cvd/model_specifications/branches/scenarios.yaml -i $outputdir/$location.hdf -o $outputdir/paf-calculations/ -m $mem -r $runtime -q $queue -P $project"
 elif [ "$psimulate_cmd" == "restart" ]; then
@@ -30,6 +29,7 @@ else
     exit 1
 fi
 
+echo ""
 echo "call: $cmd"
 if eval "$cmd"; then
     echo "*** FINISHED ($location) ***"
