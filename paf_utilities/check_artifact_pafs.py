@@ -3,10 +3,8 @@ from pathlib import Path
 
 from vivarium import Artifact
 
-root_dir = Path(
-    "/mnt/team/simulation_science/costeffectiveness/artifacts/vivarium_nih_us_cvd/51-locations/v1-20230613"
-)
-expected_num_paf_keys = 5
+
+EXPECTED_NUM_PAF_KEYS = 5
 
 
 def main(root_dir: Path) -> None:
@@ -16,19 +14,19 @@ def main(root_dir: Path) -> None:
         print(f"Checking {filename}")
         art = Artifact(file)
         num_paf_keys = len([k for k in art.keys if "population_attributable_fraction" in k])
-        if num_paf_keys != expected_num_paf_keys:
+        if num_paf_keys != EXPECTED_NUM_PAF_KEYS:
             print(f"\nMISSING! - {filename}: {num_paf_keys} PAF keys\n")
             bad_files.append(filename)
 
     if bad_files:
         print("\n*** FINISHED ***")
         print(
-            f"Some artifacts were found without the required {expected_num_paf_keys} PAF keys:"
+            f"Some artifacts were found without the required {EXPECTED_NUM_PAF_KEYS} PAF keys:"
         )
         print(f"{bad_files}")
     else:
         print("\n*** FINISHED ***")
-        print(f"All artifacts have the expected number of PAF keys ({expected_num_paf_keys})")
+        print(f"All artifacts have the expected number of PAF keys ({EXPECTED_NUM_PAF_KEYS})")
 
 
 if __name__ == "__main__":
