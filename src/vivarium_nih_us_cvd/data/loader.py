@@ -1049,7 +1049,9 @@ def format_paf_data(entity: str, location: str, artifact_path: str) -> pd.DataFr
     population_structure = load_population_structure(
         data_keys.POPULATION.STRUCTURE, location
     ).droplevel("location")
-    pafs_run_dir = Path(artifact_path).parent / "paf-calculations" / f"{sanitize_location(location)}"
+    pafs_run_dir = (
+        Path(artifact_path).parent / "paf-calculations" / f"{sanitize_location(location)}"
+    )
     # assume the last path is the correct one
     paf_path = sorted([d for d in pafs_run_dir.iterdir() if d.is_dir()])[-1] / "output.hdf"
     pafs = pd.read_hdf(paf_path)

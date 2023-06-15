@@ -1,8 +1,12 @@
 from pathlib import Path
+
 from vivarium import Artifact
 
-root_dir = Path('/mnt/team/simulation_science/costeffectiveness/artifacts/vivarium_nih_us_cvd/51-locations/v1-20230613')
+root_dir = Path(
+    "/mnt/team/simulation_science/costeffectiveness/artifacts/vivarium_nih_us_cvd/51-locations/v1-20230613"
+)
 expected_num_paf_keys = 5
+
 
 def main():
     bad_files = []
@@ -17,7 +21,9 @@ def main():
 
     if bad_files:
         print("\n*** FINISHED ***")
-        print(f"Some artifacts were found without the required {expected_num_paf_keys} PAF keys:")
+        print(
+            f"Some artifacts were found without the required {expected_num_paf_keys} PAF keys:"
+        )
         print(f"{bad_files}")
     else:
         print("\n*** FINISHED ***")
