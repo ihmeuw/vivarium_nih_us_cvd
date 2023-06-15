@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 
 from vivarium import Artifact
@@ -8,13 +9,13 @@ root_dir = Path(
 expected_num_paf_keys = 5
 
 
-def main():
+def main(root_dir: Path) -> None:
     bad_files = []
     for file in sorted(list(root_dir.glob("*.hdf"))):
         filename = file.name
         print(f"Checking {filename}")
         art = Artifact(file)
-        num_paf_keys = len([k for k in art.keys if "attribut" in k])
+        num_paf_keys = len([k for k in art.keys if "population_attributable_fraction" in k])
         if num_paf_keys != expected_num_paf_keys:
             print(f"\nMISSING! - {filename}: {num_paf_keys} PAF keys\n")
             bad_files.append(filename)
@@ -31,4 +32,22 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-d",
+        "--directory",
+        default="/mnt/team/simulation_science/costeffectiveness/artifacts/vivarium_nih_us_cvd/51-locations/",
+        help="Root artifacts directory",
+    )
+    parser.add_argument(
+        "-v",
+        "--version",
+        help="Version/sub-folder of artifacts to check",
+    )
+    directory = parser.parse_args().directory
+    version = parser.parse_args().version
+    root_dir = Path(directory) / version
+    if not root_dir.exists():
+        raise RuntimeError(f"Directory does not exist: {root_dir}")
+
+    main(root_dir)
