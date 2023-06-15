@@ -13,6 +13,7 @@ for an example.
    No logging is done here. Logging is done in vivarium inputs itself and forwarded.
 """
 from functools import partial
+from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
 import numpy as np
@@ -57,7 +58,9 @@ def _get_source_key(val: Union[str, data_keys.SourceTarget]) -> str:
     return val.source if isinstance(val, data_keys.SourceTarget) else val
 
 
-def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> pd.DataFrame:
+def get_data(
+    lookup_key: Union[str, data_keys.SourceTarget], location: str, artifact_path: str
+) -> pd.DataFrame:
     """Retrieves data from an appropriate source.
 
     Parameters
@@ -116,7 +119,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.LDL_C.EXPOSURE_SD: load_ldl_standard_deviation,
         data_keys.LDL_C.EXPOSURE_WEIGHTS: load_ldl_weights,
         data_keys.LDL_C.RELATIVE_RISK: load_standard_data,
-#        data_keys.LDL_C.PAF: load_paf_ldl,
+        # data_keys.LDL_C.PAF: partial(load_paf_ldl, artifact_path),
         data_keys.LDL_C.TMRED: load_metadata,
         data_keys.LDL_C.RELATIVE_RISK_SCALAR: load_metadata,
         data_keys.LDL_C.MEDICATION_EFFECT: load_ldlc_medication_effect,
@@ -128,8 +131,8 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.SBP.EXPOSURE_WEIGHTS: load_sbp_weights,
         data_keys.SBP.RELATIVE_RISK: load_standard_data,
         data_keys.SBP.CATEGORICAL_RELATIVE_RISK: load_relative_risk_categorical_sbp,
-#        data_keys.SBP.PAF: load_paf_sbp,
-#        data_keys.SBP.CATEGORICAL_PAF: load_paf_categorical_sbp,
+        # data_keys.SBP.PAF: partial(load_paf_sbp, artifact_path),
+        # data_keys.SBP.CATEGORICAL_PAF: partial(load_paf_categorical_sbp, artifact_path),
         data_keys.SBP.TMRED: load_metadata,
         data_keys.SBP.RELATIVE_RISK_SCALAR: load_metadata,
         # Risk (body mass index)
@@ -138,7 +141,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.BMI.EXPOSURE_SD: load_bmi_standard_deviation,
         data_keys.BMI.EXPOSURE_WEIGHTS: load_bmi_weights,
         data_keys.BMI.RELATIVE_RISK: load_relative_risk_bmi,
-#        data_keys.BMI.PAF: load_paf_bmi,
+        # data_keys.BMI.PAF: partial(load_paf_bmi, artifact_path),
         data_keys.BMI.TMRED: load_metadata,
         data_keys.BMI.RELATIVE_RISK_SCALAR: load_metadata,
         # Risk (fasting plasma glucose)
@@ -147,7 +150,7 @@ def get_data(lookup_key: Union[str, data_keys.SourceTarget], location: str) -> p
         data_keys.FPG.EXPOSURE_SD: load_fpg_standard_deviation,
         data_keys.FPG.EXPOSURE_WEIGHTS: load_standard_data,
         data_keys.FPG.RELATIVE_RISK: load_standard_data,
-#        data_keys.FPG.PAF: load_standard_data,
+        # data_keys.FPG.PAF: load_standard_data,
         data_keys.FPG.TMRED: load_metadata,
         data_keys.FPG.RELATIVE_RISK_SCALAR: load_metadata,
         # Risk (ldlc medication adherence)
@@ -679,12 +682,12 @@ def modify_rr_affected_entity(data: pd.DataFrame, mod_map: Dict[str, List[str]])
 
 def match_rr_to_cause_name(data: Union[str, pd.DataFrame], source_key: EntityKey):
     # Need to make relative risk data match causes in the model
-#    is_calculated_paf = (
-#        (source_key == data_keys.LDL_C.PAF)
-#        or (source_key == data_keys.SBP.PAF)
-#        or (source_key == data_keys.BMI.PAF)
-#    )
     is_calculated_paf = False
+    # is_calculated_paf = (
+    #     (source_key == data_keys.LDL_C.PAF)
+    #     or (source_key == data_keys.SBP.PAF)
+    #     or (source_key == data_keys.BMI.PAF)
+    # )
     if is_calculated_paf:
         map = {
             # not explicitly including these will delete them from the data
@@ -819,12 +822,14 @@ def load_relative_risk_categorical_sbp(key: str, location: str) -> pd.DataFrame:
     return heart_failure_rrs
 
 
-def load_paf_sbp(key: str, location: str) -> pd.DataFrame:
-    return format_paf_data("high_systolic_blood_pressure", location)
+def load_paf_sbp(artifact_path: str, key: str, location: str) -> pd.DataFrame:
+    return format_paf_data("high_systolic_blood_pressure", location, artifact_path)
 
 
-def load_paf_categorical_sbp(key: str, location: str) -> pd.DataFrame:
-    return format_paf_data("categorical_high_systolic_blood_pressure", location)
+def load_paf_categorical_sbp(artifact_path: str, key: str, location: str) -> pd.DataFrame:
+    return format_paf_data(
+        "categorical_high_systolic_blood_pressure", location, artifact_path
+    )
 
 
 def load_relative_risk_bmi(key: str, location: str) -> pd.DataFrame:
@@ -866,8 +871,8 @@ def load_relative_risk_bmi(key: str, location: str) -> pd.DataFrame:
     return relative_risk_bmi
 
 
-def load_paf_bmi(key: str, location: str) -> pd.DataFrame:
-    return format_paf_data("high_body_mass_index_in_adults", location)
+def load_paf_bmi(artifact_path: str, key: str, location: str) -> pd.DataFrame:
+    return format_paf_data("high_body_mass_index_in_adults", location, artifact_path)
 
 
 def get_re_mean_exposure_data_from_me_id(key: str, location: str, me_id: int) -> pd.DataFrame:
@@ -1028,7 +1033,7 @@ def get_age_and_sex_from_paf_output_cols(measure_str):
     return age_start + "," + age_end + "," + sex
 
 
-def format_paf_data(entity: str, location: str) -> pd.DataFrame:
+def format_paf_data(entity: str, location: str, artifact_path: str) -> pd.DataFrame:
     allowed_entities = [
         "high_ldl_cholesterol",
         "high_body_mass_index_in_adults",
@@ -1044,8 +1049,10 @@ def format_paf_data(entity: str, location: str) -> pd.DataFrame:
     population_structure = load_population_structure(
         data_keys.POPULATION.STRUCTURE, location
     ).droplevel("location")
-
-    pafs = pd.read_hdf(paths.CALCULATED_PAFS_ROOT + location.lower() +'_pafs.hdf')
+    pafs_run_dir = Path(artifact_path).parent / "paf-calculations" / f"{location.lower()}"
+    # assume the last path is the correct one
+    paf_path = sorted([d for d in pafs_run_dir.iterdir() if d.is_dir()])[-1] / "output.hdf"
+    pafs = pd.read_hdf(paf_path)
     pafs = pafs[
         [col for col in pafs.columns if "." + entity in col]
     ].T  # use dot so high sbp doesn't include categorical high sbp
@@ -1111,8 +1118,8 @@ def format_paf_data(entity: str, location: str) -> pd.DataFrame:
     return formatted_pafs
 
 
-def load_paf_ldl(key: str, location: str) -> pd.DataFrame:
-    return format_paf_data("high_ldl_cholesterol", location)
+def load_paf_ldl(artifact_path: str, key: str, location: str) -> pd.DataFrame:
+    return format_paf_data("high_ldl_cholesterol", location, artifact_path)
 
 
 def load_sbp_exposure(key: str, location: str) -> pd.DataFrame:
