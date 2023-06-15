@@ -3,7 +3,6 @@ from pathlib import Path
 
 from vivarium import Artifact
 
-
 EXPECTED_NUM_PAF_KEYS = 5
 
 
