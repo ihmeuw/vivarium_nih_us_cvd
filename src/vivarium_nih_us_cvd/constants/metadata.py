@@ -11,14 +11,63 @@ PROJECT_NAME = "vivarium_nih_us_cvd"
 CLUSTER_PROJECT = "proj_simscience_prod"
 
 CLUSTER_QUEUE = "all.q"
-MAKE_ARTIFACT_MEM = "10G"
-MAKE_ARTIFACT_CPU = "1"
-MAKE_ARTIFACT_RUNTIME = "3:00:00"
+MAKE_ARTIFACT_MEM = 5  # GB
+MAKE_ARTIFACT_CPU = 1
+MAKE_ARTIFACT_RUNTIME = "4:00:00"
 MAKE_ARTIFACT_SLEEP = 10
 
 LOCATIONS = [
     "Alabama",
+    "Alaska",
+    "Arizona",
+    "Arkansas",
+    "California",
+    "Colorado",
+    "Connecticut",
+    "Delaware",
+    "District of Columbia",
+    "Florida",
+    "Georgia",
+    "Hawaii",
+    "Idaho",
+    "Illinois",
+    "Indiana",
+    "Iowa",
+    "Kansas",
+    "Kentucky",
+    "Louisiana",
+    "Maine",
+    "Maryland",
+    "Massachusetts",
+    "Michigan",
+    "Minnesota",
+    "Mississippi",
+    "Missouri",
+    "Montana",
+    "Nebraska",
+    "Nevada",
+    "New Hampshire",
+    "New Jersey",
+    "New Mexico",
+    "New York",
+    "North Carolina",
+    "North Dakota",
+    "Ohio",
+    "Oklahoma",
+    "Oregon",
+    "Pennsylvania",
+    "Rhode Island",
+    "South Carolina",
+    "South Dakota",
+    "Tennessee",
+    "Texas",
+    "Utah",
+    "Vermont",
+    "Virginia",
     "Washington",
+    "West Virginia",
+    "Wisconsin",
+    "Wyoming",
 ]
 
 ARTIFACT_INDEX_COLUMNS = [
