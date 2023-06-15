@@ -11,7 +11,6 @@ ARTIFACT_ROOT = BASE_OUTPUT_DIR / "artifacts" / metadata.PROJECT_NAME
 MODEL_SPEC_DIR = BASE_DIR / "model_specifications"
 RESULTS_ROOT = BASE_OUTPUT_DIR / "results" / metadata.PROJECT_NAME
 DATA_ROOT = BASE_DIR / "data"
-CALCULATED_PAFS_ROOT = DATA_ROOT / "calculated_pafs"
 
 CAUSE_RISK_CONFIG = BASE_DIR / "components" / "causes" / "causes.yaml"
 
