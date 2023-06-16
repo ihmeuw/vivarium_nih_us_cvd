@@ -50,7 +50,7 @@ from vivarium_nih_us_cvd.constants.metadata import (
     GBD_2020_ROUND_ID,
     PROPORTION_DATA_INDEX_COLUMNS,
 )
-from vivarium_nih_us_cvd.utilities import get_random_variable_draws
+from vivarium_nih_us_cvd.utilities import get_random_variable_draws, sanitize_location
 
 
 def _get_source_key(val: Union[str, data_keys.SourceTarget]) -> str:
@@ -1049,7 +1049,9 @@ def format_paf_data(entity: str, location: str, artifact_path: str) -> pd.DataFr
     population_structure = load_population_structure(
         data_keys.POPULATION.STRUCTURE, location
     ).droplevel("location")
-    pafs_run_dir = Path(artifact_path).parent / "paf-calculations" / f"{location.lower()}"
+    pafs_run_dir = (
+        Path(artifact_path).parent / "paf-calculations" / f"{sanitize_location(location)}"
+    )
     # assume the last path is the correct one
     paf_path = sorted([d for d in pafs_run_dir.iterdir() if d.is_dir()])[-1] / "output.hdf"
     pafs = pd.read_hdf(paf_path)
