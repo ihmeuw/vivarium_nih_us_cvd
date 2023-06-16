@@ -71,7 +71,9 @@ NOTE: ./calculate_pafs.sh calls ./check_completion.sh as the final step; you can
 STEP 4: ADD PAFS TO THE ARTIFACTS
 ---------------------------------
 1. Change branches
+    ```
     >>> cd ../vivarium_public_health; git checkout main
+    ```
 2. Uncomment the five PAF items in ../src/vivarium_nih_us_cvd/constants/data_keys.py:
     - __HighLDLCholesterol().PAF
     - __HighSBP().PAF
