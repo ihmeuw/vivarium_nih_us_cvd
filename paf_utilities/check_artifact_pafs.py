@@ -7,8 +7,11 @@ EXPECTED_NUM_PAF_KEYS = 5
 
 
 def main(root_dir: Path) -> None:
+    artifacts = sorted(list(root_dir.glob("*.hdf")))
+    if not artifacts:
+        raise RuntimeError(f"No artifacts found at {root_dir}")
     bad_files = []
-    for file in sorted(list(root_dir.glob("*.hdf"))):
+    for file in artifacts:
         filename = file.name
         print(f"Checking {filename}")
         art = Artifact(file)
