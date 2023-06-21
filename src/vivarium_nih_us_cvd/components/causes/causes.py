@@ -14,6 +14,10 @@ from vivarium_public_health.disease import (
 )
 from vivarium_public_health.utilities import TargetString
 
+from vivarium_nih_us_cvd.components.causes.state import (
+    MultiTransitionDiseaseState,
+    MultiTransitionSusceptibleState,
+)
 from vivarium_nih_us_cvd.constants.paths import CAUSE_RISK_CONFIG
 
 
@@ -41,9 +45,7 @@ class Causes:
     def get_disease_models(self) -> List:
         disease_models = []
 
-        full_config = ConfigTree(layers=["default", "cause_model_spec"])
-        full_config.update(CAUSE_RISK_CONFIG, layer="cause_model_spec")
-        self.add_default_config_layer(full_config)
+        full_config = self.get_causes_configuration()
         config = full_config.causes
 
         for cause_name, cause_config in config.items():
@@ -72,6 +74,31 @@ class Causes:
 
         return disease_models
 
+    def get_causes_configuration(self):
+        full_config = ConfigTree(layers=["default", "cause_model_spec"])
+        full_config.update(CAUSE_RISK_CONFIG, layer="cause_model_spec")
+        self.mark_multi_transition_states(full_config)
+        self.add_default_config_layer(full_config)
+        full_config.freeze()
+        return full_config
+
+    @staticmethod
+    def mark_multi_transition_states(full_config: ConfigTree) -> None:
+        transition_counts = {
+            cause: {state: 0 for state in config.states}
+            for cause, config in full_config.causes.items()
+        }
+
+        for cause, config in full_config.causes.items():
+            for transition in config.transitions.values():
+                transition_counts[cause][transition.source] += 1
+
+        for cause, states in transition_counts.items():
+            for state, counts in states.items():
+                full_config.causes[cause].states[state].update(
+                    {"is_multi_transition": counts > 1}
+                )
+
     @staticmethod
     def add_default_config_layer(config: ConfigTree) -> None:
         default_config = {"causes": {}}
@@ -86,6 +113,7 @@ class Causes:
             for state_name, state_config in cause_config.states.items():
                 default_states_config[state_name] = {
                     "cause_type": "cause",
+                    "is_multi_transition": False,
                     "transient": False,
                     "allow_self_transitions": True,
                     "side_effect": None,
@@ -93,7 +121,6 @@ class Causes:
                 }
 
         config.update(default_config, layer="default")
-        config.freeze()
 
     @staticmethod
     def get_state(
@@ -116,10 +143,17 @@ class Causes:
         if state_config.transient:
             return TransientDiseaseState(state_name, **state_kwargs)
 
-        state = {
-            "susceptible": SusceptibleState(cause_name, **state_kwargs),
-            "recovered": RecoveredState(cause_name, **state_kwargs),
-        }.get(state_name, DiseaseState(state_name, **state_kwargs))
+        if state_config.is_multi_transition:
+            state = (
+                MultiTransitionSusceptibleState(cause_name, **state_kwargs)
+                if state_name == "susceptible"
+                else MultiTransitionDiseaseState(state_name, **state_kwargs)
+            )
+        else:
+            state = {
+                "susceptible": SusceptibleState(cause_name, **state_kwargs),
+                "recovered": RecoveredState(cause_name, **state_kwargs),
+            }.get(state_name, DiseaseState(state_name, **state_kwargs))
 
         if state_config.allow_self_transitions:
             state.allow_self_transitions()

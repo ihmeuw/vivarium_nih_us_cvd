@@ -41,7 +41,6 @@ components:
             - MortalityObserver()
             - DisabilityObserver()
             - DiseaseObserver("ischemic_stroke")
-            - DiseaseObserver("ischemic_heart_disease_and_heart_failure")
         risks:
             - Risk("risk_factor.sbp_medication_adherence")
             - Risk("risk_factor.ldlc_medication_adherence")
