@@ -166,7 +166,6 @@ class HealthcareVisitObserver:
             builder.results.register_observation(
                 name=f"healthcare_visits_{visit_type}",
                 pop_filter=f'alive == "alive" and visit_type == "{visit_type}"',
-                aggregator=len,
                 requires_columns=["alive", data_values.COLUMNS.VISIT_TYPE],
                 additional_stratifications=self.config.include,
                 excluded_stratifications=self.config.exclude,
