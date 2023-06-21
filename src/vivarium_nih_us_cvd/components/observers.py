@@ -97,7 +97,6 @@ class ContinuousRiskObserver:
     #################
 
     def setup(self, builder: Builder) -> None:
-        self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
         self.config = builder.configuration.stratification[self.risk]
 
@@ -157,7 +156,6 @@ class HealthcareVisitObserver:
     #################
 
     def setup(self, builder: Builder) -> None:
-        self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
         self.config = builder.configuration.stratification["visits"]
 
@@ -224,7 +222,6 @@ class CategoricalColumnObserver:
     #################
 
     def setup(self, builder: Builder) -> None:
-        self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
         self.config = builder.configuration.stratification[self.column]
         self.categories = self._get_categories()
