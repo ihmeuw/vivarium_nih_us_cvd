@@ -7,12 +7,9 @@ from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import PopulationView
 from vivarium.framework.time import get_time_stamp
-from vivarium_public_health.disease.transition import TransitionString
-from vivarium_public_health.metrics import DiseaseObserver as DiseaseObserver_
 from vivarium_public_health.metrics.stratification import (
     ResultsStratifier as ResultsStratifier_,
 )
-from vivarium_public_health.metrics.stratification import Source, SourceType
 from vivarium_public_health.utilities import EntityString, to_years
 
 from vivarium_nih_us_cvd.constants import data_values
@@ -29,9 +26,9 @@ class ResultsStratifier(ResultsStratifier_):
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
 
-    def _get_age_bins(self, builder: Builder) -> pd.DataFrame:
+    def get_age_bins(self, builder: Builder) -> pd.DataFrame:
         """Re-define youngest age bin to 5_to_24"""
-        age_bins = super()._get_age_bins(builder)
+        age_bins = super().get_age_bins(builder)
         age_bins = age_bins[age_bins["age_start"] >= 25.0].reset_index(drop=True)
         age_bins.loc[len(age_bins.index)] = [5.0, 25.0, "5_to_24"]
 
@@ -40,20 +37,17 @@ class ResultsStratifier(ResultsStratifier_):
     def register_stratifications(self, builder: Builder) -> None:
         super().register_stratifications(builder)
 
-        self.setup_stratification(
-            builder,
+        builder.results.register_stratification(
             name=data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
-            sources=[Source(data_values.COLUMNS.SBP_MEDICATION_ADHERENCE, SourceType.COLUMN)],
-            categories={level for level in data_values.MEDICATION_ADHERENCE_TYPE},
+            categories=[level for level in data_values.MEDICATION_ADHERENCE_TYPE],
+            is_vectorized=True,
+            requires_columns=[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE],
         )
-
-        self.setup_stratification(
-            builder,
+        builder.results.register_stratification(
             name=data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
-            sources=[
-                Source(data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE, SourceType.COLUMN)
-            ],
-            categories={level for level in data_values.MEDICATION_ADHERENCE_TYPE},
+            categories=[level for level in data_values.MEDICATION_ADHERENCE_TYPE],
+            is_vectorized=True,
+            requires_columns=[data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE],
         )
 
 
@@ -61,7 +55,7 @@ class ContinuousRiskObserver:
     """Observes (continuous) risk exposure-time per group."""
 
     configuration_defaults = {
-        "observers": {
+        "stratification": {
             "risk": {
                 "exclude": [],
                 "include": [],
@@ -83,8 +77,8 @@ class ContinuousRiskObserver:
     # noinspection PyMethodMayBeStatic
     def _get_configuration_defaults(self) -> Dict[str, Dict]:
         return {
-            "observers": {
-                self.risk: ContinuousRiskObserver.configuration_defaults["observers"]["risk"]
+            "stratification": {
+                self.risk: ContinuousRiskObserver.configuration_defaults["stratification"]["risk"]
             }
         }
 
@@ -101,50 +95,33 @@ class ContinuousRiskObserver:
     #################
 
     def setup(self, builder: Builder) -> None:
-        self.observation_start_time = get_time_stamp(
-            builder.configuration.time.observation_start
-        )
-        self.config = self._get_stratification_configuration(builder)
-        self.stratifier = builder.components.get_component(ResultsStratifier.name)
-
-        self.counter = Counter()
-
-        self.exposure = builder.value.get_value(f"{self.risk.name}.exposure")
+        self.clock = builder.time.clock()
+        self.step_size = builder.time.step_size()
+        self.config = builder.configuration.stratification[self.risk]
 
         columns_required = ["alive"]
         self.population_view = builder.population.get_view(columns_required)
 
-        builder.event.register_listener("collect_metrics", self.on_collect_metrics)
-        builder.value.register_value_modifier("metrics", self.metrics)
+        builder.results.register_observation(
+            name=f"total_exposure_time_risk_{self.risk.name}",
+            pop_filter=f'alive == "alive"',
+            aggregator=self.aggregate_state_person_time,
+            requires_columns=["alive"],
+            requires_values=[f"{self.risk.name}.exposure"],
+            additional_stratifications=self.config.include,
+            excluded_stratifications=self.config.exclude,
+            when="collect_metrics",
+        )
 
-    def _get_stratification_configuration(self, builder: Builder) -> "ConfigTree":
-        return builder.configuration.observers[self.risk]
-
-    def on_collect_metrics(self, event: Event):
-        if event.time < self.observation_start_time:
-            return
-        step_size_in_years = to_years(event.step_size)
-        pop = self.population_view.get(event.index, query='alive == "alive"')
-        values = self.exposure(pop.index)
-
-        new_observations = {}
-        groups = self.stratifier.group(pop.index, self.config.include, self.config.exclude)
-        for label, group_mask in groups:
-            key = f"total_exposure_time_risk_{self.risk.name}_{label}"
-            new_observations[key] = values[group_mask].sum() * step_size_in_years
-
-        self.counter.update(new_observations)
-
-    def metrics(self, index: "pd.Index", metrics: Dict[str, float]) -> Dict[str, float]:
-        metrics.update(self.counter)
-        return metrics
+    def aggregate_state_person_time(self, x: pd.DataFrame) -> float:
+        return sum(x[f"{self.risk.name}.exposure"]) * to_years(self.step_size())
 
 
 class HealthcareVisitObserver:
     """Observes doctor visit counts per group."""
 
     configuration_defaults = {
-        "observers": {
+        "stratification": {
             "visits": {
                 "exclude": [],
                 "include": [],
@@ -178,46 +155,32 @@ class HealthcareVisitObserver:
     #################
 
     def setup(self, builder: Builder) -> None:
-        self.observation_start_time = get_time_stamp(
-            builder.configuration.time.observation_start
-        )
-        self.config = self._get_stratification_configuration(builder)
-        self.stratifier = builder.components.get_component(ResultsStratifier.name)
-
-        self.counter = Counter()
+        self.clock = builder.time.clock()
+        self.step_size = builder.time.step_size()
+        self.config = builder.configuration.stratification["visits"]
 
         columns_required = [data_values.COLUMNS.VISIT_TYPE]
         self.population_view = builder.population.get_view(columns_required)
 
-        builder.event.register_listener("collect_metrics", self.on_collect_metrics)
-        builder.value.register_value_modifier("metrics", self.metrics)
-
-    def _get_stratification_configuration(self, builder: Builder) -> "ConfigTree":
-        return builder.configuration.observers["visits"]
-
-    def on_collect_metrics(self, event: Event):
-        if event.time < self.observation_start_time:
-            return
-        pop = self.population_view.get(event.index, query='alive == "alive"')
-
-        new_observations = {}
-        groups = self.stratifier.group(pop.index, self.config.include, self.config.exclude)
-        for label, group_mask in groups:
-            for visit_type in data_values.VISIT_TYPE:
-                key = f"healthcare_visits_{visit_type}_{label}"
-                new_observations[key] = sum(pop[group_mask].squeeze() == visit_type)
-        self.counter.update(new_observations)
-
-    def metrics(self, index: "pd.Index", metrics: Dict[str, float]) -> Dict[str, float]:
-        metrics.update(self.counter)
-        return metrics
+        for visit_type in data_values.VISIT_TYPE:
+            builder.results.register_observation(
+                name=f"healthcare_visits_{visit_type}",
+                pop_filter=f'alive == "alive" and visit_type == "{visit_type}"',
+                aggregator=self.calculate_visit_counts,
+                requires_columns=["alive", data_values.COLUMNS.VISIT_TYPE],
+                additional_stratifications=self.config.include,
+                excluded_stratifications=self.config.exclude,
+                when="collect_metrics",
+            )
+    def calculate_visit_counts(self, x: pd.DataFrame) -> int:
+        return len(x)
 
 
 class CategoricalColumnObserver:
     """Observes person-time of a categorical state table column"""
 
     configuration_defaults = {
-        "observers": {
+        "stratification": {
             "column": {
                 "exclude": [],
                 "include": [],
@@ -228,7 +191,6 @@ class CategoricalColumnObserver:
     def __init__(self, column):
         self.column = column
         self.configuration_defaults = self._get_configuration_defaults()
-        self.metrics_pipeline_name = "metrics"
 
     def __repr__(self):
         return f"PersonTimeObserver({self.column})"
@@ -239,9 +201,9 @@ class CategoricalColumnObserver:
 
     def _get_configuration_defaults(self) -> Dict[str, Dict]:
         return {
-            "observers": {
+            "stratification": {
                 f"{self.column}": CategoricalColumnObserver.configuration_defaults[
-                    "observers"
+                    "stratification"
                 ]["column"]
             }
         }
@@ -259,24 +221,27 @@ class CategoricalColumnObserver:
     #################
 
     def setup(self, builder: Builder) -> None:
-        self.observation_start_time = get_time_stamp(
-            builder.configuration.time.observation_start
-        )
-        self.config = self._get_stratification_configuration(builder)
-        self.stratifier = self._get_stratifier(builder)
+        self.clock = builder.time.clock()
+        self.step_size = builder.time.step_size()
+        self.config = builder.configuration.stratification[self.column]
         self.categories = self._get_categories()
-        self.population_view = self._get_population_view(builder)
 
-        self.counts = Counter()
+        columns_required = ["alive", self.column]
+        self.population_view = builder.population.get_view(columns_required)
 
-        self._register_time_step_prepare_listener(builder)
-        self._register_metrics_modifier(builder)
+        self.register_observations(builder)
 
-    def _get_stratification_configuration(self, builder: Builder) -> ConfigTree:
-        return builder.configuration.observers[self.column]
-
-    def _get_stratifier(self, builder: Builder) -> ResultsStratifier:
-        return builder.components.get_component(ResultsStratifier.name)
+    def register_observations(self, builder: Builder) -> None:
+        for category in self.categories:
+            builder.results.register_observation(
+                name=f"{self.column}_{category}_person_time",
+                pop_filter=f'alive == "alive" and {self.column} == "{category}"',
+                aggregator=self.calculate_categorical_person_time,
+                requires_columns=["alive", self.column],
+                additional_stratifications=self.config.include,
+                excluded_stratifications=self.config.exclude,
+                when="time_step__prepare",
+            )
 
     def _get_categories(self) -> List[str]:
         mapping = {
@@ -292,74 +257,40 @@ class CategoricalColumnObserver:
 
         return mapping[self.column]
 
-    def _get_population_view(self, builder: Builder) -> PopulationView:
-        columns_required = ["alive", self.column]
-        return builder.population.get_view(columns_required)
+    def calculate_categorical_person_time(self, x: pd.DataFrame) -> float:
+        return len(x) * to_years(self.step_size())
 
-    def _register_time_step_prepare_listener(self, builder: Builder) -> None:
-        # In order to get an accurate representation of person time we need to look at
-        # the state table before anything happens.
-        builder.event.register_listener("time_step__prepare", self.on_time_step_prepare)
 
-    def _register_metrics_modifier(self, builder: Builder) -> None:
-        builder.value.register_value_modifier(
-            self.metrics_pipeline_name,
-            modifier=self.metrics,
+class LifestyleObserver(CategoricalColumnObserver):
+    def __init__(self):
+        self.column = 'lifestyle'
+        self.configuration_defaults = self._get_configuration_defaults()
+
+    def register_observations(self, builder: Builder) -> None:
+        builder.results.register_observation(
+            name=f"lifestyle_cat1_person_time",
+            pop_filter=f'alive == "alive"',
+            aggregator=self.calculate_exposed_lifestyle_person_time,
+            requires_columns=["alive", self.column],
+            additional_stratifications=self.config.include,
+            excluded_stratifications=self.config.exclude,
+            when="time_step__prepare",
+        )
+        builder.results.register_observation(
+            name=f"lifestyle_cat2_person_time",
+            pop_filter=f'alive == "alive"',
+            aggregator=self.calculate_unexposed_lifestyle_person_time,
+            requires_columns=["alive", self.column],
+            additional_stratifications=self.config.include,
+            excluded_stratifications=self.config.exclude,
+            when="time_step__prepare",
         )
 
-    ########################
-    # Event-driven methods #
-    ########################
+    def _get_categories(self) -> List[str]:
+        return ['cat1', 'cat2']
 
-    def on_time_step_prepare(self, event: Event):
-        if event.time < self.observation_start_time:
-            return
-        step_size_in_years = to_years(event.step_size)
-        exposures = self.population_view.get(event.index, query='alive == "alive"')[
-            self.column
-        ]
-        groups = self.stratifier.group(
-            exposures.index, self.config.include, self.config.exclude
-        )
-        for label, group_mask in groups:
-            for category in self.categories:
-                category_in_group_mask = group_mask & (exposures == category)
-                person_time_in_group = category_in_group_mask.sum() * step_size_in_years
-                key = f"{self.column}_{category}_person_time_{label}"
-                new_observations = {key: person_time_in_group}
-                self.counts.update(new_observations)
+    def calculate_exposed_lifestyle_person_time(self, x: pd.DataFrame) -> float:
+        return sum(~(x['lifestyle'].isna())) * to_years(self.step_size())
 
-    ##################################
-    # Pipeline sources and modifiers #
-    ##################################
-
-    def metrics(self, index: pd.Index, metrics: Dict) -> Dict:
-        metrics.update(self.counts)
-        return metrics
-
-
-class TransientIHDAndHFObserver(DiseaseObserver_):
-    def _get_transitions(self, builder: Builder) -> List[TransitionString]:
-        transitions = [
-            TransitionString(
-                "susceptible_to_ischemic_heart_disease_and_heart_failure_TO_acute_myocardial_infarction"
-            ),
-            TransitionString(
-                "susceptible_to_ischemic_heart_disease_and_heart_failure_TO_heart_failure_from_ischemic_heart_disease"
-            ),
-            TransitionString(
-                "susceptible_to_ischemic_heart_disease_and_heart_failure_TO_heart_failure_residual"
-            ),
-            TransitionString("post_myocardial_infarction_TO_acute_myocardial_infarction"),
-            TransitionString(
-                "post_myocardial_infarction_TO_heart_failure_from_ischemic_heart_disease"
-            ),
-            TransitionString("acute_myocardial_infarction_TO_post_myocardial_infarction"),
-            TransitionString(
-                "heart_failure_from_ischemic_heart_disease_TO_acute_myocardial_infarction_and_heart_failure"
-            ),
-            TransitionString(
-                "acute_myocardial_infarction_and_heart_failure_TO_heart_failure_from_ischemic_heart_disease"
-            ),
-        ]
-        return transitions
+    def calculate_unexposed_lifestyle_person_time(self, x: pd.DataFrame) -> float:
+        return sum(x['lifestyle'].isna()) * to_years(self.step_size())

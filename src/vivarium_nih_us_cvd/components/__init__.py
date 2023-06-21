@@ -6,8 +6,8 @@ from .observers import (
     CategoricalColumnObserver,
     ContinuousRiskObserver,
     HealthcareVisitObserver,
+    LifestyleObserver,
     ResultsStratifier,
-    TransientIHDAndHFObserver,
 )
 from .risks import AdjustedRisk, CategoricalSBPRisk, TruncatedRisk
 from .treatment import Treatment
