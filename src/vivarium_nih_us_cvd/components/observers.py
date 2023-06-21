@@ -166,15 +166,12 @@ class HealthcareVisitObserver:
             builder.results.register_observation(
                 name=f"healthcare_visits_{visit_type}",
                 pop_filter=f'alive == "alive" and visit_type == "{visit_type}"',
-                aggregator=self.calculate_visit_counts,
+                aggregator=len,
                 requires_columns=["alive", data_values.COLUMNS.VISIT_TYPE],
                 additional_stratifications=self.config.include,
                 excluded_stratifications=self.config.exclude,
                 when="collect_metrics",
             )
-
-    def calculate_visit_counts(self, x: pd.DataFrame) -> int:
-        return len(x)
 
 
 class CategoricalColumnObserver:
@@ -224,7 +221,7 @@ class CategoricalColumnObserver:
     def setup(self, builder: Builder) -> None:
         self.step_size = builder.time.step_size()
         self.config = builder.configuration.stratification[self.column]
-        self.categories = self._get_categories()
+        self.categories = self.get_categories()
 
         columns_required = ["alive", self.column]
         self.population_view = builder.population.get_view(columns_required)
@@ -243,7 +240,7 @@ class CategoricalColumnObserver:
                 when="time_step__prepare",
             )
 
-    def _get_categories(self) -> List[str]:
+    def get_categories(self) -> List[str]:
         mapping = {
             data_values.COLUMNS.SBP_MEDICATION: [
                 level.DESCRIPTION for level in data_values.SBP_MEDICATION_LEVEL
@@ -286,7 +283,7 @@ class LifestyleObserver(CategoricalColumnObserver):
             when="time_step__prepare",
         )
 
-    def _get_categories(self) -> List[str]:
+    def get_categories(self) -> List[str]:
         return ["cat1", "cat2"]
 
     def calculate_exposed_lifestyle_person_time(self, x: pd.DataFrame) -> float:
