@@ -78,7 +78,9 @@ class ContinuousRiskObserver:
     def _get_configuration_defaults(self) -> Dict[str, Dict]:
         return {
             "stratification": {
-                self.risk: ContinuousRiskObserver.configuration_defaults["stratification"]["risk"]
+                self.risk: ContinuousRiskObserver.configuration_defaults["stratification"][
+                    "risk"
+                ]
             }
         }
 
@@ -172,6 +174,7 @@ class HealthcareVisitObserver:
                 excluded_stratifications=self.config.exclude,
                 when="collect_metrics",
             )
+
     def calculate_visit_counts(self, x: pd.DataFrame) -> int:
         return len(x)
 
@@ -263,7 +266,7 @@ class CategoricalColumnObserver:
 
 class LifestyleObserver(CategoricalColumnObserver):
     def __init__(self):
-        self.column = 'lifestyle'
+        self.column = "lifestyle"
         self.configuration_defaults = self._get_configuration_defaults()
 
     def register_observations(self, builder: Builder) -> None:
@@ -287,10 +290,10 @@ class LifestyleObserver(CategoricalColumnObserver):
         )
 
     def _get_categories(self) -> List[str]:
-        return ['cat1', 'cat2']
+        return ["cat1", "cat2"]
 
     def calculate_exposed_lifestyle_person_time(self, x: pd.DataFrame) -> float:
-        return sum(~(x['lifestyle'].isna())) * to_years(self.step_size())
+        return sum(~(x["lifestyle"].isna())) * to_years(self.step_size())
 
     def calculate_unexposed_lifestyle_person_time(self, x: pd.DataFrame) -> float:
-        return sum(x['lifestyle'].isna()) * to_years(self.step_size())
+        return sum(x["lifestyle"].isna()) * to_years(self.step_size())
