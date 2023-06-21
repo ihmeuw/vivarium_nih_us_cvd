@@ -1,4 +1,38 @@
 components:
+    vivarium_nih_us_cvd:
+        components:
+            - Causes()
+
+            - ResultsStratifier()
+
+            - AdjustedRisk("risk_factor.high_ldl_cholesterol")
+            - ContinuousRiskObserver("risk_factor.high_ldl_cholesterol")
+            
+            - AdjustedRisk("risk_factor.high_systolic_blood_pressure")
+            - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
+
+            - TruncatedRisk("risk_factor.high_body_mass_index_in_adults")
+            - ContinuousRiskObserver("risk_factor.high_body_mass_index_in_adults")
+
+            - TruncatedRisk('risk_factor.high_fasting_plasma_glucose')
+            - ContinuousRiskObserver("risk_factor.high_fasting_plasma_glucose")
+
+            - CategoricalSBPRisk()
+
+            - HealthcareUtilization()  # NOTE: this uses Treatment() as a sub-component
+            - HealthcareVisitObserver()
+        
+            - CategoricalColumnObserver("sbp_medication")
+            - CategoricalColumnObserver("ldlc_medication")
+
+            - InterventionAdherenceEffect()
+            - LinearScaleUp("risk_factor.outreach")
+            - LinearScaleUp("risk_factor.polypill")
+            - LinearScaleUp("risk_factor.lifestyle")
+            - CategoricalColumnObserver("outreach")
+            - CategoricalColumnObserver("polypill")
+            - LifestyleObserver()
+
     vivarium_public_health:
         population:
             - BasePopulation()
@@ -19,7 +53,7 @@ components:
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_ischemic_stroke.incidence_rate")
             - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
-            
+
             - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_myocardial_infarction.incidence_rate")
             - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
             - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_ischemic_stroke.incidence_rate")
@@ -39,41 +73,6 @@ components:
             - RiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.acute_ischemic_stroke.incidence_rate")
             - RiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
 
-    vivarium_nih_us_cvd:
-        components:
-            - ResultsStratifier()
-
-            - IschemicStroke()
-            - IschemicHeartDiseaseAndHeartFailure()
-            - TransientIHDAndHFObserver("ischemic_heart_disease_and_heart_failure")
-
-            - AdjustedRisk("risk_factor.high_ldl_cholesterol")
-            - ContinuousRiskObserver("risk_factor.high_ldl_cholesterol")
-
-            - AdjustedRisk("risk_factor.high_systolic_blood_pressure")
-            - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
-
-            - TruncatedRisk("risk_factor.high_body_mass_index_in_adults")
-            - ContinuousRiskObserver("risk_factor.high_body_mass_index_in_adults")
-
-            - TruncatedRisk('risk_factor.high_fasting_plasma_glucose')
-            - ContinuousRiskObserver("risk_factor.high_fasting_plasma_glucose")
-
-            - CategoricalSBPRisk()
-
-            - HealthcareUtilization()  # NOTE: this uses Treatment() as a sub-component
-            - HealthcareVisitObserver()
-
-            - CategoricalColumnObserver("sbp_medication")
-            - CategoricalColumnObserver("ldlc_medication")
-
-            - InterventionAdherenceEffect()
-            - LinearScaleUp("risk_factor.outreach")
-            - LinearScaleUp("risk_factor.polypill")
-            - LinearScaleUp("risk_factor.lifestyle")
-            - CategoricalColumnObserver("outreach")
-            - CategoricalColumnObserver("polypill")
-
 configuration:
     input_data:
         input_draw_number: 0
@@ -91,10 +90,6 @@ configuration:
             year: 2021 # Includes two years for burn-in
             month: 1
             day: 1
-        observation_start: # TODO: Implement for all observers (currently only custom observers)
-            year: 2023
-            month: 1
-            day: 1
         end:
             year: 2040
             month: 12
@@ -105,11 +100,11 @@ configuration:
         age_start: 5
         age_end: 125
         exit_age: 125
-    observers:
+    stratification:
         default:
-            - 'age'
+            - 'age_group'
             - 'sex'
-            - 'year'
+            - 'current_year'
         sbp_medication:
             include:
                 - 'sbp_medication_adherence'
