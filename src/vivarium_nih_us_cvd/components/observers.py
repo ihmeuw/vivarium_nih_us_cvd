@@ -367,11 +367,15 @@ class BinnedRiskObserver:
 
         for left_threshold_idx in range(0, len(thresholds) - 1):
             builder.results.register_observation(
-                name=(f"total_exposure_time_risk_{self.risk.name}"
-                     f"_between_{thresholds[left_threshold_idx]}_and_{thresholds[left_threshold_idx+1]}"),
-                pop_filter=(f'alive == "alive" and '
-                            f'`{self.risk.name}.exposure` >= {thresholds[left_threshold_idx]} '
-                            f'and `{self.risk.name}.exposure` < {thresholds[left_threshold_idx+1]}'),
+                name=(
+                    f"total_exposure_time_risk_{self.risk.name}"
+                    f"_between_{thresholds[left_threshold_idx]}_and_{thresholds[left_threshold_idx+1]}"
+                ),
+                pop_filter=(
+                    f'alive == "alive" and '
+                    f"`{self.risk.name}.exposure` >= {thresholds[left_threshold_idx]} "
+                    f"and `{self.risk.name}.exposure` < {thresholds[left_threshold_idx+1]}"
+                ),
                 aggregator=self.aggregate_state_person_time,
                 requires_columns=["alive"],
                 requires_values=[f"{self.risk.name}.exposure"],

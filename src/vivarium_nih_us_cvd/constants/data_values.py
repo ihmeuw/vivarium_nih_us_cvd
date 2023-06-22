@@ -638,6 +638,7 @@ POLYPILL_SBP_MEDICATION_ADHERENCE_COVERAGE = {
 # Observer Parameters #
 #######################
 
+
 class __BinnedObserverThresholds(NamedTuple):
     """categorical sbp exposure thresholds"""
 
@@ -647,6 +648,7 @@ class __BinnedObserverThresholds(NamedTuple):
     @property
     def name(self):
         return "binned_observer_thresholds"
+
 
 BINNED_OBSERVER_THRESHOLDS = __BinnedObserverThresholds()
 
