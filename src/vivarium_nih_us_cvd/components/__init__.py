@@ -3,6 +3,7 @@ from .effects import InterventionAdherenceEffect
 from .healthcare_utilization import HealthcareUtilization
 from .interventions import LinearScaleUp
 from .observers import (
+    BinnedRiskObserver,
     CategoricalColumnObserver,
     ContinuousRiskObserver,
     HealthcareVisitObserver,

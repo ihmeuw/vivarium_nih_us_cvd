@@ -634,6 +634,23 @@ POLYPILL_SBP_MEDICATION_ADHERENCE_COVERAGE = {
 }
 
 
+#######################
+# Observer Parameters #
+#######################
+
+class __BinnedObserverThresholds(NamedTuple):
+    """categorical sbp exposure thresholds"""
+
+    LDL_THRESHOLDS: list = [2.59, 3.36, 4.14, 4.91]
+    SBP_THRESHOLDS: list = [130, 140]
+
+    @property
+    def name(self):
+        return "binned_observer_thresholds"
+
+BINNED_OBSERVER_THRESHOLDS = __BinnedObserverThresholds()
+
+
 # Modelable entity IDs
 ACUTE_MI_ME_ID = 24694
 POST_MI_ME_ID = 15755
