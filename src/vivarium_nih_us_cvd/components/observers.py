@@ -290,3 +290,108 @@ class LifestyleObserver(CategoricalColumnObserver):
 
     def calculate_unexposed_lifestyle_person_time(self, x: pd.DataFrame) -> float:
         return sum(x["lifestyle"].isna()) * to_years(self.step_size())
+
+
+class BinnedRiskObserver:
+    """Observes (continuous) risk exposure-time per group binned by exposure thresholds."""
+
+    configuration_defaults = {
+        "stratification": {
+            "risk": {
+                "exclude": [],
+                "include": [],
+            }
+        }
+    }
+
+    def __init__(self, risk: str):
+        self.risk = EntityString(risk)
+        self.configuration_defaults = self._get_configuration_defaults()
+
+    def __repr__(self):
+        return f"BinnedRiskObserver({self.risk})"
+
+    ##########################
+    # Initialization methods #
+    ##########################
+
+    # noinspection PyMethodMayBeStatic
+    def _get_configuration_defaults(self) -> Dict[str, Dict]:
+        return {
+            "stratification": {
+                f"binned_{self.risk}": ContinuousRiskObserver.configuration_defaults[
+                    "stratification"
+                ]["risk"]
+            }
+        }
+
+    ##############
+    # Properties #
+    ##############
+
+    @property
+    def name(self):
+        return f"binned_risk_observer.{self.risk}"
+
+    #################
+    # Setup methods #
+    #################
+
+    def setup(self, builder: Builder) -> None:
+        self.step_size = builder.time.step_size()
+        self.config = builder.configuration.stratification[f"binned_{self.risk}"]
+
+        columns_required = ["alive"]
+        self.population_view = builder.population.get_view(columns_required)
+
+        try:
+            thresholds = data_values.BINNED_OBSERVER_THRESHOLDS[self.risk.name]
+        except:
+            raise ValueError(
+                "Thresholds only defined for high_ldl_cholesterol and high_systolic_blood_pressure."
+                f"You provided {self.risk}."
+            )
+
+        builder.results.register_observation(
+            name=f"total_exposure_time_risk_{self.risk.name}_below_{thresholds[0]}",
+            pop_filter=f'alive == "alive" and `{self.risk.name}.exposure` < {thresholds[0]}',
+            aggregator=self.aggregate_state_person_time,
+            requires_columns=["alive"],
+            requires_values=[f"{self.risk.name}.exposure"],
+            additional_stratifications=self.config.include,
+            excluded_stratifications=self.config.exclude,
+            when="collect_metrics",
+        )
+
+        for left_threshold_idx in range(0, len(thresholds) - 1):
+            builder.results.register_observation(
+                name=(
+                    f"total_exposure_time_risk_{self.risk.name}"
+                    f"_between_{thresholds[left_threshold_idx]}_and_{thresholds[left_threshold_idx+1]}"
+                ),
+                pop_filter=(
+                    f'alive == "alive" and '
+                    f"`{self.risk.name}.exposure` >= {thresholds[left_threshold_idx]} "
+                    f"and `{self.risk.name}.exposure` < {thresholds[left_threshold_idx+1]}"
+                ),
+                aggregator=self.aggregate_state_person_time,
+                requires_columns=["alive"],
+                requires_values=[f"{self.risk.name}.exposure"],
+                additional_stratifications=self.config.include,
+                excluded_stratifications=self.config.exclude,
+                when="collect_metrics",
+            )
+
+        builder.results.register_observation(
+            name=f"total_exposure_time_risk_{self.risk.name}_above_{thresholds[len(thresholds)-1]}",
+            pop_filter=f'alive == "alive" and `{self.risk.name}.exposure` >= {thresholds[len(thresholds)-1]}',
+            aggregator=self.aggregate_state_person_time,
+            requires_columns=["alive"],
+            requires_values=[f"{self.risk.name}.exposure"],
+            additional_stratifications=self.config.include,
+            excluded_stratifications=self.config.exclude,
+            when="collect_metrics",
+        )
+
+    def aggregate_state_person_time(self, x: pd.DataFrame) -> float:
+        return len(x) * to_years(self.step_size())

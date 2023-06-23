@@ -634,6 +634,16 @@ POLYPILL_SBP_MEDICATION_ADHERENCE_COVERAGE = {
 }
 
 
+#######################
+# Observer Parameters #
+#######################
+
+BINNED_OBSERVER_THRESHOLDS = {
+    "high_ldl_cholesterol": [2.59, 3.36, 4.14, 4.91],
+    "high_systolic_blood_pressure": [130, 140],
+}
+
+
 # Modelable entity IDs
 ACUTE_MI_ME_ID = 24694
 POST_MI_ME_ID = 15755
