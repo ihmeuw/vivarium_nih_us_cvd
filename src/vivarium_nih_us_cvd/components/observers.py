@@ -344,11 +344,9 @@ class BinnedRiskObserver:
         columns_required = ["alive"]
         self.population_view = builder.population.get_view(columns_required)
 
-        if self.risk.name == "high_ldl_cholesterol":
-            thresholds = data_values.BINNED_OBSERVER_THRESHOLDS.LDL_THRESHOLDS
-        elif self.risk.name == "high_systolic_blood_pressure":
-            thresholds = data_values.BINNED_OBSERVER_THRESHOLDS.SBP_THRESHOLDS
-        else:
+        try:
+            thresholds = data_values.BINNED_OBSERVER_THRESHOLDS[self.risk.name]
+        except:
             raise ValueError(
                 "Thresholds only defined for high_ldl_cholesterol and high_systolic_blood_pressure."
                 f"You provided {self.risk}."
