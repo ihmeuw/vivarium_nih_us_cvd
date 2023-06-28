@@ -773,12 +773,12 @@ class Treatment:
         high_ascvd = ascvd[ascvd >= data_values.ASCVD_THRESHOLD.HIGH].index
         low_ldlc = measured_ldlc[measured_ldlc < data_values.LDLC_THRESHOLD.LOW].index
         above_medium_ldlc_male = measured_ldlc[
-            (pop_visitors['sex'] == 'Male') &
-            (measured_ldlc >= data_values.LDLC_THRESHOLD.MEDIUM_MALE)
+            (pop_visitors["sex"] == "Male")
+            & (measured_ldlc >= data_values.LDLC_THRESHOLD.MEDIUM_MALE)
         ].index
         above_medium_ldlc_female = measured_ldlc[
-            (pop_visitors['sex'] == 'Female') &
-            (measured_ldlc >= data_values.LDLC_THRESHOLD.MEDIUM_FEMALE)
+            (pop_visitors["sex"] == "Female")
+            & (measured_ldlc >= data_values.LDLC_THRESHOLD.MEDIUM_FEMALE)
         ].index
         above_medium_ldlc = above_medium_ldlc_male.append(above_medium_ldlc_female)
         high_ldlc = measured_ldlc[measured_ldlc >= data_values.LDLC_THRESHOLD.HIGH].index
