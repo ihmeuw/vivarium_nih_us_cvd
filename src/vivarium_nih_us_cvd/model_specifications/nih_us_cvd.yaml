@@ -79,7 +79,8 @@ configuration:
     input_data:
         input_draw_number: 0
         location: 'Alabama'
-        artifact_path: '/mnt/team/simulation_science/costeffectiveness/artifacts/vivarium_nih_us_cvd/alabama.hdf'
+        #artifact_path: '/mnt/team/simulation_science/costeffectiveness/artifacts/vivarium_nih_us_cvd/alabama.hdf'
+        artifact_path: '/home/hussain-jafari/artifacts/alabama.hdf'
     interpolation:
         order: 0
         extrapolate: True
@@ -98,7 +99,7 @@ configuration:
             day: 31
         step_size: 28 # Days
     population:
-        population_size: 50_000
+        population_size: 1_000
         age_start: 5
         age_end: 125
         exit_age: 125
