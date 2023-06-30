@@ -31,7 +31,7 @@ class ResultsStratifier(ResultsStratifier_):
         age_bins = super().get_age_bins(builder)
         age_bins = age_bins[age_bins["age_start"] >= 25.0].reset_index(drop=True)
         age_bins.loc[len(age_bins.index)] = [5.0, 25.0, "5_to_24"]
-        
+
         # FIXME: MIC-4083 simulants can age past 125
         max_age = age_bins["age_end"].max()
         age_bins.loc[age_bins["age_end"] == max_age, "age_end"] += (
