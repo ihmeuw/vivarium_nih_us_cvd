@@ -3,6 +3,7 @@ import itertools
 import pandas as pd
 
 from vivarium_nih_us_cvd.constants import data_values, models
+from vivarium_nih_us_cvd.constants.models import STATE_MACHINE_MAP
 
 #################################
 # Results columns and variables #
@@ -117,7 +118,7 @@ TEMPLATE_FIELD_MAP = {
     "AGE_GROUP": AGE_GROUPS,
     "CAUSE_OF_DEATH": CAUSES_OF_DEATH,
     "CAUSE_OF_DISABILITY": CAUSES_OF_DISABILITY,
-    "STATE": models.STATES,
+    "STATE": [state for model in STATE_MACHINE_MAP for state in STATE_MACHINE_MAP[model]['states']],
     "TRANSITION": models.TRANSITIONS,
     "RISK": RISKS,
     "VISIT_TYPE": data_values.VISIT_TYPE,
