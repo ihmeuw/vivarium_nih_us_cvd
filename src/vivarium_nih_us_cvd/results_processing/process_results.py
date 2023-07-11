@@ -43,6 +43,9 @@ def make_measure_data(data):
         intervention_person_time=get_intervention_person_time_data(
             data, "intervention_person_time"
         ),
+        polypill_person_time=get_polypill_person_time_data(
+             data, "polypill_person_time" 
+        ),
     )
     return measure_data
 
@@ -58,6 +61,7 @@ class MeasureData(NamedTuple):
     sbp_medication_person_time: pd.DataFrame
     ldlc_medication_person_time: pd.DataFrame
     intervention_person_time: pd.DataFrame
+    polypill_person_time: pd.DataFrame
 
     def dump(self, output_dir: Path):
         for key, df in self._asdict().items():
@@ -191,4 +195,10 @@ def get_intervention_person_time_data(data: pd.DataFrame, measure: str) -> pd.Da
     data = get_measure_data(data, measure)
     # Map intervention categories to yes/no
     data["intervention"] = data["intervention"].map(data_values.INTERVENTION_CATEGORY_MAPPING)
+    return sort_data(data)
+
+
+def get_polypill_person_time_data(data: pd.DataFrame, measure: str) -> pd.DataFrame:
+    data = get_measure_data(data, measure)
+    data['intervention'] = 'no'
     return sort_data(data)
