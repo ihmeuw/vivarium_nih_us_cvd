@@ -77,7 +77,7 @@ class Treatment:
         self.population_view = builder.population.get_view(
             columns_required_on_initialization
             + columns_created
-            + [data_values.COLUMNS.VISIT_TYPE, data_values.COLUMNS.LAST_FPG_TEST_DATE]
+            + [data_values.COLUMNS.VISIT_TYPE, data_values.COLUMNS.LAST_FPG_TEST_DATE, 'tracked']
         )
 
         values_required = [
@@ -152,6 +152,11 @@ class Treatment:
             )
             df_efficacy["sbp_start_exclusive"] = df_efficacy["bin"].apply(lambda x: x.left)
             df_efficacy["sbp_end_inclusive"] = df_efficacy["bin"].apply(lambda x: x.right)
+
+            # Assign untracked people to no medication before concating to efficacy so asserts pass
+            pop_view.loc[~pop_view[
+                'tracked'], data_values.COLUMNS.SBP_MEDICATION] = data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
+
             df_efficacy = pd.concat(
                 [df_efficacy, pop_view[data_values.COLUMNS.SBP_MEDICATION]], axis=1
             )
