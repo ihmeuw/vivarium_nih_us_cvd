@@ -79,7 +79,6 @@ components:
 configuration:
     input_data:
         input_draw_number: 0
-        location: 'Alabama'
         artifact_path: '/mnt/team/simulation_science/costeffectiveness/artifacts/vivarium_nih_us_cvd/alabama.hdf'
     interpolation:
         order: 0
