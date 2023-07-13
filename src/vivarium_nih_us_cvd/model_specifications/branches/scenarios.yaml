@@ -1,5 +1,5 @@
 input_draw_count: 10
-random_seed_count: 15
+random_seed_count: 6
 
 branches:
   - intervention:
@@ -7,17 +7,6 @@ branches:
     outreach_scale_up:
       value:
         end: 0
-    polypill_scale_up:
-      value:
-        end: 0
-    lifestyle_scale_up:
-      value:
-        end: 0.0855
-  - intervention:
-      scenario: "outreach_50"
-    outreach_scale_up:
-      value:
-        end: 0.5
     polypill_scale_up:
       value:
         end: 0
@@ -36,17 +25,6 @@ branches:
       value:
         end: 0.0855
   - intervention:
-      scenario: "polypill_50"  # both adherence + medication level effects
-    outreach_scale_up:
-      value:
-        end: 0
-    polypill_scale_up:
-      value:
-        end: 0.5
-    lifestyle_scale_up:
-      value:
-        end: 0.0855
-  - intervention:
       scenario: "polypill_100"  # both adherence + medication level effects
     outreach_scale_up:
       value:
@@ -57,17 +35,6 @@ branches:
     lifestyle_scale_up:
       value:
         end: 0.0855
-  - intervention:
-      scenario: "lifestyle_50"
-    outreach_scale_up:
-      value:
-        end: 0
-    polypill_scale_up:
-      value:
-        end: 0
-    lifestyle_scale_up:
-      value:
-        end: 0.5
   - intervention:
       scenario: "lifestyle_100"
     outreach_scale_up:
