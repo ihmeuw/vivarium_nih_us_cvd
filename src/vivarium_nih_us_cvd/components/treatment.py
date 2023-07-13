@@ -585,7 +585,7 @@ class Treatment:
 
     def on_time_step_cleanup(self, event: Event) -> None:
         """Update treatments"""
-        pop = self.population_view.get(event.index, query='alive == "alive"')
+        pop = self.population_view.get(event.index, query='alive == "alive" & tracked==True')
 
         visitors = pop[
             pop[data_values.COLUMNS.VISIT_TYPE].isin(
