@@ -5,21 +5,18 @@ from vivarium.framework.engine import Builder
 from vivarium_public_health.metrics.stratification import (
     ResultsStratifier as ResultsStratifier_,
 )
-from vivarium_public_health.utilities import EntityString, to_years
+from vivarium_public_health.utilities import EntityString, TargetString, to_years
 
 from vivarium_nih_us_cvd.constants import data_values
 
 
-class ResultsStratifier(ResultsStratifier_):
+class SimpleResultsStratifier(ResultsStratifier_):
     """Centralized component for handling results stratification.
     This should be used as a sub-component for observers.  The observers
     can then ask this component for population subgroups and labels during
     results production and have this component manage adjustments to the
     final column labels for the subgroups.
     """
-
-    def setup(self, builder: Builder) -> None:
-        super().setup(builder)
 
     def get_age_bins(self, builder: Builder) -> pd.DataFrame:
         """Re-define youngest age bin to 5_to_24"""
@@ -34,6 +31,15 @@ class ResultsStratifier(ResultsStratifier_):
         )
 
         return age_bins.sort_values(["age_start"]).reset_index(drop=True)
+
+
+class ResultsStratifier(SimpleResultsStratifier):
+    """Centralized component for handling results stratification.
+    This should be used as a sub-component for observers.  The observers
+    can then ask this component for population subgroups and labels during
+    results production and have this component manage adjustments to the
+    final column labels for the subgroups.
+    """
 
     def register_stratifications(self, builder: Builder) -> None:
         super().register_stratifications(builder)
@@ -396,3 +402,62 @@ class BinnedRiskObserver:
 
     def aggregate_state_person_time(self, x: pd.DataFrame) -> float:
         return len(x) * to_years(self.step_size())
+
+
+class PAFObserver:
+    configuration_defaults = {
+        "stratification": {
+            "paf": {
+                "exclude": [],
+                "include": [],
+            }
+        }
+    }
+
+    def __init__(self, risk: str, target: str):
+        self.risk = EntityString(risk)
+        self.target = TargetString(target)
+        self.configuration_defaults = self.get_configuration_defaults()
+
+    def __repr__(self):
+        return f"PAFObserver({self.risk}, {self.target})"
+
+    @property
+    def name(self):
+        return f"paf_observer.{self.risk}.{self.target}"
+
+    # noinspection PyAttributeOutsideInit
+    def setup(self, builder: Builder) -> None:
+        self.risk_effect = builder.components.get_component(
+            f"paf_calculation_risk_effect.{self.risk}.{self.target}"
+        )
+
+        config = builder.configuration.stratification[f"{self.risk.name}_paf"]
+
+        builder.results.register_observation(
+            name=f"calculated_paf_{self.risk}_on_{self.target}",
+            pop_filter='alive == "alive"',
+            aggregator=self.calculate_paf,
+            requires_columns=["alive"],
+            additional_stratifications=config.include,
+            excluded_stratifications=config.exclude,
+            when="time_step__prepare",
+        )
+
+    def calculate_paf(self, x: pd.DataFrame) -> float:
+        relative_risk = self.risk_effect.target_modifier(x.index, pd.Series(1, index=x.index))
+        mean_rr = relative_risk.mean()
+        paf = (mean_rr - 1) / mean_rr
+
+        return paf
+
+    def get_configuration_defaults(self) -> Dict[str, Dict]:
+        return {
+            "stratification": {
+                f"{self.risk.name}_paf_on_{self.target.name}": PAFObserver.configuration_defaults[
+                    "stratification"
+                ][
+                    "paf"
+                ]
+            }
+        }

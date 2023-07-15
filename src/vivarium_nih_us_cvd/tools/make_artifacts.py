@@ -62,13 +62,20 @@ def check_for_existing(
             )
 
 
-def build_single(location: str, output_dir: str, replace_keys: Tuple) -> None:
-    path = Path(output_dir) / f"{sanitize_location(location)}.hdf"
-    build_single_location_artifact(path, location, replace_keys)
+def build_single(
+    location: str, output_dir: Path, replace_keys: Tuple, ignore_pafs: bool
+) -> None:
+    path = output_dir / f"{sanitize_location(location)}.hdf"
+    build_single_location_artifact(path, location, replace_keys, ignore_pafs)
 
 
 def build_artifacts(
-    location: str, output_dir: str, append: bool, replace_keys: Tuple, verbose: int
+    location: str,
+    output_dir: str,
+    append: bool,
+    replace_keys: Tuple,
+    ignore_pafs: bool,
+    verbose: int,
 ) -> None:
     """Main application function for building artifacts.
     Parameters
@@ -87,6 +94,8 @@ def build_artifacts(
     replace_keys
         A list of keys to replace in the artifact. Is ignored if append is
         False or if there is no existing artifact at the output location
+    ignore_pafs
+        Whether to ignore adding PAFs to the artifact
     verbose
         How noisy the logger should be.
     """
@@ -98,7 +107,7 @@ def build_artifacts(
     check_for_existing(output_dir, location, append, replace_keys)
 
     if location in metadata.LOCATIONS:
-        build_single(location, output_dir, replace_keys)
+        build_single(location, output_dir, replace_keys, ignore_pafs)
     elif location == "all":
         if running_from_cluster():
             # parallel build when on cluster
@@ -106,7 +115,7 @@ def build_artifacts(
         else:
             # serial build when not on cluster
             for loc in metadata.LOCATIONS:
-                build_single(loc, output_dir, replace_keys)
+                build_single(loc, output_dir, replace_keys, ignore_pafs)
     else:
         raise ValueError(
             f'Location must be one of {metadata.LOCATIONS} or the string "all". '
@@ -186,7 +195,11 @@ def build_all_artifacts(output_dir: Path, verbose: int) -> None:
 
 
 def build_single_location_artifact(
-    path: Union[str, Path], location: str, replace_keys: Tuple = (), log_to_file: bool = False
+    path: Union[str, Path],
+    location: str,
+    replace_keys: Tuple,
+    ignore_pafs: bool,
+    log_to_file: bool = False,
 ) -> None:
     """Builds an artifact for a single location.
     Parameters
@@ -196,6 +209,11 @@ def build_single_location_artifact(
     location
         The location to build the artifact for.  Must be one of the locations
         specified in the project globals.
+    replace_keys
+        A list of keys to replace in the artifact. Is ignored if append is
+        False or if there is no existing artifact at the output location
+    ignore_pafs
+        Whether to ignore adding PAFs to the artifact
     log_to_file
         Whether we should write the application logs to a file.
     Note
@@ -221,6 +239,9 @@ def build_single_location_artifact(
     for key_group in data_keys.MAKE_ARTIFACT_KEY_GROUPS:
         logger.info(f"Loading and writing {key_group.log_name} data")
         for key in key_group:
+            if ignore_pafs and "population_attributable_fraction" in key:
+                logger.info(f"   - Ignoring PAF data for {key}")
+                continue
             logger.info(f"   - Loading and writing {key} data")
             builder.load_and_write_data(artifact, key, location, key in replace_keys)
 
