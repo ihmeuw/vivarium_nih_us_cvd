@@ -8,8 +8,9 @@ from .observers import (
     ContinuousRiskObserver,
     HealthcareVisitObserver,
     LifestyleObserver,
+    PAFObserver,
     ResultsStratifier,
+    SimpleResultsStratifier,
 )
-from .paf_observer import PAFObserver
 from .risks import AdjustedRisk, CategoricalSBPRisk, TruncatedRisk
 from .treatment import Treatment
