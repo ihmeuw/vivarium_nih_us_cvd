@@ -683,8 +683,8 @@ class Treatment:
         )
         history_mi_or_is = pop_visitors[mask_history_mi | mask_history_is].index
 
-        # [Treatment ramp ID C] Simulants who overcome therapeutic inertia,
-        # have high SBP, and are not currently medicated
+        # [Treatment ramp ID C] Simulants who overcome therapeutic inertia, have
+        # high SBP, and are not currently medicated
         to_prescribe_c = newly_prescribed.intersection(high_sbp)
         # [Treatment ramp ID B] Simulants who overcome therapeutic inertia, have
         # medium-level SBP, and are not currently medicated
