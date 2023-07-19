@@ -367,6 +367,11 @@ class Treatment:
             ]
         ).get(pop_data.index)
 
+        # Define propensities for starting medication inertia
+        self.initial_prescription_inertia_propensity = self.randomness.get_draw(
+            pop.index, additional_key="initial_prescription_therapeutic_inertia"
+        )
+
         # Generate initial medication adherence columns and initialize coverage
         pop[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE] = self.sbp_medication_adherence(
             pop.index
@@ -640,6 +645,11 @@ class Treatment:
         """
         if not exposure_pipeline:
             exposure_pipeline = self.sbp
+
+        overcome_initial_prescription_inertia = pop_visitors[
+            self.initial_prescription_inertia_propensity[pop_visitors.index]
+            > data_values.SBP_THERAPEUTIC_INERTIA
+        ].index
         overcome_therapeutic_inertia = pop_visitors[
             self.randomness.get_draw(
                 pop_visitors.index,
@@ -660,7 +670,7 @@ class Treatment:
         # Generate other useful helper indexes
         low_sbp = measured_sbp[measured_sbp < data_values.SBP_THRESHOLD.LOW].index
         high_sbp = measured_sbp[measured_sbp >= data_values.SBP_THRESHOLD.HIGH].index
-        newly_prescribed = overcome_therapeutic_inertia.difference(
+        newly_prescribed = overcome_initial_prescription_inertia.difference(
             currently_medicated
         ).difference(low_sbp)
         mask_history_mi = (
