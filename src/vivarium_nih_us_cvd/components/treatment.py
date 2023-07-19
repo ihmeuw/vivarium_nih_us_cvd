@@ -670,6 +670,9 @@ class Treatment:
         # Generate other useful helper indexes
         low_sbp = measured_sbp[measured_sbp < data_values.SBP_THRESHOLD.LOW].index
         high_sbp = measured_sbp[measured_sbp >= data_values.SBP_THRESHOLD.HIGH].index
+        newly_prescribed = overcome_initial_prescription_inertia.difference(
+            currently_medicated
+        ).difference(low_sbp)
         mask_history_mi = (
             pop_visitors[models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME]
             != models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_SUSCEPTIBLE_STATE_NAME
@@ -680,18 +683,12 @@ class Treatment:
         )
         history_mi_or_is = pop_visitors[mask_history_mi | mask_history_is].index
 
-        # [Treatment ramp ID C] Simulants who overcome initial prescription therapeutic inertia,
+        # [Treatment ramp ID C] Simulants who overcome therapeutic inertia,
         # have high SBP, and are not currently medicated
-        to_prescribe_c = overcome_initial_prescription_inertia.difference(
-            currently_medicated
-        ).intersection(high_sbp)
+        to_prescribe_c = newly_prescribed.intersection(high_sbp)
         # [Treatment ramp ID B] Simulants who overcome therapeutic inertia, have
         # medium-level SBP, and are not currently medicated
-        to_prescribe_b = (
-            overcome_therapeutic_inertia.difference(currently_medicated)
-            .difference(low_sbp)
-            .difference(high_sbp)
-        )
+        to_prescribe_b = newly_prescribed.difference(to_prescribe_c)
         # [Treatment ramp ID D] Simulants who overcome therapeutic inertia, have
         # high sbp, and are currently medicated
         to_prescribe_d = overcome_therapeutic_inertia.intersection(
