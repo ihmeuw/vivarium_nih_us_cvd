@@ -19,6 +19,8 @@ components:
             - TruncatedRisk('risk_factor.high_fasting_plasma_glucose')
             - ContinuousRiskObserver("risk_factor.high_fasting_plasma_glucose")
 
+            - RiskCorrelation()
+
             - CategoricalSBPRisk()
 
             - HealthcareUtilization()  # NOTE: this uses Treatment() as a sub-component

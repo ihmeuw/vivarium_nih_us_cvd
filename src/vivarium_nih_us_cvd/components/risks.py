@@ -3,7 +3,7 @@ from typing import Dict
 import numpy as np
 import pandas as pd
 from vivarium.framework.engine import Builder
-from vivarium.framework.population.manager import PopulationView
+from vivarium.framework.population.manager import PopulationView, SimulantData
 from vivarium.framework.values import Pipeline
 from vivarium_public_health.risks.base_risk import Risk
 from vivarium_public_health.risks.data_transformations import (
@@ -74,7 +74,30 @@ class DropValueRisk(Risk):
         return post_processor
 
 
-class AdjustedRisk(DropValueRisk):
+class CorrelatedRisk(DropValueRisk):
+    """Creates risk without propensities so they can be created by correlation component"""
+
+    def __repr__(self) -> str:
+        return f"CorrelatedRisk({self.risk})"
+
+    #################
+    # Setup methods #
+    #################
+
+    def _register_simulant_initializer(self, builder: Builder) -> None:
+        builder.population.initializes_simulants(
+            self.on_initialize_simulants,
+        )
+
+    ########################
+    # Event-driven methods #
+    ########################
+
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+        pass
+
+
+class AdjustedRisk(CorrelatedRisk):
     """Manages raw gbd exposure and adjusted/untreated exposure pipelines"""
 
     def __init__(self, risk: str):
@@ -148,8 +171,11 @@ class AdjustedRisk(DropValueRisk):
             return self.gbd_exposure(index)
 
 
-class TruncatedRisk(DropValueRisk):
+class TruncatedRisk(CorrelatedRisk):
     """Keep exposure values between defined limits"""
+
+    def __repr__(self) -> str:
+        return f"TruncatedRisk({self.risk})"
 
     def _get_current_exposure(self, index: pd.Index) -> pd.Series:
         # Keep exposure values between defined limits

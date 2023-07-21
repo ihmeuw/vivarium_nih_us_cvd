@@ -10,5 +10,6 @@ from .observers import (
     LifestyleObserver,
     ResultsStratifier,
 )
+from .risk_correlation import RiskCorrelation
 from .risks import AdjustedRisk, CategoricalSBPRisk, TruncatedRisk
 from .treatment import Treatment
