@@ -1,10 +1,7 @@
 components:
-    vivarium_public_health:
-        population:
-            - BasePopulation()
-
     vivarium_nih_us_cvd:
         components:
+            - EvenlyDistributedPopulation()
             - SimpleResultsStratifier()
 
             # causes
@@ -85,8 +82,8 @@ configuration:
     population:
         population_size: 100_000
         age_start: 7
-        age_end: 125
-        exit_age: 125
+        age_end: 100
+        exit_age: 100
     stratification:
         default: ['sex', 'age_group']
         high_systolic_blood_pressure_paf:
