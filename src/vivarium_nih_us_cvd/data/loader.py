@@ -682,12 +682,11 @@ def modify_rr_affected_entity(data: pd.DataFrame, mod_map: Dict[str, List[str]])
 
 def match_rr_to_cause_name(data: Union[str, pd.DataFrame], source_key: EntityKey):
     # Need to make relative risk data match causes in the model
-    is_calculated_paf = False
-    # is_calculated_paf = (
-    #     (source_key == data_keys.LDL_C.PAF)
-    #     or (source_key == data_keys.SBP.PAF)
-    #     or (source_key == data_keys.BMI.PAF)
-    # )
+    is_calculated_paf = (
+        (source_key == data_keys.LDL_C.PAF)
+        or (source_key == data_keys.SBP.PAF)
+        or (source_key == data_keys.BMI.PAF)
+    )
     if is_calculated_paf:
         map = {
             # not explicitly including these will delete them from the data
