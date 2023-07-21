@@ -81,7 +81,7 @@ configuration:
         step_size: 28 # Days
     population:
         population_size: 100_000
-        age_start: 7
+        age_start: 5
         age_end: 100
         exit_age: 100
     stratification:
