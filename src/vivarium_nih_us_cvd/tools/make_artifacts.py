@@ -257,5 +257,5 @@ if __name__ == "__main__":
         artifact_location,
         replace_keys=(),
         ignore_pafs=ignore_pafs,
-        log_to_file=True
+        log_to_file=True,
     )
