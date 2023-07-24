@@ -12,5 +12,6 @@ from .observers import (
     ResultsStratifier,
     SimpleResultsStratifier,
 )
+from .risk_correlation import RiskCorrelation
 from .risks import AdjustedRisk, CategoricalSBPRisk, TruncatedRisk
 from .treatment import Treatment
