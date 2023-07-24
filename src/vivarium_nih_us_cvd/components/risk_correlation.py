@@ -45,28 +45,6 @@ class RiskCorrelation:
             requires_columns=["age"],
         )
 
-    ##################
-    # Helper methods #
-    ##################
-    def update_correlation_data(self, correlation_data: pd.DataFrame) -> pd.DataFrame:
-        """Add correlations of 1 for risks with themselves and add columns with names
-        of risk factor pairs switched. This makes creating the covariance matrix much cleaner."""
-
-        # risks are perfectly correlated with themselves
-        for risk in self.risks:
-            correlation_data[f"{risk.name}_AND_{risk.name}"] = 1
-
-        # add columns with risk pairs switched in column name
-        risk_pairs = [col for col in correlation_data.columns if "AND" in col]
-        switched_risk_pairs = [
-            pair.split("_AND_")[1] + "_AND_" + pair.split("_AND_")[0] for pair in risk_pairs
-        ]
-
-        for original_column, new_column in dict(zip(risk_pairs, switched_risk_pairs)).items():
-            correlation_data[new_column] = correlation_data[original_column].values
-
-        return correlation_data
-
     ########################
     # Event-driven methods #
     ########################
@@ -91,7 +69,7 @@ class RiskCorrelation:
             ]
 
             probit_propensity = np.random.multivariate_normal(
-                [0] * len(self.risks), covariance_matrix, size=len(age_specific_pop)
+               mean=[0] * len(self.risks), cov=covariance_matrix, size=len(age_specific_pop)
             )
             correlated_propensities = scipy.stats.norm().cdf(probit_propensity)
             propensities.loc[
@@ -99,3 +77,26 @@ class RiskCorrelation:
             ] = correlated_propensities
 
         self.population_view.update(propensities)
+
+    ##################
+    # Helper methods #
+    ##################
+
+    def update_correlation_data(self, correlation_data: pd.DataFrame) -> pd.DataFrame:
+        """Add correlations of 1 for risks with themselves and add columns with names
+        of risk factor pairs switched. This makes creating the covariance matrix much cleaner."""
+
+        # risks are perfectly correlated with themselves
+        for risk in self.risks:
+            correlation_data[f"{risk.name}_AND_{risk.name}"] = 1
+
+        # add columns with risk pairs switched in column name
+        risk_pairs = [col for col in correlation_data.columns if "AND" in col]
+        switched_risk_pairs = [
+            pair.split("_AND_")[1] + "_AND_" + pair.split("_AND_")[0] for pair in risk_pairs
+        ]
+
+        for original_column, new_column in tuple(zip(risk_pairs, switched_risk_pairs)):
+            correlation_data[new_column] = correlation_data[original_column].values
+
+        return correlation_data
