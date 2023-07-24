@@ -69,7 +69,7 @@ class RiskCorrelation:
             ]
 
             probit_propensity = np.random.multivariate_normal(
-               mean=[0] * len(self.risks), cov=covariance_matrix, size=len(age_specific_pop)
+                mean=[0] * len(self.risks), cov=covariance_matrix, size=len(age_specific_pop)
             )
             correlated_propensities = scipy.stats.norm().cdf(probit_propensity)
             propensities.loc[
