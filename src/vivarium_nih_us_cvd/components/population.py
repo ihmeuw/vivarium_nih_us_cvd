@@ -29,8 +29,8 @@ class EvenlyDistributedPopulation(BasePopulation):
         population["alive"] = "alive"
         population["location"] = self.location
         population["age"] = np.linspace(
-            age_start, age_end, num=len(population), endpoint=False
-        )
+            age_start, age_end, num=len(population) + 1, endpoint=False
+        )[1:]
         population["sex"] = "Female"
         population.loc[population.index % 2 == 1, "sex"] = "Male"
         self.register_simulants(population[list(self.key_columns)])
