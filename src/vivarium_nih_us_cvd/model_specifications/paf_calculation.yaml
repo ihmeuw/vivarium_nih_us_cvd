@@ -13,6 +13,8 @@ components:
             - TruncatedRisk("risk_factor.high_body_mass_index_in_adults")
             - TruncatedRisk("risk_factor.high_ldl_cholesterol")
 
+            - RiskCorrelation()
+
             # risk effects
             - PAFCalculationRiskEffect("risk_factor.categorical_high_systolic_blood_pressure", "cause.heart_failure_from_ischemic_heart_disease.incidence_rate")
             - PAFCalculationRiskEffect("risk_factor.categorical_high_systolic_blood_pressure", "cause.heart_failure_residual.incidence_rate")
