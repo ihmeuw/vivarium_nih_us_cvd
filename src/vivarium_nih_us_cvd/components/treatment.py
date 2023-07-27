@@ -719,7 +719,9 @@ class Treatment:
             pop_visitors[data_values.COLUMNS.SBP_MEDICATION]
             != self.sbp_treatment_map[max(self.sbp_treatment_map)]
         ].index
-        changing_prescribed_medication = to_prescribe_d.intersection(adherent).intersection(not_already_max_medicated)
+        changing_prescribed_medication = to_prescribe_d.intersection(adherent).intersection(
+            not_already_max_medicated
+        )
         medication_change = to_prescribe_b.union(changing_prescribed_medication)
         pop_visitors.loc[medication_change, data_values.COLUMNS.SBP_MEDICATION] = (
             pop_visitors[data_values.COLUMNS.SBP_MEDICATION].map(
@@ -728,10 +730,12 @@ class Treatment:
             + 1
         ).map(self.sbp_treatment_map)
         # update therapeutic inertia for people on medication going up a level
-        self.dynamic_therapeutic_inertia_propensity.loc[changing_prescribed_medication] = self.randomness.get_draw(
-                changing_prescribed_medication,
-                additional_key="dynamic_therapeutic_inertia_" + str(self.clock()),
-            )
+        self.dynamic_therapeutic_inertia_propensity.loc[
+            changing_prescribed_medication
+        ] = self.randomness.get_draw(
+            changing_prescribed_medication,
+            additional_key="dynamic_therapeutic_inertia_" + str(self.clock()),
+        )
 
         # Determine potential new outreach enrollees; applies to groups b, c, and
         # everyone already on medication
