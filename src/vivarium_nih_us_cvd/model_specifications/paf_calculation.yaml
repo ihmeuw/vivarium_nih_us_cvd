@@ -1,10 +1,7 @@
 components:
-    vivarium_public_health:
-        population:
-            - BasePopulation()
-
     vivarium_nih_us_cvd:
         components:
+            - EvenlyDistributedPopulation()
             - SimpleResultsStratifier()
 
             # causes
@@ -15,6 +12,8 @@ components:
             - CategoricalSBPRisk()
             - TruncatedRisk("risk_factor.high_body_mass_index_in_adults")
             - TruncatedRisk("risk_factor.high_ldl_cholesterol")
+
+            - RiskCorrelation()
 
             # risk effects
             - PAFCalculationRiskEffect("risk_factor.categorical_high_systolic_blood_pressure", "cause.heart_failure_from_ischemic_heart_disease.incidence_rate")
@@ -84,9 +83,9 @@ configuration:
         step_size: 28 # Days
     population:
         population_size: 100_000
-        age_start: 7
-        age_end: 125
-        exit_age: 125
+        age_start: 5
+        age_end: 100
+        exit_age: 100
     stratification:
         default: ['sex', 'age_group']
         high_systolic_blood_pressure_paf:

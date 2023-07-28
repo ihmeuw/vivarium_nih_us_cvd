@@ -14,7 +14,7 @@ location="$4"
 
 outputdir="$artifact_dir/$artifact_ver"
 if [ "$psimulate_cmd" == "run" ]; then
-    cmd="psimulate run src/vivarium_nih_us_cvd/model_specifications/paf_calculation.yaml src/vivarium_nih_us_cvd/model_specifications/branches/scenarios.yaml -i $outputdir/$location.hdf -o $outputdir/paf-calculations/ -m $mem -r $runtime -q $queue -P $project"
+    cmd="psimulate run src/vivarium_nih_us_cvd/model_specifications/paf_calculation.yaml src/vivarium_nih_us_cvd/model_specifications/branches/paf_scenarios.yaml -i $outputdir/$location.hdf -o $outputdir/paf-calculations/ -m $mem -r $runtime -q $queue -P $project"
 elif [ "$psimulate_cmd" == "restart" ]; then
     results_root=$outputdir/paf-calculations/$location/
     # Find all "main.log" files recursively within the subfolder, sort them by filename
