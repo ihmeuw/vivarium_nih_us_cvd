@@ -369,7 +369,9 @@ class Treatment:
         ).get(pop_data.index)
 
         # Define propensities for therapeutic inertia
-        pop[data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY] = self.randomness.get_draw(
+        pop[
+            data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY
+        ] = self.randomness.get_draw(
             pop.index, additional_key=data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY
         )
 
@@ -648,7 +650,9 @@ class Treatment:
         if not exposure_pipeline:
             exposure_pipeline = self.sbp
 
-        sbp_prescription_inertia_propensity = pop_visitors[data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY]
+        sbp_prescription_inertia_propensity = pop_visitors[
+            data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY
+        ]
         # Uses old propensity to determine who changed medication the previous time step
         overcome_prescription_inertia = pop_visitors[
             sbp_prescription_inertia_propensity > data_values.SBP_THERAPEUTIC_INERTIA
@@ -660,10 +664,13 @@ class Treatment:
 
         # Update inertia values for those who moved up a medication level on the previous time step
         # and use to update medications
-        changed_prescription_last_time = overcome_prescription_inertia.intersection(currently_medicated)
-        sbp_prescription_inertia_propensity.loc[changed_prescription_last_time] = self.randomness.get_draw(
-            changed_prescription_last_time,
-            additional_key="dynamic_inertia_propensity"
+        changed_prescription_last_time = overcome_prescription_inertia.intersection(
+            currently_medicated
+        )
+        sbp_prescription_inertia_propensity.loc[
+            changed_prescription_last_time
+        ] = self.randomness.get_draw(
+            changed_prescription_last_time, additional_key="dynamic_inertia_propensity"
         )
         overcome_prescription_inertia = pop_visitors[
             sbp_prescription_inertia_propensity > data_values.SBP_THERAPEUTIC_INERTIA
@@ -725,8 +732,10 @@ class Treatment:
             pop_visitors[data_values.COLUMNS.SBP_MEDICATION]
             != self.sbp_treatment_map[max(self.sbp_treatment_map)]
         ].index
-        medication_change = to_prescribe_b.union(to_prescribe_d).intersection(adherent).intersection(
-            not_already_max_medicated
+        medication_change = (
+            to_prescribe_b.union(to_prescribe_d)
+            .intersection(adherent)
+            .intersection(not_already_max_medicated)
         )
         pop_visitors.loc[medication_change, data_values.COLUMNS.SBP_MEDICATION] = (
             pop_visitors[data_values.COLUMNS.SBP_MEDICATION].map(
