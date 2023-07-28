@@ -119,7 +119,7 @@ def get_data(
         data_keys.LDL_C.EXPOSURE_SD: load_ldl_standard_deviation,
         data_keys.LDL_C.EXPOSURE_WEIGHTS: load_ldl_weights,
         data_keys.LDL_C.RELATIVE_RISK: load_standard_data,
-        # data_keys.LDL_C.PAF: partial(load_paf_ldl, artifact_path),
+        data_keys.LDL_C.PAF: partial(load_paf_ldl, artifact_path),
         data_keys.LDL_C.TMRED: load_metadata,
         data_keys.LDL_C.RELATIVE_RISK_SCALAR: load_metadata,
         data_keys.LDL_C.MEDICATION_EFFECT: load_ldlc_medication_effect,
@@ -131,8 +131,8 @@ def get_data(
         data_keys.SBP.EXPOSURE_WEIGHTS: load_sbp_weights,
         data_keys.SBP.RELATIVE_RISK: load_standard_data,
         data_keys.SBP.CATEGORICAL_RELATIVE_RISK: load_relative_risk_categorical_sbp,
-        # data_keys.SBP.PAF: partial(load_paf_sbp, artifact_path),
-        # data_keys.SBP.CATEGORICAL_PAF: partial(load_paf_categorical_sbp, artifact_path),
+        data_keys.SBP.PAF: partial(load_paf_sbp, artifact_path),
+        data_keys.SBP.CATEGORICAL_PAF: partial(load_paf_categorical_sbp, artifact_path),
         data_keys.SBP.TMRED: load_metadata,
         data_keys.SBP.RELATIVE_RISK_SCALAR: load_metadata,
         # Risk (body mass index)
@@ -141,7 +141,7 @@ def get_data(
         data_keys.BMI.EXPOSURE_SD: load_bmi_standard_deviation,
         data_keys.BMI.EXPOSURE_WEIGHTS: load_bmi_weights,
         data_keys.BMI.RELATIVE_RISK: load_relative_risk_bmi,
-        # data_keys.BMI.PAF: partial(load_paf_bmi, artifact_path),
+        data_keys.BMI.PAF: partial(load_paf_bmi, artifact_path),
         data_keys.BMI.TMRED: load_metadata,
         data_keys.BMI.RELATIVE_RISK_SCALAR: load_metadata,
         # Risk (fasting plasma glucose)
@@ -150,7 +150,7 @@ def get_data(
         data_keys.FPG.EXPOSURE_SD: load_fpg_standard_deviation,
         data_keys.FPG.EXPOSURE_WEIGHTS: load_standard_data,
         data_keys.FPG.RELATIVE_RISK: load_standard_data,
-        # data_keys.FPG.PAF: load_standard_data,
+        data_keys.FPG.PAF: load_standard_data,
         data_keys.FPG.TMRED: load_metadata,
         data_keys.FPG.RELATIVE_RISK_SCALAR: load_metadata,
         # Risk (ldlc medication adherence)
