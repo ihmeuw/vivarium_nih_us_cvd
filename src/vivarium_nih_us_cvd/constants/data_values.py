@@ -25,6 +25,7 @@ class __Columns(NamedTuple):
     POLYPILL: str = "polypill"
     LIFESTYLE: str = "lifestyle"
     LAST_FPG_TEST_DATE: str = "last_fpg_test_date"
+    SBP_THERAPEUTIC_INERTIA_PROPENSITY: str = "sbp_therapeutic_inertia_propensity"
 
     @property
     def name(self):
