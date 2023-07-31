@@ -672,8 +672,8 @@ class Treatment:
         high_sbp = measured_sbp[measured_sbp >= data_values.SBP_THRESHOLD.HIGH].index
         medicated_high_sbp = currently_medicated.intersection(high_sbp)
 
-        # Update inertia values for those who moved up a medication level on the previous time step
-        # and use to update medications
+        # Update inertia values for those who moved up a medication level
+        # last time they had a high SBP measured during a doctor visit
         changed_prescription_last_time = overcome_prescription_inertia.intersection(
             medicated_high_sbp
         )
