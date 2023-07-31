@@ -707,7 +707,9 @@ class Treatment:
         to_prescribe_b = newly_prescribed.difference(to_prescribe_c)
         # [Treatment ramp ID D] Simulants who overcome therapeutic inertia, have
         # high sbp, and are currently medicated
-        to_prescribe_d = medicated_high_sbp.intersection(updated_overcome_prescription_inertia)
+        to_prescribe_d = medicated_high_sbp.intersection(
+            updated_overcome_prescription_inertia
+        )
 
         # Prescribe initial medications
         pop_visitors.loc[
