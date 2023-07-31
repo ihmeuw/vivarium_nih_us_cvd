@@ -662,20 +662,6 @@ class Treatment:
             != data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
         ].index
 
-        # Update inertia values for those who moved up a medication level on the previous time step
-        # and use to update medications
-        changed_prescription_last_time = overcome_prescription_inertia.intersection(
-            currently_medicated
-        )
-        sbp_prescription_inertia_propensity.loc[
-            changed_prescription_last_time
-        ] = self.randomness.get_draw(
-            changed_prescription_last_time, additional_key="dynamic_inertia_propensity"
-        )
-        overcome_prescription_inertia = pop_visitors[
-            sbp_prescription_inertia_propensity > data_values.SBP_THERAPEUTIC_INERTIA
-        ].index
-
         measured_sbp = self.get_measured_sbp(
             index=pop_visitors.index,
             exposure_pipeline=exposure_pipeline,
@@ -685,7 +671,22 @@ class Treatment:
         low_sbp = measured_sbp[measured_sbp < data_values.SBP_THRESHOLD.LOW].index
         high_sbp = measured_sbp[measured_sbp >= data_values.SBP_THRESHOLD.HIGH].index
         medicated_high_sbp = currently_medicated.intersection(high_sbp)
-        newly_prescribed = overcome_prescription_inertia.difference(
+
+        # Update inertia values for those who moved up a medication level on the previous time step
+        # and use to update medications
+        changed_prescription_last_time = overcome_prescription_inertia.intersection(
+            medicated_high_sbp
+        )
+        sbp_prescription_inertia_propensity.loc[
+            changed_prescription_last_time
+        ] = self.randomness.get_draw(
+            changed_prescription_last_time, additional_key="dynamic_inertia_propensity"
+        )
+        updated_overcome_prescription_inertia = pop_visitors[
+            sbp_prescription_inertia_propensity > data_values.SBP_THERAPEUTIC_INERTIA
+        ].index
+
+        newly_prescribed = updated_overcome_prescription_inertia.difference(
             currently_medicated
         ).difference(low_sbp)
         mask_history_mi = (
@@ -706,7 +707,7 @@ class Treatment:
         to_prescribe_b = newly_prescribed.difference(to_prescribe_c)
         # [Treatment ramp ID D] Simulants who overcome therapeutic inertia, have
         # high sbp, and are currently medicated
-        to_prescribe_d = medicated_high_sbp.intersection(overcome_prescription_inertia)
+        to_prescribe_d = medicated_high_sbp.intersection(updated_overcome_prescription_inertia)
 
         # Prescribe initial medications
         pop_visitors.loc[
