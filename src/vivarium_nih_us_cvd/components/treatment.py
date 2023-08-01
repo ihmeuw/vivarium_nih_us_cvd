@@ -631,6 +631,7 @@ class Treatment:
                 [
                     data_values.COLUMNS.SBP_MEDICATION,
                     data_values.COLUMNS.LDLC_MEDICATION,
+                    data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY,
                 ]
             ]
         )
