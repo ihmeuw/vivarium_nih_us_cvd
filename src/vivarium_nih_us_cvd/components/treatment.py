@@ -769,8 +769,10 @@ class Treatment:
                 high_sbp.union(history_mi_or_is.difference(low_sbp))
             )
 
-        # Update state table to have new propensities
-        self.population_view.update(sbp_prescription_inertia_propensity)
+        # Update propensity in visitors
+        pop_visitors[
+            data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY
+        ] = sbp_prescription_inertia_propensity
 
         return pop_visitors, maybe_enroll
 
@@ -801,7 +803,7 @@ class Treatment:
         ]
         # Uses old propensity to determine who changed medication the previous time step
         overcome_prescription_inertia = pop_visitors[
-        ldlc_prescription_inertia_propensity > data_values.LDLC_THERAPEUTIC_INERTIA
+            ldlc_prescription_inertia_propensity > data_values.LDLC_THERAPEUTIC_INERTIA
         ].index
         currently_medicated = pop_visitors[
             pop_visitors[data_values.COLUMNS.LDLC_MEDICATION]
@@ -819,7 +821,9 @@ class Treatment:
         low_ascvd = ascvd[ascvd < data_values.ASCVD_THRESHOLD.LOW].index
         high_ascvd = ascvd[ascvd >= data_values.ASCVD_THRESHOLD.HIGH].index
         low_ldlc = measured_ldlc[measured_ldlc < data_values.LDLC_THRESHOLD.LOW].index
-        above_medium_ldlc = measured_ldlc[measured_ldlc >= data_values.LDLC_THRESHOLD.MEDIUM].index
+        above_medium_ldlc = measured_ldlc[
+            measured_ldlc >= data_values.LDLC_THRESHOLD.MEDIUM
+        ].index
         high_ldlc = measured_ldlc[measured_ldlc >= data_values.LDLC_THRESHOLD.HIGH].index
         mask_history_mi = (
             pop_visitors[models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME]
@@ -833,9 +837,17 @@ class Treatment:
 
         # Update inertia values for those who moved up a medication level
         # last time they LDL measured during a doctor visit
-        treatment_change_eligible_young = currently_medicated.difference(low_ascvd).difference(low_ldlc).difference(old_pop)
-        treatment_change_eligible_old = currently_medicated.difference(low_ascvd).intersection(above_medium_ldlc).intersection(old_pop)
-        treatment_change_eligible = treatment_change_eligible_young.union(treatment_change_eligible_old)
+        treatment_change_eligible_young = (
+            currently_medicated.difference(low_ascvd).difference(low_ldlc).difference(old_pop)
+        )
+        treatment_change_eligible_old = (
+            currently_medicated.difference(low_ascvd)
+            .intersection(above_medium_ldlc)
+            .intersection(old_pop)
+        )
+        treatment_change_eligible = treatment_change_eligible_young.union(
+            treatment_change_eligible_old
+        )
 
         changed_prescription_last_time = overcome_prescription_inertia.intersection(
             treatment_change_eligible
@@ -874,7 +886,9 @@ class Treatment:
         )
         # [Treatment ramp ID G] Simulants who overcome therapeutic inertia, have
         # age-specific elevated LDLC, have elevated ASCVD, and are currently medicated
-        to_prescribe_g = updated_overcome_prescription_inertia.intersection(treatment_change_eligible)
+        to_prescribe_g = updated_overcome_prescription_inertia.intersection(
+            treatment_change_eligible
+        )
         # [Treatment ramp ID F2] Simulants who are 75+ with above medium LDL and not currently medicated
         newly_prescribed_old = (
             updated_overcome_prescription_inertia.difference(currently_medicated)
@@ -937,8 +951,10 @@ class Treatment:
         else:
             maybe_enroll = pd.Index([])  # baseline or polypill scenario
 
-        # Update state table to have new propensities
-        self.population_view.update(ldlc_prescription_inertia_propensity)
+        # Update propensity in visitors
+        pop_visitors[
+            data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_PROPENSITY
+        ] = ldlc_prescription_inertia_propensity
 
         return pop_visitors, maybe_enroll
 
