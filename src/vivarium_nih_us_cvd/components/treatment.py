@@ -763,8 +763,8 @@ class Treatment:
                 high_sbp.union(history_mi_or_is.difference(low_sbp))
             )
 
-        # Update state table to have new propensities
-        self.population_view.update(sbp_prescription_inertia_propensity)
+        # Update propensity in visitors
+        pop_visitors[data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY] = sbp_prescription_inertia_propensity
 
         return pop_visitors, maybe_enroll
 
