@@ -764,7 +764,9 @@ class Treatment:
             )
 
         # Update propensity in visitors
-        pop_visitors[data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY] = sbp_prescription_inertia_propensity
+        pop_visitors[
+            data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY
+        ] = sbp_prescription_inertia_propensity
 
         return pop_visitors, maybe_enroll
 
