@@ -3,6 +3,7 @@ import pandas as pd
 import scipy
 from vivarium.framework.engine import Builder
 from vivarium.framework.population.manager import SimulantData
+from vivarium.framework.randomness import get_hash
 from vivarium_public_health.utilities import EntityString
 
 from vivarium_nih_us_cvd.components.risks import CorrelatedRisk
@@ -29,6 +30,8 @@ class RiskCorrelation:
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
+        self.input_draw = builder.configuration.input_data.input_draw_number
+        self.random_seed = builder.configuration.randomness.random_seed
         self.correlation_data = pd.read_csv(paths.FILEPATHS.RISK_CORRELATION)
         self.risks = [
             EntityString(risk.name.replace("risk.", ""))
@@ -68,6 +71,7 @@ class RiskCorrelation:
                 for first_risk in self.risks
             ]
 
+            np.random.seed(get_hash(f"{self.input_draw}_{self.random_seed}"))
             probit_propensity = np.random.multivariate_normal(
                 mean=[0] * len(self.risks), cov=covariance_matrix, size=len(age_specific_pop)
             )
