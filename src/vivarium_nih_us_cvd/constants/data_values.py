@@ -26,6 +26,7 @@ class __Columns(NamedTuple):
     LIFESTYLE: str = "lifestyle"
     LAST_FPG_TEST_DATE: str = "last_fpg_test_date"
     SBP_THERAPEUTIC_INERTIA_PROPENSITY: str = "sbp_therapeutic_inertia_propensity"
+    LDLC_THERAPEUTIC_INERTIA_PROPENSITY: str = "ldlc_therapeutic_inertia_propensity"
 
     @property
     def name(self):
@@ -182,8 +183,7 @@ class __LDLCThreshold(NamedTuple):
     """ldl-c exposure thresholds"""
 
     LOW: float = 1.81
-    MEDIUM_MALE: float = 3.08
-    MEDIUM_FEMALE: float = 3.48
+    MEDIUM: float = 3.48
     HIGH: float = 4.91
 
     @property
