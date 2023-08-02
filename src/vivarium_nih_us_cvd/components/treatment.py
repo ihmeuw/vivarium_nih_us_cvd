@@ -839,7 +839,7 @@ class Treatment:
         history_mi_or_is = pop_visitors[mask_history_mi | mask_history_is].index
 
         # Update inertia values for those who moved up a medication level
-        # last time they LDL measured during a doctor visit
+        # last time they had high LDL and ASVCD during a doctor visit
         treatment_change_eligible_young = (
             currently_medicated.difference(low_ascvd).difference(low_ldlc).difference(old_pop)
         )
