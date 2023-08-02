@@ -637,7 +637,6 @@ class Treatment:
                 [
                     data_values.COLUMNS.SBP_MEDICATION,
                     data_values.COLUMNS.LDLC_MEDICATION,
-                    data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY,
                     data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_PROPENSITY,
                 ]
             ]
@@ -688,7 +687,7 @@ class Treatment:
         sbp_prescription_inertia_propensity.loc[
             changed_prescription_last_time
         ] = self.randomness.get_draw(
-            changed_prescription_last_time, additional_key="dynamic_sbp_inertia_propensity"
+            changed_prescription_last_time, additional_key="dynamic_inertia_propensity"
         )
         updated_overcome_prescription_inertia = pop_visitors[
             sbp_prescription_inertia_propensity > data_values.SBP_THERAPEUTIC_INERTIA
@@ -771,10 +770,8 @@ class Treatment:
                 high_sbp.union(history_mi_or_is.difference(low_sbp))
             )
 
-        # Update propensity in visitors
-        pop_visitors[
-            data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY
-        ] = sbp_prescription_inertia_propensity
+        # Update state table to have new propensities
+        self.population_view.update(sbp_prescription_inertia_propensity)
 
         return pop_visitors, maybe_enroll
 
