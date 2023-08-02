@@ -49,7 +49,6 @@ LDLC_MEDICATION_PERSON_TIME_TEMPLATE = "MEASURE_ldlc_medication_{LDLC_MEDICATION
 INTERVENTION_PERSON_TIME_TEMPLATE = (
     "MEASURE_{INTERVENTION_TYPE}_{INTERVENTION}_person_time_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
 )
-POLYPILL_PERSON_TIME_TEMPLATE = ("MEASURE_polypill_cat2_person_time_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}")
 
 
 COLUMN_TEMPLATES = {
@@ -63,13 +62,12 @@ COLUMN_TEMPLATES = {
     "sbp_medication_person_time": SBP_MEDICATION_PERSON_TIME_TEMPLATE,
     "ldlc_medication_person_time": LDLC_MEDICATION_PERSON_TIME_TEMPLATE,
     "intervention_person_time": INTERVENTION_PERSON_TIME_TEMPLATE,
-    "polypill_person_time": POLYPILL_PERSON_TIME_TEMPLATE,
 }
 
 NON_COUNT_TEMPLATES = []
 
 SEXES = ("Male", "Female")
-YEARS = tuple(range(2023, 2041))
+YEARS = tuple(range(2021, 2041))
 AGE_GROUPS = (
     "25_to_29",
     "30_to_34",
@@ -110,7 +108,7 @@ SBP_MEDICATIONS = tuple(x.DESCRIPTION for x in data_values.SBP_MEDICATION_LEVEL)
 LDLC_MEDICATIONS = tuple(x.DESCRIPTION for x in data_values.LDLC_MEDICATION_LEVEL)
 INTERVENTION_TYPES = (
     "lifestyle",
-    #"polypill",
+    "polypill",
 )
 INTERVENTIONS = ("cat1", "cat2")
 
