@@ -16,10 +16,12 @@ TOTAL_YLLS_COLUMN = "years_of_life_lost"
 # Columns from parallel runs
 INPUT_DRAW_COLUMN = "input_draw"
 RANDOM_SEED_COLUMN = "random_seed"
+LOCATION_COLUMN = "location"
 
 OUTPUT_INPUT_DRAW_COLUMN = "input_data.input_draw_number"
 OUTPUT_RANDOM_SEED_COLUMN = "randomness.random_seed"
 OUTPUT_SCENARIO_COLUMN = "intervention.scenario"
+OUTPUT_ARTIFACT_COLUMN = "run_configuration.run_key.input_data.artifact_path"
 
 STANDARD_COLUMNS = {
     "total_ylls": TOTAL_YLLS_COLUMN,
