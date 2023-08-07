@@ -33,6 +33,7 @@ def make_measure_data(data):
         state_person_time=get_measure_data(data, "state_person_time"),
         transition_count=get_transition_count_measure_data(data, "transition_count"),
         risk_exposure_time=get_measure_data(data, "risk_exposure_time"),
+        # binned_risk_exposure_time=get_binned_risk_exposure_time(data, "binned_risk_exposure_time"),
         healthcare_visits=get_measure_data(data, "healthcare_visits"),
         sbp_medication_person_time=get_medication_person_time_data(
             data, "sbp_medication_person_time"
@@ -194,3 +195,9 @@ def get_intervention_person_time_data(data: pd.DataFrame, measure: str) -> pd.Da
     # Map intervention categories to yes/no
     data["intervention"] = data["intervention"].map(data_values.INTERVENTION_CATEGORY_MAPPING)
     return sort_data(data)
+
+# def get_binned_risk_exposure_time(data: pd.DataFrame, measure: str) -> pd.DataFrame:
+#     binned_data = []
+#     binned_measures = []
+#     for measure in []:
+#         binned_data.append(data)
