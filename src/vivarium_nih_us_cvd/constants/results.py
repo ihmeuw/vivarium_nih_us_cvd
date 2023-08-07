@@ -144,6 +144,8 @@ TEMPLATE_FIELD_MAP = {
     "STATE": [state for model in STATE_MACHINE_MAP for state in STATE_MACHINE_MAP[model]['states']],
     "TRANSITION": [transition for model in STATE_MACHINE_MAP for transition in STATE_MACHINE_MAP[model]['transitions']],
     "RISK": RISKS,
+    "BINNED_LDL_LIMITS": BINNED_LDL_LIMITS,
+    "BINNED_SBP_LIMITS": BINNED_SBP_LIMITS,
     "VISIT_TYPE": data_values.VISIT_TYPE,
     "MEDICATION_ADHERENCE": MEDICATION_ADHERENCES,
     "SBP_MEDICATION": SBP_MEDICATIONS,
