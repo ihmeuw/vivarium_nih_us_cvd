@@ -45,32 +45,11 @@ TRANSITION_COUNT_COLUMN_TEMPLATE = (
 RISK_EXPOSURE_TIME_TEMPLATE = (
     "MEASURE_total_exposure_time_risk_{RISK}_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
 )
-RISK_EXPOSURE_TIME_TEMPLATE = (
-    "MEASURE_total_exposure_time_risk_{RISK}_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
+BINNED_LDL_EXPOSURE_TIME_TEMPLATE = (
+    "MEASURE_total_exposure_time_risk_high_ldl_cholesterol_{BINNED_LDL_LIMITS}_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
 )
-BINNED_LOW_LDL_EXPOSURE_TIME_TEMPLATE = (
-    "MEASURE_total_exposure_time_risk_high_ldl_cholesterol_below_2.59_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
-)
-BINNED_FIRST_MEDIUM_LDL_EXPOSURE_TIME_TEMPLATE = (
-    "MEASURE_total_exposure_time_risk_high_ldl_cholesterol_between_2.59_and_3.36_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
-)
-BINNED_SECOND_MEDIUM_LDL_EXPOSURE_TIME_TEMPLATE = (
-    "MEASURE_total_exposure_time_risk_high_ldl_cholesterol_between_3.36_and_4.14_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
-)
-BINNED_THIRD_MEDIUM_LDL_EXPOSURE_TIME_TEMPLATE = (
-    "MEASURE_total_exposure_time_risk_high_ldl_cholesterol_between_4.14_and_4.91_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
-)
-BINNED_HIGH_LDL_EXPOSURE_TIME_TEMPLATE = (
-    "MEASURE_total_exposure_time_risk_high_ldl_cholesterol_above_4.91_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
-)
-BINNED_LOW_SBP_EXPOSURE_TIME_TEMPLATE = (
-    "MEASURE_total_exposure_time_risk_high_systolic_blood_pressure_below_130_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
-)
-BINNED_MEDIUM_SBP_EXPOSURE_TIME_TEMPLATE = (
-    "MEASURE_total_exposure_time_risk_high_systolic_blood_pressure_between_130_and_140_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
-)
-BINNED_HIGH_SBP_EXPOSURE_TIME_TEMPLATE = (
-    "MEASURE_total_exposure_time_risk_high_systolic_blood_pressure_above_140_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
+BINNED_SBP_EXPOSURE_TIME_TEMPLATE = (
+    "MEASURE_total_exposure_time_risk_high_systolic_blood_pressure_{BINNED_SBP_LIMITS}_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
 )
 VISIT_COUNT_TEMPLATE = "MEASURE_healthcare_visits_{VISIT_TYPE}_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
 SBP_MEDICATION_PERSON_TIME_TEMPLATE = "MEASURE_sbp_medication_{SBP_MEDICATION}_person_time_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SBP_MEDICATION_ADHERENCE_{MEDICATION_ADHERENCE}_SEX_{SEX}"
@@ -87,14 +66,8 @@ COLUMN_TEMPLATES = {
     "state_person_time": STATE_PERSON_TIME_COLUMN_TEMPLATE,
     "transition_count": TRANSITION_COUNT_COLUMN_TEMPLATE,
     "risk_exposure_time": RISK_EXPOSURE_TIME_TEMPLATE,
-    "binned_low_ldl_risk_exposure_time": BINNED_LOW_LDL_EXPOSURE_TIME_TEMPLATE,
-    "binned_first_medium_ldl_risk_exposure_time": BINNED_FIRST_MEDIUM_LDL_EXPOSURE_TIME_TEMPLATE,
-    "binned_second_medium_ldl_risk_exposure_time": BINNED_SECOND_MEDIUM_LDL_EXPOSURE_TIME_TEMPLATE,
-    "binned_third_medium_ldl_risk_exposure_time": BINNED_THIRD_MEDIUM_LDL_EXPOSURE_TIME_TEMPLATE,
-    "binned_high_ldl_risk_exposure_time": BINNED_HIGH_LDL_EXPOSURE_TIME_TEMPLATE,
-    "binned_low_sbp_risk_exposure_time": BINNED_LOW_SBP_EXPOSURE_TIME_TEMPLATE,
-    "binned_medium_sbp_risk_exposure_time": BINNED_MEDIUM_SBP_EXPOSURE_TIME_TEMPLATE,
-    "binned_high_sbp_risk_exposure_time": BINNED_HIGH_SBP_EXPOSURE_TIME_TEMPLATE,
+    "binned_ldl_exposure_time": BINNED_LDL_EXPOSURE_TIME_TEMPLATE,
+    "binned_sbp_exposure_time": BINNED_SBP_EXPOSURE_TIME_TEMPLATE,
     "healthcare_visits": VISIT_COUNT_TEMPLATE,
     "sbp_medication_person_time": SBP_MEDICATION_PERSON_TIME_TEMPLATE,
     "ldlc_medication_person_time": LDLC_MEDICATION_PERSON_TIME_TEMPLATE,
@@ -139,6 +112,18 @@ RISKS = (
     "high_systolic_blood_pressure",
     "high_body_mass_index_in_adults",
     "high_fasting_plasma_glucose",
+)
+BINNED_LDL_LIMITS = (
+    "below_2.59",
+    "between_2.59_and_3.36",
+    "between_3.36_and_4.14",
+    "between_4.14_and_4.91",
+    "above_4.91"
+)
+BINNED_SBP_LIMITS = (
+    "below_130",
+    "between_130_and_140",
+    "above_140"
 )
 MEDICATION_ADHERENCES = tuple(x for x in data_values.MEDICATION_ADHERENCE_TYPE)
 SBP_MEDICATIONS = tuple(x.DESCRIPTION for x in data_values.SBP_MEDICATION_LEVEL)
