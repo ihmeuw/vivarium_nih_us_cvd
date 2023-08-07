@@ -8,7 +8,7 @@ from loguru import logger
 from vivarium_nih_us_cvd.constants import data_values, results, scenarios
 
 SCENARIO_COLUMN = "scenario"
-GROUPBY_COLUMNS = [results.INPUT_DRAW_COLUMN, SCENARIO_COLUMN, results.LOCATION_COLUMN]
+GROUPBY_COLUMNS = [results.INPUT_DRAW_COLUMN, SCENARIO_COLUMN]
 OUTPUT_COLUMN_SORT_ORDER = [
     "age_group",
     "sex",
@@ -80,11 +80,9 @@ def read_data(path: Path, single_run: bool) -> (pd.DataFrame, List[str]):
                 results.OUTPUT_SCENARIO_COLUMN: SCENARIO_COLUMN,
                 results.OUTPUT_INPUT_DRAW_COLUMN: results.INPUT_DRAW_COLUMN,
                 results.OUTPUT_RANDOM_SEED_COLUMN: results.RANDOM_SEED_COLUMN,
-                results.OUTPUT_ARTIFACT_COLUMN: results.LOCATION_COLUMN,
             }
         )
     )
-    data[results.LOCATION_COLUMN] = data[results.LOCATION_COLUMN].str.split('/').apply(lambda x: x[-1].replace('.hdf', ''))
     if single_run:
         data[results.INPUT_DRAW_COLUMN] = 0
         data[results.RANDOM_SEED_COLUMN] = 0
