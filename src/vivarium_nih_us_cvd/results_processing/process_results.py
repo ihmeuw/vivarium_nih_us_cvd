@@ -33,6 +33,8 @@ def make_measure_data(data):
         state_person_time=get_measure_data(data, "state_person_time"),
         transition_count=get_transition_count_measure_data(data, "transition_count"),
         risk_exposure_time=get_measure_data(data, "risk_exposure_time"),
+        binned_ldl_exposure_time=get_measure_data(data, "binned_ldl_exposure_time"),
+        binned_sbp_exposure_time=get_measure_data(data, "binned_sbp_exposure_time"),
         healthcare_visits=get_measure_data(data, "healthcare_visits"),
         sbp_medication_person_time=get_medication_person_time_data(
             data, "sbp_medication_person_time"
@@ -54,6 +56,8 @@ class MeasureData(NamedTuple):
     state_person_time: pd.DataFrame
     transition_count: pd.DataFrame
     risk_exposure_time: pd.DataFrame
+    binned_ldl_exposure_time: pd.DataFrame
+    binned_sbp_exposure_time: pd.DataFrame
     healthcare_visits: pd.DataFrame
     sbp_medication_person_time: pd.DataFrame
     ldlc_medication_person_time: pd.DataFrame

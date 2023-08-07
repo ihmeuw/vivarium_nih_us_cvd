@@ -3,6 +3,7 @@ import itertools
 import pandas as pd
 
 from vivarium_nih_us_cvd.constants import data_values, models
+from vivarium_nih_us_cvd.constants.models import STATE_MACHINE_MAP
 
 #################################
 # Results columns and variables #
@@ -28,26 +29,24 @@ STANDARD_COLUMNS = {
 THROWAWAY_COLUMNS = [f"{state}_event_count" for state in models.STATES]
 
 # FIXME [MIC-3230]: Update to match template. Should we add model_name as prefix to all STATEs and TRANSITIONs?
-DEATH_COLUMN_TEMPLATE = "death_due_to_{CAUSE_OF_DEATH}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
-YLLS_COLUMN_TEMPLATE = "ylls_due_to_{CAUSE_OF_DEATH}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
-YLDS_COLUMN_TEMPLATE = (
-    "ylds_due_to_{CAUSE_OF_DISABILITY}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
+DEATH_COLUMN_TEMPLATE = "MEASURE_death_due_to_{CAUSE_OF_DEATH}_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
+YLLS_COLUMN_TEMPLATE = (
+    "MEASURE_ylls_due_to_{CAUSE_OF_DEATH}_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
 )
+YLDS_COLUMN_TEMPLATE = "MEASURE_ylds_due_to_{CAUSE_OF_DISABILITY}_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
 STATE_PERSON_TIME_COLUMN_TEMPLATE = (
-    "{STATE}_person_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
+    "MEASURE_{STATE}_person_time_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
 )
 TRANSITION_COUNT_COLUMN_TEMPLATE = (
-    "{TRANSITION}_event_count_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
+    "MEASURE_{TRANSITION}_event_count_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
 )
-RISK_EXPOSURE_TIME_TEMPLATE = (
-    "total_exposure_time_risk_{RISK}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
-)
-VISIT_COUNT_TEMPLATE = "healthcare_visits_{VISIT_TYPE}_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
-SBP_MEDICATION_PERSON_TIME_TEMPLATE = "sbp_medication_{SBP_MEDICATION}_person_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}_medication_adherence_{MEDICATION_ADHERENCE}"
-LDLC_MEDICATION_PERSON_TIME_TEMPLATE = "ldlc_medication_{LDLC_MEDICATION}_person_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}_medication_adherence_{MEDICATION_ADHERENCE}"
-INTERVENTION_PERSON_TIME_TEMPLATE = (
-    "{INTERVENTION_TYPE}_{INTERVENTION}_person_time_year_{YEAR}_sex_{SEX}_age_{AGE_GROUP}"
-)
+RISK_EXPOSURE_TIME_TEMPLATE = "MEASURE_total_exposure_time_risk_{RISK}_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
+BINNED_LDL_EXPOSURE_TIME_TEMPLATE = "MEASURE_total_exposure_time_risk_high_ldl_cholesterol_{BINNED_LDL_LIMITS}_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
+BINNED_SBP_EXPOSURE_TIME_TEMPLATE = "MEASURE_total_exposure_time_risk_high_systolic_blood_pressure_{BINNED_SBP_LIMITS}_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
+VISIT_COUNT_TEMPLATE = "MEASURE_healthcare_visits_{VISIT_TYPE}_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
+SBP_MEDICATION_PERSON_TIME_TEMPLATE = "MEASURE_sbp_medication_{SBP_MEDICATION}_person_time_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SBP_MEDICATION_ADHERENCE_{MEDICATION_ADHERENCE}_SEX_{SEX}"
+LDLC_MEDICATION_PERSON_TIME_TEMPLATE = "MEASURE_ldlc_medication_{LDLC_MEDICATION}_person_time_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_LDLC_MEDICATION_ADHERENCE_{MEDICATION_ADHERENCE}_SEX_{SEX}"
+INTERVENTION_PERSON_TIME_TEMPLATE = "MEASURE_{INTERVENTION_TYPE}_{INTERVENTION}_person_time_AGE_GROUP_{AGE_GROUP}_CURRENT_YEAR_{YEAR}_SEX_{SEX}"
 
 
 COLUMN_TEMPLATES = {
@@ -57,6 +56,8 @@ COLUMN_TEMPLATES = {
     "state_person_time": STATE_PERSON_TIME_COLUMN_TEMPLATE,
     "transition_count": TRANSITION_COUNT_COLUMN_TEMPLATE,
     "risk_exposure_time": RISK_EXPOSURE_TIME_TEMPLATE,
+    "binned_ldl_exposure_time": BINNED_LDL_EXPOSURE_TIME_TEMPLATE,
+    "binned_sbp_exposure_time": BINNED_SBP_EXPOSURE_TIME_TEMPLATE,
     "healthcare_visits": VISIT_COUNT_TEMPLATE,
     "sbp_medication_person_time": SBP_MEDICATION_PERSON_TIME_TEMPLATE,
     "ldlc_medication_person_time": LDLC_MEDICATION_PERSON_TIME_TEMPLATE,
@@ -65,8 +66,8 @@ COLUMN_TEMPLATES = {
 
 NON_COUNT_TEMPLATES = []
 
-SEXES = ("male", "female")
-YEARS = tuple(range(2023, 2041))
+SEXES = ("Male", "Female")
+YEARS = tuple(range(2021, 2041))
 AGE_GROUPS = (
     "25_to_29",
     "30_to_34",
@@ -102,12 +103,21 @@ RISKS = (
     "high_body_mass_index_in_adults",
     "high_fasting_plasma_glucose",
 )
+BINNED_LDL_LIMITS = (
+    "below_2.59",
+    "between_2.59_and_3.36",
+    "between_3.36_and_4.14",
+    "between_4.14_and_4.91",
+    "above_4.91",
+)
+BINNED_SBP_LIMITS = ("below_130", "between_130_and_140", "above_140")
 MEDICATION_ADHERENCES = tuple(x for x in data_values.MEDICATION_ADHERENCE_TYPE)
 SBP_MEDICATIONS = tuple(x.DESCRIPTION for x in data_values.SBP_MEDICATION_LEVEL)
 LDLC_MEDICATIONS = tuple(x.DESCRIPTION for x in data_values.LDLC_MEDICATION_LEVEL)
 INTERVENTION_TYPES = (
     "outreach",
     "polypill",
+    "lifestyle",
 )
 INTERVENTIONS = ("cat1", "cat2")
 
@@ -117,9 +127,17 @@ TEMPLATE_FIELD_MAP = {
     "AGE_GROUP": AGE_GROUPS,
     "CAUSE_OF_DEATH": CAUSES_OF_DEATH,
     "CAUSE_OF_DISABILITY": CAUSES_OF_DISABILITY,
-    "STATE": models.STATES,
-    "TRANSITION": models.TRANSITIONS,
+    "STATE": [
+        state for model in STATE_MACHINE_MAP for state in STATE_MACHINE_MAP[model]["states"]
+    ],
+    "TRANSITION": [
+        transition
+        for model in STATE_MACHINE_MAP
+        for transition in STATE_MACHINE_MAP[model]["transitions"]
+    ],
     "RISK": RISKS,
+    "BINNED_LDL_LIMITS": BINNED_LDL_LIMITS,
+    "BINNED_SBP_LIMITS": BINNED_SBP_LIMITS,
     "VISIT_TYPE": data_values.VISIT_TYPE,
     "MEDICATION_ADHERENCE": MEDICATION_ADHERENCES,
     "SBP_MEDICATION": SBP_MEDICATIONS,
