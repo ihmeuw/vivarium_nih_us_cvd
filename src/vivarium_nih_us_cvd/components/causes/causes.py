@@ -2,8 +2,9 @@ from importlib import import_module
 from typing import Any, Callable, Dict, List, Union
 
 import pandas as pd
-from vivarium import ConfigTree
+from vivarium import Component, ConfigTree
 from vivarium.framework.engine import Builder
+from vivarium.framework.state_machine import Trigger
 from vivarium_public_health.disease import (
     BaseDiseaseState,
     DiseaseModel,
@@ -21,22 +22,16 @@ from vivarium_nih_us_cvd.components.causes.state import (
 from vivarium_nih_us_cvd.constants.paths import CAUSE_RISK_CONFIG
 
 
-class Causes:
+class Causes(Component):
     # todo could modify the component configuration parser plugin
+
+    #####################
+    # Lifecycle methods #
+    #####################
+
     def __init__(self):
+        super().__init__()
         self._sub_components = self.get_disease_models()
-
-    ##############
-    # Properties #
-    ##############
-
-    @property
-    def name(self) -> str:
-        return "causes"
-
-    @property
-    def sub_components(self) -> List:
-        return self._sub_components
 
     ##################
     # Helper methods #
@@ -64,11 +59,29 @@ class Causes:
                 else:
                     data_getters = None
 
-                states[transition_config.source].add_transition(
-                    states[transition_config.sink],
-                    source_data_type=transition_config.data_type,
-                    get_data_functions=data_getters,
-                )
+                triggered = Trigger[transition_config.triggered]
+
+                if transition_config.data_type == "rate":
+                    states[transition_config.source].add_rate_transition(
+                        states[transition_config.sink],
+                        get_data_functions=data_getters,
+                        triggered=triggered,
+                    )
+                elif transition_config.data_type == "proportion":
+                    states[transition_config.source].add_proportion_transition(
+                        states[transition_config.sink],
+                        get_data_functions=data_getters,
+                        triggered=triggered,
+                    )
+                elif transition_config.data_type == "dwell_time":
+                    states[transition_config.source].add_dwell_time_transition(
+                        states[transition_config.sink], triggered=triggered
+                    )
+                else:
+                    raise ValueError(
+                        f"Invalid transition data type '{transition_config.data_type}'"
+                        f" provided for transition '{transition_config}'."
+                    )
 
             disease_models.append(DiseaseModel(cause_name, states=list(states.values())))
 
@@ -115,10 +128,13 @@ class Causes:
                     "cause_type": "cause",
                     "is_multi_transition": False,
                     "transient": False,
-                    "allow_self_transitions": True,
+                    "allow_self_transition": True,
                     "side_effect": None,
                     "cleanup_function": None,
                 }
+
+            for transition_name, transition_config in cause_config.transitions.items():
+                default_transitions_config[transition_name] = {"triggered": "NOT_TRIGGERED"}
 
         config.update(default_config, layer="default")
 
@@ -126,7 +142,11 @@ class Causes:
     def get_state(
         state_name: str, state_config: ConfigTree, cause_name: str
     ) -> BaseDiseaseState:
-        state_kwargs = {"cause_type": state_config.cause_type}
+        state_id = cause_name if state_name in ["susceptible", "recovered"] else state_name
+        state_kwargs = {
+            "cause_type": state_config.cause_type,
+            "allow_self_transition": state_config.allow_self_transition,
+        }
         if state_config.side_effect:
             # todo handle side effects properly
             state_kwargs["side_effect"] = lambda *x: x
@@ -141,23 +161,19 @@ class Causes:
             }
 
         if state_config.transient:
-            return TransientDiseaseState(state_name, **state_kwargs)
-
-        if state_config.is_multi_transition:
-            state = (
-                MultiTransitionSusceptibleState(cause_name, **state_kwargs)
-                if state_name == "susceptible"
-                else MultiTransitionDiseaseState(state_name, **state_kwargs)
-            )
+            state_type = TransientDiseaseState
+        elif state_config.is_multi_transition and state_name == "susceptible":
+            state_type = MultiTransitionSusceptibleState
+        elif state_config.is_multi_transition:
+            state_type = MultiTransitionDiseaseState
+        elif state_name == "susceptible":
+            state_type = SusceptibleState
+        elif state_name == "recovered":
+            state_type = RecoveredState
         else:
-            state = {
-                "susceptible": SusceptibleState(cause_name, **state_kwargs),
-                "recovered": RecoveredState(cause_name, **state_kwargs),
-            }.get(state_name, DiseaseState(state_name, **state_kwargs))
+            state_type = DiseaseState
 
-        if state_config.allow_self_transitions:
-            state.allow_self_transitions()
-
+        state = state_type(state_id, **state_kwargs)
         return state
 
     @staticmethod

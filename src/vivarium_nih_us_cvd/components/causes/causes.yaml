@@ -4,13 +4,13 @@
 #            susceptible:
 #                cause_type: "cause"                             # default
 #                transient: False                                # default
-#                allow_self_transitions: True                    # default
+#                allow_self_transition: True                     # default
 #                side_effect: None                               # default
 #                cleanup_function: None                          # default
 #            acute_ischemic_stroke:
 #                cause_type: "sequela"
 #                transient: False                                # default
-#                allow_self_transitions: True                    # default
+#                allow_self_transition: True                     # default
 #                side_effect: None                               # default
 #                cleanup_function: None                          # default
 #                get_data_functions:
@@ -24,7 +24,7 @@
 #                cause_type: "sequela"
 #                transient: False                                # default
 #                side_effect: None                               # default
-#                allow_self_transitions: True                    # default
+#                allow_self_transition: True                     # default
 #                cleanup_function: None                          # default
 #        transitions:
 #            acute_ischemic_stroke_incidence:
@@ -57,7 +57,7 @@ causes:
             acute_ischemic_stroke_to_chronic_ischemic_stroke:
                 source: "acute_ischemic_stroke"
                 sink: "chronic_ischemic_stroke"
-                data_type: null
+                data_type: "dwell_time"
             chronic_ischemic_stroke_to_acute_ischemic_stroke:
                 source: "chronic_ischemic_stroke"
                 sink: "acute_ischemic_stroke"
@@ -105,7 +105,7 @@ causes:
             acute_mi_to_post_mi:
                 source: "acute_myocardial_infarction"
                 sink: "post_myocardial_infarction"
-                data_type: null
+                data_type: "dwell_time"
             post_mi_to_acute_mi:
                 source: "post_myocardial_infarction"
                 sink: "acute_myocardial_infarction"
@@ -127,4 +127,4 @@ causes:
             acute_mi_and_heart_failure_to_heart_failure:
                 source: "acute_myocardial_infarction_and_heart_failure"
                 sink: "heart_failure_from_ischemic_heart_disease"
-                data_type: null
+                data_type: "dwell_time"
