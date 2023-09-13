@@ -1,6 +1,6 @@
 # -----------------------------------------------------------------------------
 #   - invoked on push, pull_request, or manual trigger
-#   - test under at least 3 versions of python
+#   - test under at least 4 versions of python
 # -----------------------------------------------------------------------------
 name: build
 on: [push, pull_request, workflow_dispatch]
@@ -10,14 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
     defaults:
       run:
-        shell: bash -le {0}
+        shell: bash -l {0}
     steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ "{{" }} matrix.python-version {{ "}}" }}
+        uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
       - name: get upstream branch name
@@ -81,11 +81,11 @@ jobs:
       - name: Install dependencies
         run: |
           pip install .[test]
-      - name: Test
-        run: |
-          pytest ./tests
       - name: Lint
         run: |
           pip install black==22.3.0 isort
           black . --check -v
           isort . --check -v
+      - name: Test
+        run: |
+          pytest ./tests
