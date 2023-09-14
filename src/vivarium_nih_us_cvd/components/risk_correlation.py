@@ -1,6 +1,9 @@
+from typing import Dict, List, Optional
+
 import numpy as np
 import pandas as pd
 import scipy
+from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.population.manager import SimulantData
 from vivarium.framework.randomness import get_hash
@@ -10,43 +13,42 @@ from vivarium_nih_us_cvd.components.risks import CorrelatedRisk
 from vivarium_nih_us_cvd.constants import paths
 
 
-class RiskCorrelation:
+class RiskCorrelation(Component):
     """Apply correlation to risk factor propensities"""
-
-    def __repr__(self) -> str:
-        return f"RiskCorrelation"
 
     ##############
     # Properties #
     ##############
 
     @property
-    def name(self) -> str:
-        return f"risk_correlation"
+    def columns_created(self) -> List[str]:
+        return self.propensity_column_names
 
-    #################
-    # Setup methods #
-    #################
+    @property
+    def columns_required(self) -> Optional[List[str]]:
+        return ["age"]
+
+    @property
+    def initialization_requirements(self) -> Dict[str, List[str]]:
+        return {"requires_columns": ["age"]}
+
+    #####################
+    # Lifecycle methods #
+    #####################
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
-        self.input_draw = builder.configuration.input_data.input_draw_number
-        self.random_seed = builder.configuration.randomness.random_seed
-        self.correlation_data = pd.read_csv(paths.FILEPATHS.RISK_CORRELATION)
         self.risks = [
             EntityString(risk.name.replace("risk.", ""))
             for risk in builder.components.get_components_by_type(CorrelatedRisk)
         ]
         self.propensity_column_names = [f"{risk.name}_propensity" for risk in self.risks]
-        self.population_view = builder.population.get_view(
-            ["age"] + self.propensity_column_names
-        )
 
-        builder.population.initializes_simulants(
-            self.on_initialize_simulants,
-            creates_columns=self.propensity_column_names,
-            requires_columns=["age"],
-        )
+        super().setup(builder)
+
+        self.input_draw = builder.configuration.input_data.input_draw_number
+        self.random_seed = builder.configuration.randomness.random_seed
+        self.correlation_data = pd.read_csv(paths.FILEPATHS.RISK_CORRELATION)
 
     ########################
     # Event-driven methods #
