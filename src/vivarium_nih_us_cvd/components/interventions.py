@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, Tuple
+from typing import Tuple
 
 from vivarium.framework.engine import Builder
 from vivarium.framework.lookup import LookupTable
@@ -8,7 +8,7 @@ from vivarium_public_health.treatment import LinearScaleUp as LinearScaleUp_
 
 
 class LinearScaleUp(LinearScaleUp_):
-    configuration_defaults = {
+    CONFIGURATION_DEFAULTS = {
         "treatment": {
             "date": {
                 "start": {
@@ -29,11 +29,11 @@ class LinearScaleUp(LinearScaleUp_):
         }
     }
 
-    # re-define because configuration_defaults is a class attribute
-    def _get_configuration_defaults(self) -> Dict[str, Dict]:
-        return {self.configuration_key: LinearScaleUp.configuration_defaults["treatment"]}
+    #################
+    # Setup methods #
+    #################
 
-    def _get_scale_up_dates(self, builder: Builder) -> Tuple[datetime, datetime]:
+    def get_scale_up_dates(self, builder: Builder) -> Tuple[datetime, datetime]:
         scale_up_config = builder.configuration[self.configuration_key]["date"]
         endpoints = {}
         for endpoint_type in ["start", "end"]:
@@ -50,12 +50,12 @@ class LinearScaleUp(LinearScaleUp_):
         return endpoints["start"], endpoints["end"]
 
     # NOTE: Re-defining to test for future vph fix
-    def _get_scale_up_values(self, builder: Builder) -> Tuple[LookupTable, LookupTable]:
+    def get_scale_up_values(self, builder: Builder) -> Tuple[LookupTable, LookupTable]:
         scale_up_config = builder.configuration[self.configuration_key]["value"]
         endpoints = {}
         for endpoint_type in ["start", "end"]:
             if scale_up_config[endpoint_type] == "data":
-                endpoint = self._get_endpoint_value_from_data(builder, endpoint_type)
+                endpoint = self.get_endpoint_value_from_data(builder, endpoint_type)
             else:
                 endpoint = builder.lookup.build_table(scale_up_config[endpoint_type])
             endpoints[endpoint_type] = endpoint
