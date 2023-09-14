@@ -1,23 +1,29 @@
 from typing import Callable, Dict
 
 import pandas as pd
+from statsmodels.tsa.statespace.tests.test_mlemodel import kwargs
 from vivarium.framework.engine import Builder
 from vivarium.framework.lookup import LookupTable
-from vivarium.framework.state_machine import State, Transition
+from vivarium.framework.state_machine import State, Transition, Trigger
 from vivarium.framework.utilities import rate_to_probability
 from vivarium.framework.values import Pipeline, list_combiner, union_post_processor
+from vivarium_public_health.disease import BaseDiseaseState, RateTransition
 
 
-class CompositeRateTransition(Transition):
+# todo confirm RateTransition works
+class CompositeRateTransition(RateTransition):
     """
     A component that manages transitions from a single state to multiple output
     states.
     """
 
-    def __init__(self, input_state, output_state, **kwargs):
-        super().__init__(
-            input_state, output_state, probability_func=self._probability, **kwargs
-        )
+    def __init__(
+        self,
+        input_state: BaseDiseaseState,
+        output_state: BaseDiseaseState,
+        triggered: Trigger = Trigger.NOT_TRIGGERED,
+    ):
+        super().__init__(input_state, output_state, triggered=triggered)
 
         # A dictionary with output state name as the key and the
         # get_data_functions for the transition to that state as its value

@@ -88,7 +88,8 @@ class RiskCorrelation:
 
     def update_correlation_data(self, correlation_data: pd.DataFrame) -> pd.DataFrame:
         """Add correlations of 1 for risks with themselves and add columns with names
-        of risk factor pairs switched. This makes creating the covariance matrix much cleaner."""
+        of risk factor pairs switched. This makes creating the covariance matrix much cleaner.
+        """
 
         # risks are perfectly correlated with themselves
         for risk in self.risks:
