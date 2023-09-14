@@ -14,10 +14,18 @@ class EvenlyDistributedPopulation(BasePopulation):
     male and female.
     """
 
+    #####################
+    # Lifecycle methods #
+    #####################
+
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
         self.location = builder.data.load(data_keys.POPULATION.LOCATION)
+
+    ########################
+    # Event-driven methods #
+    ########################
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         age_start = pop_data.user_data.get("age_start", self.config.age_start)

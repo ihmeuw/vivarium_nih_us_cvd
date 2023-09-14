@@ -1,6 +1,7 @@
-from typing import Dict, List
+from typing import Dict, List, Any, Optional
 
 import pandas as pd
+from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium_public_health.metrics.stratification import (
     ResultsStratifier as ResultsStratifier_,
@@ -17,6 +18,10 @@ class SimpleResultsStratifier(ResultsStratifier_):
     results production and have this component manage adjustments to the
     final column labels for the subgroups.
     """
+
+    ###########
+    # Mappers #
+    ###########
 
     def get_age_bins(self, builder: Builder) -> pd.DataFrame:
         """Re-define youngest age bin to 5_to_24"""
@@ -41,6 +46,10 @@ class ResultsStratifier(SimpleResultsStratifier):
     final column labels for the subgroups.
     """
 
+    #################
+    # Setup methods #
+    #################
+
     def register_stratifications(self, builder: Builder) -> None:
         super().register_stratifications(builder)
 
@@ -58,10 +67,10 @@ class ResultsStratifier(SimpleResultsStratifier):
         )
 
 
-class ContinuousRiskObserver:
+class ContinuousRiskObserver(Component):
     """Observes (continuous) risk exposure-time per group."""
 
-    configuration_defaults = {
+    CONFIGURATION_DEFAULTS = {
         "stratification": {
             "risk": {
                 "exclude": [],
@@ -70,45 +79,36 @@ class ContinuousRiskObserver:
         }
     }
 
-    def __init__(self, risk: str):
-        self.risk = EntityString(risk)
-        self.configuration_defaults = self._get_configuration_defaults()
-
-    def __repr__(self):
-        return f"ContinuousRiskObserver({self.risk})"
-
-    ##########################
-    # Initialization methods #
-    ##########################
-
-    # noinspection PyMethodMayBeStatic
-    def _get_configuration_defaults(self) -> Dict[str, Dict]:
-        return {
-            "stratification": {
-                self.risk: ContinuousRiskObserver.configuration_defaults["stratification"][
-                    "risk"
-                ]
-            }
-        }
-
     ##############
     # Properties #
     ##############
 
     @property
-    def name(self):
-        return f"continuous_risk_observer.{self.risk}"
+    def configuration_defaults(self) -> Dict[str, Any]:
+        return {
+            "stratification": {
+                self.risk: self.CONFIGURATION_DEFAULTS["stratification"][
+                    "risk"
+                ]
+            }
+        }
 
-    #################
-    # Setup methods #
-    #################
+    @property
+    def columns_required(self) -> Optional[List[str]]:
+        return ["alive"]
+
+    #####################
+    # Lifecycle methods #
+    #####################
+
+    def __init__(self, risk: str):
+        super().__init__()
+        self.risk = EntityString(risk)
 
     def setup(self, builder: Builder) -> None:
+        super().setup(builder)
         self.step_size = builder.time.step_size()
         self.config = builder.configuration.stratification[self.risk]
-
-        columns_required = ["alive"]
-        self.population_view = builder.population.get_view(columns_required)
 
         builder.results.register_observation(
             name=f"total_exposure_time_risk_{self.risk.name}",
@@ -121,14 +121,18 @@ class ContinuousRiskObserver:
             when="collect_metrics",
         )
 
+    ###############
+    # Aggregators #
+    ###############
+
     def aggregate_state_person_time(self, x: pd.DataFrame) -> float:
         return sum(x[f"{self.risk.name}.exposure"]) * to_years(self.step_size())
 
 
-class HealthcareVisitObserver:
+class HealthcareVisitObserver(Component):
     """Observes doctor visit counts per group."""
 
-    configuration_defaults = {
+    CONFIGURATION_DEFAULTS = {
         "stratification": {
             "visits": {
                 "exclude": [],
@@ -137,37 +141,22 @@ class HealthcareVisitObserver:
         }
     }
 
-    def __init__(self):
-        self.configuration_defaults = self._get_configuration_defaults()
-
-    def __repr__(self):
-        return f"HealthcareVisitObserver"
-
-    ##########################
-    # Initialization methods #
-    ##########################
-
-    def _get_configuration_defaults(self) -> Dict[str, Dict]:
-        return HealthcareVisitObserver.configuration_defaults
-
     ##############
     # Properties #
     ##############
 
     @property
-    def name(self):
-        return f"healthcare_visit_observer"
+    def columns_required(self) -> Optional[List[str]]:
+        return [data_values.COLUMNS.VISIT_TYPE]
 
-    #################
-    # Setup methods #
-    #################
+    #####################
+    # Lifecycle methods #
+    #####################
 
     def setup(self, builder: Builder) -> None:
+        super().setup(builder)
         self.step_size = builder.time.step_size()
         self.config = builder.configuration.stratification["visits"]
-
-        columns_required = [data_values.COLUMNS.VISIT_TYPE]
-        self.population_view = builder.population.get_view(columns_required)
 
         for visit_type in data_values.VISIT_TYPE:
             builder.results.register_observation(
@@ -180,10 +169,10 @@ class HealthcareVisitObserver:
             )
 
 
-class CategoricalColumnObserver:
+class CategoricalColumnObserver(Component):
     """Observes person-time of a categorical state table column"""
 
-    configuration_defaults = {
+    CONFIGURATION_DEFAULTS = {
         "stratification": {
             "column": {
                 "exclude": [],
@@ -192,47 +181,43 @@ class CategoricalColumnObserver:
         }
     }
 
-    def __init__(self, column):
-        self.column = column
-        self.configuration_defaults = self._get_configuration_defaults()
-
-    def __repr__(self):
-        return f"PersonTimeObserver({self.column})"
-
-    ##########################
-    # Initialization methods #
-    ##########################
-
-    def _get_configuration_defaults(self) -> Dict[str, Dict]:
-        return {
-            "stratification": {
-                f"{self.column}": CategoricalColumnObserver.configuration_defaults[
-                    "stratification"
-                ]["column"]
-            }
-        }
-
     ##############
     # Properties #
     ##############
 
     @property
-    def name(self):
-        return f"person_time_observer.{self.column}"
+    def configuration_defaults(self) -> Dict[str, Any]:
+        return {
+            "stratification": {
+                f"{self.column}": self.CONFIGURATION_DEFAULTS[
+                    "stratification"
+                ]["column"]
+            }
+        }
 
-    #################
-    # Setup methods #
-    #################
+    @property
+    def columns_required(self) -> Optional[List[str]]:
+        return ["alive", self.column]
+
+    #####################
+    # Lifecycle methods #
+    #####################
+
+    def __init__(self, column: str):
+        super().__init__()
+        self.column = column
 
     def setup(self, builder: Builder) -> None:
+        super().setup(builder)
         self.step_size = builder.time.step_size()
         self.config = builder.configuration.stratification[self.column]
         self.categories = self.get_categories()
 
-        columns_required = ["alive", self.column]
-        self.population_view = builder.population.get_view(columns_required)
-
         self.register_observations(builder)
+
+    #################
+    # Setup methods #
+    #################
 
     def register_observations(self, builder: Builder) -> None:
         for category in self.categories:
@@ -260,14 +245,25 @@ class CategoricalColumnObserver:
 
         return mapping[self.column]
 
+    ###############
+    # Aggregators #
+    ###############
+
     def calculate_categorical_person_time(self, x: pd.DataFrame) -> float:
         return len(x) * to_years(self.step_size())
 
 
 class LifestyleObserver(CategoricalColumnObserver):
+
+    #####################
+    # Lifecycle methods #
+    #####################
     def __init__(self):
-        self.column = "lifestyle"
-        self.configuration_defaults = self._get_configuration_defaults()
+        super().__init__("lifestyle")
+
+    #################
+    # Setup methods #
+    #################
 
     def register_observations(self, builder: Builder) -> None:
         builder.results.register_observation(
@@ -292,6 +288,10 @@ class LifestyleObserver(CategoricalColumnObserver):
     def get_categories(self) -> List[str]:
         return ["cat1", "cat2"]
 
+    ###############
+    # Aggregators #
+    ###############
+
     def calculate_exposed_lifestyle_person_time(self, x: pd.DataFrame) -> float:
         return sum(~(x["lifestyle"].isna())) * to_years(self.step_size())
 
@@ -299,10 +299,10 @@ class LifestyleObserver(CategoricalColumnObserver):
         return sum(x["lifestyle"].isna()) * to_years(self.step_size())
 
 
-class BinnedRiskObserver:
+class BinnedRiskObserver(Component):
     """Observes (continuous) risk exposure-time per group binned by exposure thresholds."""
 
-    configuration_defaults = {
+    CONFIGURATION_DEFAULTS = {
         "stratification": {
             "risk": {
                 "exclude": [],
@@ -311,45 +311,36 @@ class BinnedRiskObserver:
         }
     }
 
-    def __init__(self, risk: str):
-        self.risk = EntityString(risk)
-        self.configuration_defaults = self._get_configuration_defaults()
-
-    def __repr__(self):
-        return f"BinnedRiskObserver({self.risk})"
-
-    ##########################
-    # Initialization methods #
-    ##########################
-
-    # noinspection PyMethodMayBeStatic
-    def _get_configuration_defaults(self) -> Dict[str, Dict]:
-        return {
-            "stratification": {
-                f"binned_{self.risk}": ContinuousRiskObserver.configuration_defaults[
-                    "stratification"
-                ]["risk"]
-            }
-        }
-
     ##############
     # Properties #
     ##############
 
     @property
-    def name(self):
-        return f"binned_risk_observer.{self.risk}"
+    def configuration_defaults(self) -> Dict[str, Any]:
+        return {
+            "stratification": {
+                f"binned_{self.risk}": self.CONFIGURATION_DEFAULTS[
+                    "stratification"
+                ]["risk"]
+            }
+        }
 
-    #################
-    # Setup methods #
-    #################
+    @property
+    def columns_required(self) -> Optional[List[str]]:
+        return ["alive"]
+
+    #####################
+    # Lifecycle methods #
+    #####################
+
+    def __init__(self, risk: str):
+        super().__init__()
+        self.risk = EntityString(risk)
 
     def setup(self, builder: Builder) -> None:
+        super().setup(builder)
         self.step_size = builder.time.step_size()
         self.config = builder.configuration.stratification[f"binned_{self.risk}"]
-
-        columns_required = ["alive"]
-        self.population_view = builder.population.get_view(columns_required)
 
         try:
             thresholds = data_values.BINNED_OBSERVER_THRESHOLDS[self.risk.name]
@@ -400,12 +391,16 @@ class BinnedRiskObserver:
             when="collect_metrics",
         )
 
+    ###############
+    # Aggregators #
+    ###############
+
     def aggregate_state_person_time(self, x: pd.DataFrame) -> float:
         return len(x) * to_years(self.step_size())
 
 
-class PAFObserver:
-    configuration_defaults = {
+class PAFObserver(Component):
+    CONFIGURATION_DEFAULTS = {
         "stratification": {
             "paf": {
                 "exclude": [],
@@ -414,20 +409,26 @@ class PAFObserver:
         }
     }
 
+    @property
+    def configuration_defaults(self) -> Dict[str, Dict]:
+        return {
+            "stratification": {
+                f"{self.risk.name}_paf_on_{self.target.name}": self.CONFIGURATION_DEFAULTS[
+                    "stratification"
+                ][
+                    "paf"
+                ]
+            }
+        }
+
     def __init__(self, risk: str, target: str):
+        super().__init__()
         self.risk = EntityString(risk)
         self.target = TargetString(target)
-        self.configuration_defaults = self.get_configuration_defaults()
-
-    def __repr__(self):
-        return f"PAFObserver({self.risk}, {self.target})"
-
-    @property
-    def name(self):
-        return f"paf_observer.{self.risk}.{self.target}"
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
+        super().setup(builder)
         self.risk_effect = builder.components.get_component(
             f"paf_calculation_risk_effect.{self.risk}.{self.target}"
         )
@@ -450,14 +451,3 @@ class PAFObserver:
         paf = (mean_rr - 1) / mean_rr
 
         return paf
-
-    def get_configuration_defaults(self) -> Dict[str, Dict]:
-        return {
-            "stratification": {
-                f"{self.risk.name}_paf_on_{self.target.name}": PAFObserver.configuration_defaults[
-                    "stratification"
-                ][
-                    "paf"
-                ]
-            }
-        }
