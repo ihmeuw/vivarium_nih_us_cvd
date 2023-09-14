@@ -2,6 +2,7 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
@@ -11,19 +12,76 @@ from vivarium_nih_us_cvd.constants import data_values, models, paths, scenarios
 from vivarium_nih_us_cvd.utilities import get_random_value_from_normal_distribution
 
 
-class Treatment:
+class Treatment(Component):
     """Updates treatment coverage"""
 
-    configuration_defaults = {}
+    ##############
+    # Properties #
+    ##############
 
     @property
-    def name(self):
-        return self.__class__.__name__
+    def columns_created(self) -> List[str]:
+        return [
+            data_values.COLUMNS.SBP_MEDICATION,
+            data_values.COLUMNS.LDLC_MEDICATION,
+            data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
+            data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
+            data_values.COLUMNS.LIFESTYLE_ADHERENCE,
+            data_values.COLUMNS.SBP_MULTIPLIER,
+            data_values.COLUMNS.LDLC_MULTIPLIER,
+            data_values.COLUMNS.OUTREACH,
+            data_values.COLUMNS.POLYPILL,
+            data_values.COLUMNS.LIFESTYLE,
+            data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY,
+            data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_PROPENSITY,
+        ]
 
-    def __repr__(self):
-        return "Treatment"
+    @property
+    def columns_required(self) -> Optional[List[str]]:
+        return [
+            "age",
+            "sex",
+            models.ISCHEMIC_STROKE_MODEL_NAME,
+            models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME,
+            data_values.COLUMNS.VISIT_TYPE,
+            data_values.COLUMNS.LAST_FPG_TEST_DATE,
+            "tracked",
+        ]
+
+    @property
+    def initialization_requirements(self) -> Dict[str, List[str]]:
+        return {
+            "requires_columns": [
+                "age",
+                "sex",
+                models.ISCHEMIC_STROKE_MODEL_NAME,
+                models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME,
+                "high_systolic_blood_pressure_propensity",
+            ],
+            "requires_values": [
+                data_values.PIPELINES.SBP_GBD_EXPOSURE,
+                data_values.PIPELINES.LDLC_GBD_EXPOSURE,
+                data_values.PIPELINES.SBP_MEDICATION_ADHERENCE_EXPOSURE,
+                data_values.PIPELINES.LDLC_MEDICATION_ADHERENCE_EXPOSURE,
+                data_values.PIPELINES.OUTREACH_EXPOSURE,
+                data_values.PIPELINES.POLYPILL_EXPOSURE,
+                data_values.PIPELINES.LIFESTYLE_EXPOSURE,
+                data_values.PIPELINES.BMI_EXPOSURE,
+                data_values.PIPELINES.FPG_EXPOSURE,
+            ],
+            "requires_streams": [self.name],
+        }
+
+    @property
+    def time_step_cleanup_priority(self) -> int:
+        return data_values.TIMESTEP_CLEANUP_PRIORITIES.TREATMENT
+
+    #####################
+    # Lifecycle methods #
+    #####################
 
     def setup(self, builder: Builder) -> None:
+        super().setup(builder)
         self.randomness = builder.randomness.get_stream(self.name)
         self.scenario = self._get_scenario(builder)
         self.clock = builder.time.clock()
@@ -55,63 +113,9 @@ class Treatment:
         self.ldlc_target_modifier = self._get_ldlc_target_modifier(builder)
         self._register_target_modifiers(builder)
 
-        columns_created = [
-            data_values.COLUMNS.SBP_MEDICATION,
-            data_values.COLUMNS.LDLC_MEDICATION,
-            data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
-            data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
-            data_values.COLUMNS.LIFESTYLE_ADHERENCE,
-            data_values.COLUMNS.SBP_MULTIPLIER,
-            data_values.COLUMNS.LDLC_MULTIPLIER,
-            data_values.COLUMNS.OUTREACH,
-            data_values.COLUMNS.POLYPILL,
-            data_values.COLUMNS.LIFESTYLE,
-            data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY,
-            data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_PROPENSITY,
-        ]
-        columns_required_on_initialization = [
-            "age",
-            "sex",
-            models.ISCHEMIC_STROKE_MODEL_NAME,
-            models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME,
-        ]
-
-        self.population_view = builder.population.get_view(
-            columns_required_on_initialization
-            + columns_created
-            + [
-                data_values.COLUMNS.VISIT_TYPE,
-                data_values.COLUMNS.LAST_FPG_TEST_DATE,
-                "tracked",
-            ]
-        )
-
-        values_required = [
-            data_values.PIPELINES.SBP_GBD_EXPOSURE,
-            data_values.PIPELINES.LDLC_GBD_EXPOSURE,
-            data_values.PIPELINES.SBP_MEDICATION_ADHERENCE_EXPOSURE,
-            data_values.PIPELINES.LDLC_MEDICATION_ADHERENCE_EXPOSURE,
-            data_values.PIPELINES.OUTREACH_EXPOSURE,
-            data_values.PIPELINES.POLYPILL_EXPOSURE,
-            data_values.PIPELINES.LIFESTYLE_EXPOSURE,
-            data_values.PIPELINES.BMI_EXPOSURE,
-            data_values.PIPELINES.FPG_EXPOSURE,
-        ]
-
-        # Initialize simulants
-        builder.population.initializes_simulants(
-            self.on_initialize_simulants,
-            creates_columns=columns_created,
-            requires_columns=columns_required_on_initialization,
-            requires_values=values_required,
-            requires_streams=[self.name],
-        )
-
-        builder.event.register_listener(
-            "time_step__cleanup",
-            self.on_time_step_cleanup,
-            priority=data_values.TIMESTEP_CLEANUP_PRIORITIES.TREATMENT,
-        )
+    #################
+    # Setup methods #
+    #################
 
     def _get_scenario(self, builder: Builder) -> scenarios.InterventionScenario:
         return scenarios.INTERVENTION_SCENARIOS[builder.configuration.intervention.scenario]
@@ -281,6 +285,10 @@ class Treatment:
             ],
         )
 
+    ##################################
+    # Pipeline sources and modifiers #
+    ##################################
+
     def _apply_lifestyle(self, index: pd.Index, target: pd.Series, risk: str):
         # allow for updating drop value of dead people - makes interacting with target easier
         pop = self.population_view.get(index)
@@ -299,6 +307,10 @@ class Treatment:
 
     def _apply_lifestyle_to_sbp(self, index, target):
         return self._apply_lifestyle(index, target, risk="sbp")
+
+    ##################
+    # Helper methods #
+    ##################
 
     def get_updated_drop_values(self, target, enrollment_dates, risk):
         try:

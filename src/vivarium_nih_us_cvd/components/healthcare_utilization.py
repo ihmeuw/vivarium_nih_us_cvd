@@ -1,6 +1,7 @@
-from typing import List
+from typing import Dict, List, Optional
 
 import pandas as pd
+from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
@@ -9,30 +10,59 @@ from vivarium_nih_us_cvd.components.treatment import Treatment
 from vivarium_nih_us_cvd.constants import data_keys, data_values, models
 
 
-class HealthcareUtilization:
+class HealthcareUtilization(Component):
     """Manages healthcare utilization and scheduling of appointments."""
 
-    configuration_defaults = {}
+    ##############
+    # Properties #
+    ##############
+
+    @property
+    def columns_created(self) -> List[str]:
+        return [
+            data_values.COLUMNS.VISIT_TYPE,
+            data_values.COLUMNS.SCHEDULED_VISIT_DATE,
+            data_values.COLUMNS.LAST_FPG_TEST_DATE,
+        ]
+
+    @property
+    def columns_required(self) -> Optional[List[str]]:
+        return [
+            "age",
+            "sex",
+            models.ISCHEMIC_STROKE_MODEL_NAME,
+            models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME,
+            data_values.COLUMNS.SBP_MEDICATION,
+            data_values.COLUMNS.LDLC_MEDICATION,
+            data_values.COLUMNS.LIFESTYLE,
+        ]
+
+    @property
+    def initialization_requirements(self) -> Dict[str, List[str]]:
+        return {
+            "requires_columns": self.columns_required,
+            "requires_values": [
+                data_values.PIPELINES.SBP_EXPOSURE,
+                data_values.PIPELINES.LDLC_EXPOSURE,
+            ],
+            "requires_streams": [self.name],
+        }
+
+    @property
+    def time_step_cleanup_priority(self) -> int:
+        return data_values.TIMESTEP_CLEANUP_PRIORITIES.HEALTHCARE_VISITS
+
+    #####################
+    # Lifecycle methods #
+    #####################
 
     def __init__(self):
-        self.treatment = self._get_treatment_component()
+        super().__init__()
+        self.treatment = Treatment()
         self._sub_components = [self.treatment]
 
-    def __repr__(self):
-        return "HealthcareUtilization"
-
-    def _get_treatment_component(self) -> Treatment:
-        return Treatment()
-
-    @property
-    def name(self):
-        return self.__class__.__name__
-
-    @property
-    def sub_components(self) -> List:
-        return self._sub_components
-
     def setup(self, builder: Builder) -> None:
+        super().setup(builder)
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
         self.randomness = builder.randomness.get_stream(self.name)
@@ -51,43 +81,9 @@ class HealthcareUtilization:
             "utilization_rate", background_utilization_rate, requires_columns=["age", "sex"]
         )
 
-        columns_created = [
-            data_values.COLUMNS.VISIT_TYPE,
-            data_values.COLUMNS.SCHEDULED_VISIT_DATE,
-            data_values.COLUMNS.LAST_FPG_TEST_DATE,
-        ]
-
-        columns_required = [
-            "age",
-            "sex",
-            models.ISCHEMIC_STROKE_MODEL_NAME,
-            models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME,
-            data_values.COLUMNS.SBP_MEDICATION,
-            data_values.COLUMNS.LDLC_MEDICATION,
-            data_values.COLUMNS.LIFESTYLE,
-        ]
-
-        self.population_view = builder.population.get_view(columns_required + columns_created)
-
-        values_required = [
-            data_values.PIPELINES.SBP_EXPOSURE,
-            data_values.PIPELINES.LDLC_EXPOSURE,
-        ]
-
-        # Initialize simulants
-        builder.population.initializes_simulants(
-            self.on_initialize_simulants,
-            creates_columns=columns_created,
-            requires_columns=columns_required,
-            requires_values=values_required,
-        )
-
-        # Register listeners
-        builder.event.register_listener(
-            "time_step__cleanup",
-            self.on_time_step_cleanup,
-            priority=data_values.TIMESTEP_CLEANUP_PRIORITIES.HEALTHCARE_VISITS,
-        )
+    ########################
+    # Event-driven methods #
+    ########################
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         """Initializes the visit type of simulants in an emergency state so
@@ -297,7 +293,11 @@ class HealthcareUtilization:
             ]
         )
 
-    def test_fpg(self, pop_visitors: pd.DataFrame) -> pd.Index:
+    ##################
+    # Helper methods #
+    ##################
+
+    def test_fpg(self, pop_visitors: pd.DataFrame) -> pd.DataFrame:
         not_already_enrolled = pop_visitors[data_values.COLUMNS.LIFESTYLE].isna()
         bmi = self.bmi(pop_visitors.index)
         age = pop_visitors["age"]
