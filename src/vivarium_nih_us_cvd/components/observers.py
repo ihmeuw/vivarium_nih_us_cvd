@@ -1,4 +1,4 @@
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 from vivarium import Component
@@ -87,9 +87,7 @@ class ContinuousRiskObserver(Component):
     def configuration_defaults(self) -> Dict[str, Any]:
         return {
             "stratification": {
-                self.risk: self.CONFIGURATION_DEFAULTS["stratification"][
-                    "risk"
-                ]
+                self.risk: self.CONFIGURATION_DEFAULTS["stratification"]["risk"]
             }
         }
 
@@ -187,9 +185,7 @@ class CategoricalColumnObserver(Component):
     def configuration_defaults(self) -> Dict[str, Any]:
         return {
             "stratification": {
-                f"{self.column}": self.CONFIGURATION_DEFAULTS[
-                    "stratification"
-                ]["column"]
+                f"{self.column}": self.CONFIGURATION_DEFAULTS["stratification"]["column"]
             }
         }
 
@@ -251,7 +247,6 @@ class CategoricalColumnObserver(Component):
 
 
 class LifestyleObserver(CategoricalColumnObserver):
-
     #####################
     # Lifecycle methods #
     #####################
@@ -316,9 +311,7 @@ class BinnedRiskObserver(Component):
     def configuration_defaults(self) -> Dict[str, Any]:
         return {
             "stratification": {
-                f"binned_{self.risk}": self.CONFIGURATION_DEFAULTS[
-                    "stratification"
-                ]["risk"]
+                f"binned_{self.risk}": self.CONFIGURATION_DEFAULTS["stratification"]["risk"]
             }
         }
 
@@ -411,9 +404,7 @@ class PAFObserver(Component):
             "stratification": {
                 f"{self.risk.name}_paf_on_{self.target.name}": self.CONFIGURATION_DEFAULTS[
                     "stratification"
-                ][
-                    "paf"
-                ]
+                ]["paf"]
             }
         }
 
