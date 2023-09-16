@@ -106,7 +106,6 @@ class ContinuousRiskObserver(Component):
         self.risk = EntityString(risk)
 
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         self.step_size = builder.time.step_size()
         self.config = builder.configuration.stratification[self.risk]
 
@@ -154,7 +153,6 @@ class HealthcareVisitObserver(Component):
     #####################
 
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         self.step_size = builder.time.step_size()
         self.config = builder.configuration.stratification["visits"]
 
@@ -208,7 +206,6 @@ class CategoricalColumnObserver(Component):
         self.column = column
 
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         self.step_size = builder.time.step_size()
         self.config = builder.configuration.stratification[self.column]
         self.categories = self.get_categories()
@@ -338,7 +335,6 @@ class BinnedRiskObserver(Component):
         self.risk = EntityString(risk)
 
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         self.step_size = builder.time.step_size()
         self.config = builder.configuration.stratification[f"binned_{self.risk}"]
 
@@ -428,7 +424,6 @@ class PAFObserver(Component):
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         self.risk_effect = builder.components.get_component(
             f"paf_calculation_risk_effect.{self.risk}.{self.target}"
         )
