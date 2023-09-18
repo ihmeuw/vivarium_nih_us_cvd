@@ -1,27 +1,18 @@
-from typing import Callable
+from typing import Optional
 
 import pandas as pd
+from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.lookup import LookupTable
 from vivarium.framework.time import get_time_stamp
 from vivarium_public_health.risks.effect import RiskEffect
 
 from vivarium_nih_us_cvd.constants import data_values, scenarios
+from vivarium_nih_us_cvd.constants.scenarios import InterventionScenario
 
 
-class InterventionAdherenceEffect:
+class InterventionAdherenceEffect(Component):
     """A component to model the impact of the intervention risks on medication adherence levels"""
-
-    def __repr__(self):
-        return "InterventionEffect"
-
-    ##############
-    # Properties #
-    ##############
-
-    @property
-    def name(self) -> str:
-        return "intervention_effect"
 
     #################
     # Setup methods #
@@ -35,7 +26,7 @@ class InterventionAdherenceEffect:
         self.randomness = builder.randomness.get_stream(self.name)
         self._register_target_modifiers(builder)
 
-    def _get_scenario(self, builder: Builder) -> bool:
+    def _get_scenario(self, builder: Builder) -> InterventionScenario:
         return scenarios.INTERVENTION_SCENARIOS[builder.configuration.intervention.scenario]
 
     def _register_target_modifiers(self, builder: Builder) -> None:
@@ -107,25 +98,13 @@ class InterventionAdherenceEffect:
 class PAFCalculationRiskEffect(RiskEffect):
     """Risk effect component for calculating PAFs"""
 
-    def __repr__(self):
-        return f"PAFCalculationRiskEffect(risk={self.risk}, target={self.target})"
+    def get_population_attributable_fraction_source(
+        self, builder: Builder
+    ) -> Optional[LookupTable]:
+        return None
 
-    ##############
-    # Properties #
-    ##############
+    def register_target_modifier(self, builder: Builder) -> None:
+        pass
 
-    @property
-    def name(self) -> str:
-        return f"paf_calculation_risk_effect.{self.risk}.{self.target}"
-
-    #################
-    # Setup methods #
-    #################
-
-    # noinspection PyAttributeOutsideInit
-    def setup(self, builder: Builder) -> None:
-        self.exposure_distribution_type = self._get_distribution_type(builder)
-        self.exposure = self._get_risk_exposure(builder)
-        self.relative_risk = self._get_relative_risk_source(builder)
-
-        self.target_modifier = self._get_target_modifier(builder)
+    def register_paf_modifier(self, builder: Builder) -> None:
+        pass
