@@ -44,8 +44,6 @@ class RiskCorrelation(Component):
         ]
         self.propensity_column_names = [f"{risk.name}_propensity" for risk in self.risks]
 
-        super().setup(builder)
-
         self.input_draw = builder.configuration.input_data.input_draw_number
         self.random_seed = builder.configuration.randomness.random_seed
         self.correlation_data = pd.read_csv(paths.FILEPATHS.RISK_CORRELATION)

@@ -62,7 +62,6 @@ class HealthcareUtilization(Component):
         self._sub_components = [self.treatment]
 
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
         self.randomness = builder.randomness.get_stream(self.name)

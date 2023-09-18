@@ -81,7 +81,6 @@ class Treatment(Component):
     #####################
 
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         self.randomness = builder.randomness.get_stream(self.name)
         self.scenario = self._get_scenario(builder)
         self.clock = builder.time.clock()

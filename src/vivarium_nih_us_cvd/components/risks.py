@@ -239,7 +239,6 @@ class CategoricalSBPRisk(Component):
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         self.continuous_exposure = builder.value.get_value(PIPELINES.SBP_EXPOSURE)
         self.exposure = self.get_exposure_pipeline(builder)
 

@@ -1,4 +1,4 @@
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 from vivarium import Component
@@ -87,9 +87,7 @@ class ContinuousRiskObserver(Component):
     def configuration_defaults(self) -> Dict[str, Any]:
         return {
             "stratification": {
-                self.risk: self.CONFIGURATION_DEFAULTS["stratification"][
-                    "risk"
-                ]
+                self.risk: self.CONFIGURATION_DEFAULTS["stratification"]["risk"]
             }
         }
 
@@ -106,7 +104,6 @@ class ContinuousRiskObserver(Component):
         self.risk = EntityString(risk)
 
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         self.step_size = builder.time.step_size()
         self.config = builder.configuration.stratification[self.risk]
 
@@ -154,7 +151,6 @@ class HealthcareVisitObserver(Component):
     #####################
 
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         self.step_size = builder.time.step_size()
         self.config = builder.configuration.stratification["visits"]
 
@@ -189,9 +185,7 @@ class CategoricalColumnObserver(Component):
     def configuration_defaults(self) -> Dict[str, Any]:
         return {
             "stratification": {
-                f"{self.column}": self.CONFIGURATION_DEFAULTS[
-                    "stratification"
-                ]["column"]
+                f"{self.column}": self.CONFIGURATION_DEFAULTS["stratification"]["column"]
             }
         }
 
@@ -208,7 +202,6 @@ class CategoricalColumnObserver(Component):
         self.column = column
 
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         self.step_size = builder.time.step_size()
         self.config = builder.configuration.stratification[self.column]
         self.categories = self.get_categories()
@@ -254,7 +247,6 @@ class CategoricalColumnObserver(Component):
 
 
 class LifestyleObserver(CategoricalColumnObserver):
-
     #####################
     # Lifecycle methods #
     #####################
@@ -319,9 +311,7 @@ class BinnedRiskObserver(Component):
     def configuration_defaults(self) -> Dict[str, Any]:
         return {
             "stratification": {
-                f"binned_{self.risk}": self.CONFIGURATION_DEFAULTS[
-                    "stratification"
-                ]["risk"]
+                f"binned_{self.risk}": self.CONFIGURATION_DEFAULTS["stratification"]["risk"]
             }
         }
 
@@ -338,7 +328,6 @@ class BinnedRiskObserver(Component):
         self.risk = EntityString(risk)
 
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         self.step_size = builder.time.step_size()
         self.config = builder.configuration.stratification[f"binned_{self.risk}"]
 
@@ -415,9 +404,7 @@ class PAFObserver(Component):
             "stratification": {
                 f"{self.risk.name}_paf_on_{self.target.name}": self.CONFIGURATION_DEFAULTS[
                     "stratification"
-                ][
-                    "paf"
-                ]
+                ]["paf"]
             }
         }
 
@@ -428,7 +415,6 @@ class PAFObserver(Component):
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         self.risk_effect = builder.components.get_component(
             f"paf_calculation_risk_effect.{self.risk}.{self.target}"
         )
