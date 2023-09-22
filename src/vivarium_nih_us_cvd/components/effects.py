@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from vivarium import Component
 from vivarium.framework.engine import Builder
+from vivarium.framework.lookup import LookupTable
 from vivarium.framework.time import get_time_stamp
 from vivarium_public_health.risks.effect import RiskEffect
 
@@ -108,7 +109,6 @@ class PAFCalculationRiskEffect(RiskEffect):
 
     def register_paf_modifier(self, builder: Builder) -> None:
         pass
-
 
 
 MEDIATOR_NAMES = {
