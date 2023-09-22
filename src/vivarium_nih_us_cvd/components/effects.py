@@ -1,8 +1,8 @@
 from typing import Callable
 
+import numpy as np
 import pandas as pd
 from vivarium.framework.engine import Builder
-from vivarium.framework.lookup import LookupTable
 from vivarium.framework.time import get_time_stamp
 from vivarium_public_health.risks.effect import RiskEffect
 
@@ -129,3 +129,84 @@ class PAFCalculationRiskEffect(RiskEffect):
         self.relative_risk = self._get_relative_risk_source(builder)
 
         self.target_modifier = self._get_target_modifier(builder)
+
+
+MEDIATOR_NAMES = {
+    "high_body_mass_index_in_adults": {
+        "acute_ischemic_stroke": [
+            "high_systolic_blood_pressure",
+            "high_ldl_cholesterol",
+            "high_fasting_plasma_glucose",
+        ],
+        "chronic_ischemic_stroke_to_acute_ischemic_stroke": [
+            "high_systolic_blood_pressure",
+            "high_ldl_cholesterol",
+            "high_fasting_plasma_glucose",
+        ],
+    },
+    "high_fasting_plasma_glucose": {
+        "acute_ischemic_stroke": [
+            "high_ldl_cholesterol",
+        ],
+        "chronic_ischemic_stroke_to_acute_ischemic_stroke": [
+            "high_ldl_cholesterol",
+        ],
+    },
+}
+
+
+class MediatedRiskEffect(RiskEffect):
+    """Applies mediation to risk effects"""
+
+    def setup(self, builder):
+        super().setup(builder)
+        # Register unadjusted RR pipelines by passing target=1s to the super's target_modifier
+        self.unadjusted_rr = builder.value.register_value_producer(
+            f"unadjusted_rr_{self.risk.name}_on_{self.target.name}",
+            source=lambda idx: self.target_modifier(idx, pd.Series(1.0, index=idx)),
+        )
+        self.mediators = MEDIATOR_NAMES.get(self.risk.name, {}).get(self.target.name, [])
+        self.unadjusted_mediator_rr = {
+            mediator: builder.value.get_value(
+                f"unadjusted_rr_{mediator}_on_{self.target.name}"
+            )
+            for mediator in self.mediators
+        }
+        # Register the mediation target modifier
+        self.mediated_target_modifier = self.get_mediated_target_modifier(builder)
+        self.register_mediated_target_modifier(builder)
+
+    def register_target_modifier(self, builder: Builder) -> None:
+        """We do not want to register the super's target modifier, so we override it here"""
+        pass
+
+    def get_mediated_target_modifier(
+        self, builder: Builder
+    ) -> Callable[[pd.Index, pd.Series], pd.Series]:
+        def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
+            unadjusted_rr = self.unadjusted_rr(index)
+            scaling_factor = pd.Series(1, index=index)
+            for mediator in self.mediators:
+                unadjusted_mediator_rr = self.unadjusted_mediator_rr[mediator](index)
+                not_tmrel_idx = index[
+                    (unadjusted_mediator_rr != 1.0) & (unadjusted_rr != 1.0)
+                ]
+                # TODO [MIC-4558]: Load mediation factors (temporarily substituting w/ 0.5 below)
+                delta_mediator = np.log(
+                    0.5 * (unadjusted_rr.loc[not_tmrel_idx] - 1) + 1
+                ) / np.log(unadjusted_mediator_rr.loc[not_tmrel_idx])
+                scaling_factor.loc[not_tmrel_idx] *= (
+                    unadjusted_mediator_rr.loc[not_tmrel_idx] ** delta_mediator
+                )
+
+            return target * unadjusted_rr / scaling_factor
+
+        return adjust_target
+
+    def register_mediated_target_modifier(self, builder: Builder) -> None:
+        builder.value.register_value_modifier(
+            self.target_pipeline_name,
+            modifier=self.mediated_target_modifier,
+            requires_values=[f"{self.risk.name}.exposure"],
+            requires_columns=["age", "sex"],
+        )
