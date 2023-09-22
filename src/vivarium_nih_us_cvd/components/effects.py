@@ -143,12 +143,28 @@ MEDIATOR_NAMES = {
             "high_ldl_cholesterol",
             "high_fasting_plasma_glucose",
         ],
+        "acute_myocardial_infarction": [
+            "high_systolic_blood_pressure",
+            "high_ldl_cholesterol",
+            "high_fasting_plasma_glucose",
+        ],
+        "post_myocardial_infarction_to_acute_myocardial_infarction": [
+            "high_systolic_blood_pressure",
+            "high_ldl_cholesterol",
+            "high_fasting_plasma_glucose",
+        ],
     },
     "high_fasting_plasma_glucose": {
         "acute_ischemic_stroke": [
             "high_ldl_cholesterol",
         ],
         "chronic_ischemic_stroke_to_acute_ischemic_stroke": [
+            "high_ldl_cholesterol",
+        ],
+        "acute_myocardial_infarction": [
+            "high_ldl_cholesterol",
+        ],
+        "post_myocardial_infarction_to_acute_myocardial_infarction": [
             "high_ldl_cholesterol",
         ],
     },
@@ -183,6 +199,12 @@ class MediatedRiskEffect(RiskEffect):
     def get_mediated_target_modifier(
         self, builder: Builder
     ) -> Callable[[pd.Index, pd.Series], pd.Series]:
+        mediation_factors = builder.data.load("risk.cause.mediation_factors")
+        mediation_factors = mediation_factors.loc[
+            (mediation_factors["risk_name"] == self.risk.name)
+            & (mediation_factors["affected_entity"] == self.target.name)
+        ]
+
         def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
             unadjusted_rr = self.unadjusted_rr(index)
             scaling_factor = pd.Series(1, index=index)
@@ -191,9 +213,11 @@ class MediatedRiskEffect(RiskEffect):
                 not_tmrel_idx = index[
                     (unadjusted_mediator_rr != 1.0) & (unadjusted_rr != 1.0)
                 ]
-                # TODO [MIC-4558]: Load mediation factors (temporarily substituting w/ 0.5 below)
+                mf = mediation_factors.loc[
+                    mediation_factors["mediator_name"] == mediator, "value"
+                ].values[0]
                 delta_mediator = np.log(
-                    0.5 * (unadjusted_rr.loc[not_tmrel_idx] - 1) + 1
+                    mf * (unadjusted_rr.loc[not_tmrel_idx] - 1) + 1
                 ) / np.log(unadjusted_mediator_rr.loc[not_tmrel_idx])
                 scaling_factor.loc[not_tmrel_idx] *= (
                     unadjusted_mediator_rr.loc[not_tmrel_idx] ** delta_mediator

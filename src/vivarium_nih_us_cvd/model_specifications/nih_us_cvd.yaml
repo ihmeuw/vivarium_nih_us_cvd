@@ -29,6 +29,15 @@ components:
             - MediatedRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
             - MediatedRiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.acute_ischemic_stroke.incidence_rate")
             - MediatedRiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
+            
+            - MediatedRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.acute_myocardial_infarction.incidence_rate")
+            - MediatedRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+            - MediatedRiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
+            - MediatedRiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+            - MediatedRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_myocardial_infarction.incidence_rate")
+            - MediatedRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+            - MediatedRiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.acute_myocardial_infarction.incidence_rate")
+            - MediatedRiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
 
             - CategoricalSBPRisk()
 
@@ -63,21 +72,12 @@ components:
             - Risk("risk_factor.polypill")
             - Risk("risk_factor.lifestyle")
 
-            - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
-            - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
-
-            - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_myocardial_infarction.incidence_rate")
-            - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
             - RiskEffect("risk_factor.categorical_high_systolic_blood_pressure", "cause.heart_failure_from_ischemic_heart_disease.incidence_rate")
             - RiskEffect("risk_factor.categorical_high_systolic_blood_pressure", "cause.heart_failure_residual.incidence_rate")
 
-            - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.acute_myocardial_infarction.incidence_rate")  # IHD
-            - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")  # IHD
-            - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_from_ischemic_heart_disease.incidence_rate")  # HF
-            - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_residual.incidence_rate")  # HF
+            - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_from_ischemic_heart_disease.incidence_rate")
+            - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_residual.incidence_rate")
 
-            - RiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.acute_myocardial_infarction.incidence_rate")  # IHD
-            - RiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")  # IHD
 
 configuration:
     input_data:
