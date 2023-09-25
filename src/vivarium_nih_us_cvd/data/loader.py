@@ -163,10 +163,13 @@ def get_data(
         data_keys.OUTREACH.DISTRIBUTION: load_dichotomous_distribution,
         # Risk (polypill)
         data_keys.POLYPILL.DISTRIBUTION: load_dichotomous_distribution,
+        # Mediation factors
+        data_keys.MEDIATION.MEDIATION_FACTORS: load_mediation_factors,
     }
     source_key = _get_source_key(lookup_key)
     data = mapping[lookup_key](source_key, location)
     data = handle_special_cases(data, source_key, location)
+    breakpoint()
     return data
 
 
@@ -718,7 +721,11 @@ def match_rr_to_cause_name(data: Union[str, pd.DataFrame], source_key: EntityKey
                 "heart_failure_residual",
             ],
         }
-    if source_key.measure in ["relative_risk", "population_attributable_fraction"]:
+    if source_key.measure in [
+        "relative_risk",
+        "population_attributable_fraction",
+        "mediation_factors",
+    ]:
         data = modify_rr_affected_entity(data, map)
     return data
 
@@ -1256,3 +1263,33 @@ def load_dichotomous_distribution(key: str, location: str) -> str:
 
 def load_ordered_polytomous_distribution(key: str, location: str) -> str:
     return "ordered_polytomous"
+
+
+def load_mediation_factors(*_: str) -> pd.Series:
+    mf = pd.read_csv(paths.FILEPATHS.MEDIATION_FACTORS)
+    risk_map = {
+        105: "high_fasting_plasma_glucose",
+        107: "high_systolic_blood_pressure",
+        370: "high_body_mass_index_in_adults",
+        367: "high_ldl_cholesterol",
+    }
+    cause_map = {
+        493: "ischemic_heart_disease",
+        495: "ischemic_stroke",
+    }
+    mf = mf.drop(columns=["mean_mediation"])
+    mf = mf.loc[mf["rei_id"].isin([370, 105])]
+    mf = mf.loc[mf["cause_id"].isin([493, 495])]
+    mf = mf.loc[mf["med_id"].isin([105, 107, 367])]
+    mf["rei_id"] = mf["rei_id"].map(risk_map)
+    mf["med_id"] = mf["med_id"].map(risk_map)
+    mf["cause_id"] = mf["cause_id"].map(cause_map)
+    mf = mf.rename(
+        columns={
+            "rei_id": "risk_name",
+            "med_id": "mediator_name",
+            "cause_id": "affected_entity",
+        }
+    )
+
+    return mf.set_index(["risk_name", "mediator_name", "affected_entity"])

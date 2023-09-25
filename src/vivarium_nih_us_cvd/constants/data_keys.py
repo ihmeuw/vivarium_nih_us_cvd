@@ -360,6 +360,21 @@ class __Polypill(NamedTuple):
 POLYPILL = __Polypill()
 
 
+class __Mediation(NamedTuple):
+    MEDIATION_FACTORS: TargetString = TargetString("risk.cause.mediation_factors")
+
+    @property
+    def name(self):
+        return "mediation_factors"
+
+    @property
+    def log_name(self):
+        return self.name.replace("_", " ")
+
+
+MEDIATION = __Mediation()
+
+
 ##################
 # Artifact Items #
 ##################
@@ -376,4 +391,5 @@ MAKE_ARTIFACT_KEY_GROUPS = [
     SBP_MEDICATION_ADHERENCE,
     OUTREACH,
     POLYPILL,
+    MEDIATION,
 ]
