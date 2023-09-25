@@ -1,5 +1,6 @@
-from typing import Optional
+from typing import Callable, Optional
 
+import numpy as np
 import pandas as pd
 from vivarium import Component
 from vivarium.framework.engine import Builder
@@ -108,3 +109,117 @@ class PAFCalculationRiskEffect(RiskEffect):
 
     def register_paf_modifier(self, builder: Builder) -> None:
         pass
+
+
+MEDIATOR_NAMES = {
+    "high_body_mass_index_in_adults": {
+        "acute_ischemic_stroke": [
+            "high_systolic_blood_pressure",
+            "high_ldl_cholesterol",
+            "high_fasting_plasma_glucose",
+        ],
+        "chronic_ischemic_stroke_to_acute_ischemic_stroke": [
+            "high_systolic_blood_pressure",
+            "high_ldl_cholesterol",
+            "high_fasting_plasma_glucose",
+        ],
+        "acute_myocardial_infarction": [
+            "high_systolic_blood_pressure",
+            "high_ldl_cholesterol",
+            "high_fasting_plasma_glucose",
+        ],
+        "post_myocardial_infarction_to_acute_myocardial_infarction": [
+            "high_systolic_blood_pressure",
+            "high_ldl_cholesterol",
+            "high_fasting_plasma_glucose",
+        ],
+    },
+    "high_fasting_plasma_glucose": {
+        "acute_ischemic_stroke": [
+            "high_ldl_cholesterol",
+        ],
+        "chronic_ischemic_stroke_to_acute_ischemic_stroke": [
+            "high_ldl_cholesterol",
+        ],
+        "acute_myocardial_infarction": [
+            "high_ldl_cholesterol",
+        ],
+        "post_myocardial_infarction_to_acute_myocardial_infarction": [
+            "high_ldl_cholesterol",
+        ],
+    },
+}
+
+
+class MediatedRiskEffect(RiskEffect):
+    """Applies mediation to risk effects"""
+
+    def setup(self, builder):
+        super().setup(builder)
+        # Register unadjusted RR pipelines by passing target=1s to the super's target_modifier
+        self.unadjusted_rr = builder.value.register_value_producer(
+            f"unadjusted_rr_{self.risk.name}_on_{self.target.name}",
+            source=lambda idx: self.target_modifier(idx, pd.Series(1.0, index=idx)),
+        )
+        self.mediators = MEDIATOR_NAMES.get(self.risk.name, {}).get(self.target.name, [])
+        self.unadjusted_mediator_rr = {
+            mediator: builder.value.get_value(
+                f"unadjusted_rr_{mediator}_on_{self.target.name}"
+            )
+            for mediator in self.mediators
+        }
+        # Register the mediation target modifier
+        self.mediated_target_modifier = self.get_mediated_target_modifier(builder)
+        self.register_mediated_target_modifier(builder)
+
+    def register_target_modifier(self, builder: Builder) -> None:
+        """We do not want to register the super's target modifier, so we override it here"""
+        pass
+
+    def get_mediated_target_modifier(
+        self, builder: Builder
+    ) -> Callable[[pd.Index, pd.Series], pd.Series]:
+        mediation_factors = builder.data.load("risk.cause.mediation_factors")
+        mediation_factors = mediation_factors.loc[
+            (mediation_factors["risk_name"] == self.risk.name)
+            & (mediation_factors["affected_entity"] == self.target.name)
+        ]
+
+        def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
+            unadjusted_rr = self.unadjusted_rr(index)
+            scaling_factor = pd.Series(1, index=index)
+            for mediator in self.mediators:
+                unadjusted_mediator_rr = self.unadjusted_mediator_rr[mediator](index)
+                # NOTE: We only adjust the target RR if the mediator RR is not 1 (TMREL)
+                #   to prevent divide-by-0 errors; it does make sense also since in the
+                #   equation for the scaling factor we raise the mediator RR to a power
+                #   and 1**x is always 1 anyway.
+                # 
+                #   We also only adjust the target RR if the risk RR is not 1 (TMREL).
+                #   This is not necessarily required since that would result in delta = 0
+                #   and a scaling factor would resolve to 1 always, but it will
+                #   save some computation time.
+                not_tmrel_idx = index[
+                    (unadjusted_mediator_rr != 1.0) & (unadjusted_rr != 1.0)
+                ]
+                mf = mediation_factors.loc[
+                    mediation_factors["mediator_name"] == mediator, "value"
+                ].values[0]
+                delta_mediator = np.log(
+                    mf * (unadjusted_rr.loc[not_tmrel_idx] - 1) + 1
+                ) / np.log(unadjusted_mediator_rr.loc[not_tmrel_idx])
+                scaling_factor.loc[not_tmrel_idx] *= (
+                    unadjusted_mediator_rr.loc[not_tmrel_idx] ** delta_mediator
+                )
+
+            return target * unadjusted_rr / scaling_factor
+
+        return adjust_target
+
+    def register_mediated_target_modifier(self, builder: Builder) -> None:
+        builder.value.register_value_modifier(
+            self.target_pipeline_name,
+            modifier=self.mediated_target_modifier,
+            requires_values=[f"{self.risk.name}.exposure"],
+            requires_columns=["age", "sex"],
+        )
