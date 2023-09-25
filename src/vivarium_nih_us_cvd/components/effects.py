@@ -191,13 +191,14 @@ class MediatedRiskEffect(RiskEffect):
             for mediator in self.mediators:
                 unadjusted_mediator_rr = self.unadjusted_mediator_rr[mediator](index)
                 # NOTE: We only adjust the target RR if the mediator RR is not 1 (TMREL)
-                # to prevent divide-by-0 errors; it does make sense also since in the
-                # equation for the scaling factor we raise the mediator RR to a power
-                # and 1**x is always 1 anyway.
-                # NOTE: We also only adjust the target RR if the risk RR is not 1 (TMREL).
-                # This is not necessarily required since that would result in delta = 0
-                # and a scaling factor would resolve to 1 always, but it will
-                # save some computation time.
+                #   to prevent divide-by-0 errors; it does make sense also since in the
+                #   equation for the scaling factor we raise the mediator RR to a power
+                #   and 1**x is always 1 anyway.
+                # 
+                #   We also only adjust the target RR if the risk RR is not 1 (TMREL).
+                #   This is not necessarily required since that would result in delta = 0
+                #   and a scaling factor would resolve to 1 always, but it will
+                #   save some computation time.
                 not_tmrel_idx = index[
                     (unadjusted_mediator_rr != 1.0) & (unadjusted_rr != 1.0)
                 ]
