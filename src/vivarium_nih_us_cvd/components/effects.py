@@ -190,6 +190,7 @@ class MediatedRiskEffect(RiskEffect):
             scaling_factor = pd.Series(1, index=index)
             for mediator in self.mediators:
                 unadjusted_mediator_rr = self.unadjusted_mediator_rr[mediator](index)
+                # Only adjust the relative risks for simulants that are above TMREL (i.e. RR > 1).
                 not_tmrel_idx = index[
                     (unadjusted_mediator_rr != 1.0) & (unadjusted_rr != 1.0)
                 ]
