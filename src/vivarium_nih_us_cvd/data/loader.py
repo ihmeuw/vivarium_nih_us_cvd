@@ -169,7 +169,6 @@ def get_data(
     source_key = _get_source_key(lookup_key)
     data = mapping[lookup_key](source_key, location)
     data = handle_special_cases(data, source_key, location)
-    breakpoint()
     return data
 
 
