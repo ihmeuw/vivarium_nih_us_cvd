@@ -163,7 +163,7 @@ class MediatedRiskEffect(RiskEffect):
     def setup(self, builder):
         super().setup(builder)
         # Register unadjusted RR pipelines by passing target=1s to the super's target_modifier
-        self.is_target_hf = "heart_failure" in self.target.name
+        self.is_target_hf = self.target.name.startswith("heart_failure")
         self.unadjusted_rr = builder.value.register_value_producer(
             f"unadjusted_rr_{self.risk.name}_on_{self.target.name}",
             source=lambda idx: self.target_modifier(idx, pd.Series(1.0, index=idx)),
