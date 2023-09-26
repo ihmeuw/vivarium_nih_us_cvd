@@ -191,35 +191,45 @@ class MediatedRiskEffect(RiskEffect):
             deltas = builder.lookup.build_table(
                 delta_data, parameter_columns=["age"], key_columns=["sex"]
             )
+            def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
+                unadjusted_rr = self.unadjusted_rr(index)
+                scaling_factor = pd.Series(1, index=index)
+                for mediator in self.mediators:
+                    unadjusted_mediator_rr = self.unadjusted_mediator_rr[mediator](index)
+                    # NOTE: We only adjust the target RR if the mediator RR is not 1 (TMREL).
+                    #   Though not strictly required, it will save computation time.
+                    #
+                    #   We also only adjust the target RR if the risk RR is not 1 (TMREL)
+                    #   in order to be consistent with mediation for IHD and stroke.
+                    not_tmrel_idx = index[
+                        (unadjusted_mediator_rr != 1.0) & (unadjusted_rr != 1.0)
+                    ]
+                    scaling_factor.loc[not_tmrel_idx] *= unadjusted_mediator_rr.loc[
+                        not_tmrel_idx
+                    ] ** deltas(not_tmrel_idx)
+                return target * unadjusted_rr / scaling_factor
         else:
             mediation_factors = builder.data.load(data_keys.MEDIATION.MEDIATION_FACTORS)
             mediation_factors = mediation_factors.loc[
                 (mediation_factors["risk_name"] == self.risk.name)
                 & (mediation_factors["affected_entity"] == self.target.name)
             ]
-
-        def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
-            unadjusted_rr = self.unadjusted_rr(index)
-            scaling_factor = pd.Series(1, index=index)
-            for mediator in self.mediators:
-                unadjusted_mediator_rr = self.unadjusted_mediator_rr[mediator](index)
-                # NOTE: We only adjust the target RR if the mediator RR is not 1 (TMREL)
-                #   to prevent divide-by-0 errors; it does make sense also since in the
-                #   equation for the scaling factor we raise the mediator RR to a power
-                #   and 1**x is always 1 anyway.
-                #
-                #   We also only adjust the target RR if the risk RR is not 1 (TMREL).
-                #   This is not necessarily required since that would result in delta = 0
-                #   and a scaling factor would resolve to 1 always, but it will
-                #   save some computation time.
-                not_tmrel_idx = index[
-                    (unadjusted_mediator_rr != 1.0) & (unadjusted_rr != 1.0)
-                ]
-                if self.is_target_hf:
-                    scaling_factor.loc[not_tmrel_idx] *= unadjusted_mediator_rr.loc[
-                        not_tmrel_idx
-                    ] ** deltas(not_tmrel_idx)
-                else:  # MI (IHD) and stroke
+            def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
+                unadjusted_rr = self.unadjusted_rr(index)
+                scaling_factor = pd.Series(1, index=index)
+                for mediator in self.mediators:
+                    unadjusted_mediator_rr = self.unadjusted_mediator_rr[mediator](index)
+                    # NOTE: We only adjust the target RR if the mediator RR is not 1 (TMREL)
+                    #   to prevent divide-by-0 errors (since log(1) = 0); it also makes sense
+                    #   since RR**x = 1 when RR = 1.
+                    #
+                    #   We also only adjust the target RR if the risk RR is not 1 (TMREL).
+                    #   This is not necessarily required since that would result in delta = 0
+                    #   and a scaling factor would resolve to 1 always, but it will
+                    #   save some computation time.
+                    not_tmrel_idx = index[
+                        (unadjusted_mediator_rr != 1.0) & (unadjusted_rr != 1.0)
+                    ]
                     mf = mediation_factors.loc[
                         mediation_factors["mediator_name"] == mediator, "value"
                     ].values[0]
@@ -229,8 +239,7 @@ class MediatedRiskEffect(RiskEffect):
                     scaling_factor.loc[not_tmrel_idx] *= (
                         unadjusted_mediator_rr.loc[not_tmrel_idx] ** delta_mediator
                     )
-
-            return target * unadjusted_rr / scaling_factor
+                return target * unadjusted_rr / scaling_factor
 
         return adjust_target
 
