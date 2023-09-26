@@ -362,6 +362,9 @@ POLYPILL = __Polypill()
 
 class __Mediation(NamedTuple):
     MEDIATION_FACTORS: TargetString = TargetString("risk.cause.mediation_factors")
+    HF_DELTAS: TargetString = TargetString(
+        "risk_factor.high_body_mass_index_in_adults_effect_on_heart_failure.mediation_deltas"
+    )
 
     @property
     def name(self):
