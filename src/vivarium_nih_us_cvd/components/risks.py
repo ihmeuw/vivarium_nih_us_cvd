@@ -199,7 +199,6 @@ class TruncatedRisk(CorrelatedRisk):
     def get_current_exposure(self, index: pd.Index) -> pd.Series:
         # Keep exposure values between defined limits
         propensity = self.propensity(index)
-
         exposures = pd.Series(self.exposure_distribution.ppf(propensity), index=index)
         min_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get("minimum", None)
         max_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get("maximum", None)

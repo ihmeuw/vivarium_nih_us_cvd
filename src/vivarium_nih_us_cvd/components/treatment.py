@@ -446,7 +446,7 @@ class Treatment(Component):
         pop[data_values.COLUMNS.LAST_FPG_TEST_DATE] = fpg_test_date_column
 
         # Generate multiplier columns
-        pop[data_values.COLUMNS.SBP_MULTIPLIER] = 1
+        pop[data_values.COLUMNS.SBP_MULTIPLIER] = 1.0
         mask_sbp_adherent = (
             pop[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE]
             == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
@@ -466,7 +466,7 @@ class Treatment(Component):
             (mask_sbp_adherent) & (mask_sbp_two_drugs), data_values.COLUMNS.SBP_MULTIPLIER
         ] = data_values.SBP_MULTIPLIER.TWO_DRUGS
 
-        pop[data_values.COLUMNS.LDLC_MULTIPLIER] = 1
+        pop[data_values.COLUMNS.LDLC_MULTIPLIER] = 1.0
         mask_ldlc_adherent = (
             pop[data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE]
             == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
@@ -507,11 +507,11 @@ class Treatment(Component):
         # NOTE: we do not do anything with interventions durint initialization
         # because the simulation always starts at 0% rampup
         pop.loc[mask_emergency], _ = self.apply_sbp_treatment_ramp(
-            pop_visitors=pop.loc[mask_emergency],
+            pop_visitors=pop.loc[mask_emergency].copy(),
             exposure_pipeline=self.gbd_sbp,
         )
         pop.loc[mask_emergency], _ = self.apply_ldlc_treatment_ramp(
-            pop_visitors=pop.loc[mask_emergency],
+            pop_visitors=pop.loc[mask_emergency].copy(),
             ldlc_pipeline=self.gbd_ldlc,
             sbp_pipeline=self.gbd_sbp,
         )
@@ -672,7 +672,7 @@ class Treatment(Component):
 
         sbp_prescription_inertia_propensity = pop_visitors[
             data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY
-        ]
+        ].copy()
         # Uses old propensity to determine who changed medication the previous time step
         overcome_prescription_inertia = pop_visitors[
             sbp_prescription_inertia_propensity > data_values.SBP_THERAPEUTIC_INERTIA
@@ -784,7 +784,8 @@ class Treatment(Component):
             )
 
         # Update propensity in visitors
-        pop_visitors[
+        breakpoint()
+        pop_visitors.loc[
             data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY
         ] = sbp_prescription_inertia_propensity
 
@@ -814,7 +815,7 @@ class Treatment(Component):
             sbp_pipeline = self.sbp
         ldlc_prescription_inertia_propensity = pop_visitors[
             data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_PROPENSITY
-        ]
+        ].copy()
         # Uses old propensity to determine who changed medication the previous time step
         overcome_prescription_inertia = pop_visitors[
             ldlc_prescription_inertia_propensity > data_values.LDLC_THERAPEUTIC_INERTIA
@@ -966,7 +967,7 @@ class Treatment(Component):
             maybe_enroll = pd.Index([])  # baseline or polypill scenario
 
         # Update propensity in visitors
-        pop_visitors[
+        pop_visitors.loc[
             data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_PROPENSITY
         ] = ldlc_prescription_inertia_propensity
 
