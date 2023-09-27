@@ -28,12 +28,9 @@ if __name__ == "__main__":
         "pyyaml",
     ]
 
-    # use "pip install -e .[dev]" to install required components + extra components
-    data_requires = [
-        "vivarium_cluster_tools>=1.3.9",
-        "vivarium_inputs[data]==4.1.0",
-    ]
-
+    # use "pip install -e .[dev]" to install all components
+    data_requirements = ["vivarium_inputs[data]==4.1.0"]
+    cluster_requirements = ["vivarium_cluster_tools>=1.3.9"]
     test_requirements = ["pytest"]
 
     setup(
@@ -51,8 +48,9 @@ if __name__ == "__main__":
         install_requires=install_requirements,
         extras_require={
             "test": test_requirements,
-            "data": data_requires,
-            "dev": test_requirements + data_requires,
+            "data": data_requirements,
+            "cluster": cluster_requirements,
+            "dev": test_requirements + data_requirements + cluster_requirements,
         },
         zip_safe=False,
         entry_points="""
