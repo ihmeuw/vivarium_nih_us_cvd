@@ -162,7 +162,7 @@ class CompositeRateTransition(RateTransition):
 
         def compute_transition_rate(index: pd.Index) -> pd.Series:
             """Gets the transition rate for each simulant in the given index"""
-            transition_rate = pd.Series(0, index=index)
+            transition_rate = pd.Series(0.0, index=index)
             living = self.population_view.get(index, query='alive == "alive"').index
             base_rates = self._lookup_tables[pipeline_name](living)
             joint_paf = self.transition_pafs[pipeline_name](living)
@@ -176,7 +176,7 @@ class CompositeRateTransition(RateTransition):
         return {
             pipeline_name: builder.value.register_value_producer(
                 f"{pipeline_name}.paf",
-                source=lambda index: [pd.Series(0, index=index)],
+                source=lambda index: [pd.Series(0.0, index=index)],
                 preferred_combiner=list_combiner,
                 preferred_post_processor=union_post_processor,
             )

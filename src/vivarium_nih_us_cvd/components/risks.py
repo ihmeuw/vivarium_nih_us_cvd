@@ -46,7 +46,7 @@ class DropValueRisk(Risk):
     def get_drop_value_pipeline(self, builder: Builder) -> Pipeline:
         return builder.value.register_value_producer(
             self.drop_value_pipeline_name,
-            source=lambda index: pd.Series(0, index=index),
+            source=lambda index: pd.Series(0.0, index=index),
         )
 
     def get_raw_exposure_pipeline(self, builder: Builder) -> Pipeline:

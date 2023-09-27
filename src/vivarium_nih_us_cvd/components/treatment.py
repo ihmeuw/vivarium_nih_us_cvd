@@ -293,7 +293,7 @@ class Treatment(Component):
         pop = self.population_view.get(index)
         enrollment_dates = pop[data_values.COLUMNS.LIFESTYLE]
         updated_drop_values = self.get_updated_drop_values(
-            target, enrollment_dates, risk=risk
+            target.copy(), enrollment_dates, risk=risk
         )
 
         return updated_drop_values
@@ -784,8 +784,7 @@ class Treatment(Component):
             )
 
         # Update propensity in visitors
-        breakpoint()
-        pop_visitors.loc[
+        pop_visitors[
             data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY
         ] = sbp_prescription_inertia_propensity
 
@@ -967,7 +966,7 @@ class Treatment(Component):
             maybe_enroll = pd.Index([])  # baseline or polypill scenario
 
         # Update propensity in visitors
-        pop_visitors.loc[
+        pop_visitors[
             data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_PROPENSITY
         ] = ldlc_prescription_inertia_propensity
 

@@ -191,6 +191,7 @@ class MediatedRiskEffect(RiskEffect):
             deltas = builder.lookup.build_table(
                 delta_data, parameter_columns=["age"], key_columns=["sex"]
             )
+
             def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
                 unadjusted_rr = self.unadjusted_rr(index)
                 scaling_factor = pd.Series(1.0, index=index)
@@ -208,12 +209,14 @@ class MediatedRiskEffect(RiskEffect):
                         not_tmrel_idx
                     ] ** deltas(not_tmrel_idx)
                 return target * unadjusted_rr / scaling_factor
+
         else:
             mediation_factors = builder.data.load(data_keys.MEDIATION.MEDIATION_FACTORS)
             mediation_factors = mediation_factors.loc[
                 (mediation_factors["risk_name"] == self.risk.name)
                 & (mediation_factors["affected_entity"] == self.target.name)
             ]
+
             def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
                 unadjusted_rr = self.unadjusted_rr(index)
                 scaling_factor = pd.Series(1.0, index=index)
