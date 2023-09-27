@@ -1,9 +1,9 @@
+import os
 from pathlib import Path
 from typing import List, Tuple, Union
 
 import click
 import numpy as np
-import os
 import pandas as pd
 from loguru import logger
 from scipy import stats
@@ -189,6 +189,7 @@ def get_random_value_from_normal_distribution(
     """Return a random value assuming normal distribution"""
     draw = randomness.get_draw(index, additional_key=additional_key)
     return stats.norm(loc=mean, scale=sd).ppf(draw)
+
 
 def mkdir(
     path: Union[str, Path], umask: int = 0o002, exists_ok: bool = False, parents: bool = False

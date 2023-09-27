@@ -1296,22 +1296,10 @@ def load_mediation_factors(*_: str) -> pd.Series:
 
 
 def load_hf_deltas(*_: str) -> pd.Series:
-    # TODO: use draw-level data when RT provides it
+    # # TODO: use draw-level data when RT provides it
     deltas = pd.read_csv(paths.FILEPATHS.HEART_FAILURE_MEDIATION_DELTAS)
-    deltas = deltas.set_index(["age_start", "sex"])[["sbp_delta_1"]]
-    draw_cols = [f"draw_{i}" for i in range(1000)]
-    deltas = pd.concat([deltas.T] * len(draw_cols)).T
-    deltas.columns = draw_cols
-
-    # Add some dummy noise just to help w/ validation
-    noise = pd.DataFrame(
-        np.random.uniform(low=-0.1, high=0.1, size=(len(deltas.index), len(draw_cols))),
-        columns=draw_cols,
-        index=deltas.index,
-    )
-    deltas = deltas + noise
-
-    # Get the full index
+    deltas = deltas.set_index(["age_start", "sex"])[[c for c in deltas.columns if c.startswith("draw_")]]
+    # # Get the full index
     idx = (
         load_population_structure(data_keys.POPULATION.STRUCTURE, "Alabama")
         .droplevel(["location", "year_start", "year_end"])
