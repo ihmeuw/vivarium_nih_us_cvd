@@ -96,9 +96,9 @@ FOLLOWUP_MAX = 6 * 30  # 6 months
 
 MISS_SCHEDULED_VISIT_PROBABILITY = 0.0868
 
-MEASUREMENT_ERROR_MEAN_SBP = 0  # mmHg
+MEASUREMENT_ERROR_MEAN_SBP = 0.0  # mmHg
 MEASUREMENT_ERROR_SD_SBP = 2.9  # mmHg
-MEASUREMENT_ERROR_MEAN_LDLC = 0  # mmol/L
+MEASUREMENT_ERROR_MEAN_LDLC = 0.0  # mmol/L
 MEASUREMENT_ERROR_SD_LDLC = 0.08  # mmol/L
 
 
@@ -131,8 +131,8 @@ LDLC_THERAPEUTIC_INERTIA = 0.194
 class __SBPThreshold(NamedTuple):
     """sbp exposure thresholds"""
 
-    LOW: float = 130
-    HIGH: float = 140
+    LOW: float = 130.0
+    HIGH: float = 140.0
 
     @property
     def name(self):
@@ -169,7 +169,7 @@ class __ASCVDThreshold(NamedTuple):
     """ASCVD thresholds"""
 
     LOW: float = 7.5
-    HIGH: float = 20
+    HIGH: float = 20.0
 
     @property
     def name(self):
@@ -463,20 +463,20 @@ MEDICATION_COVERAGE_COEFFICIENTS = __MedicationCoveragecoefficients()
 
 RISK_EXPOSURE_LIMITS = {
     "high_ldl_cholesterol": {
-        "minimum": 0,
+        "minimum": 0.0,
         "maximum": 5.5,
     },
     "high_systolic_blood_pressure": {
-        "minimum": 50,
-        "maximum": 200,
+        "minimum": 50.0,
+        "maximum": 200.0,
     },
     "high_body_mass_index_in_adults": {
-        "minimum": 5,
-        "maximum": 55,
+        "minimum": 5.0,
+        "maximum": 55.0,
     },
     "high_fasting_plasma_glucose": {
-        "minimum": 1,
-        "maximum": 16,
+        "minimum": 1.0,
+        "maximum": 16.0,
     },
 }
 
@@ -484,9 +484,9 @@ RISK_EXPOSURE_LIMITS = {
 class __CategoricalSBPIntervals(NamedTuple):
     """categorical sbp exposure thresholds"""
 
-    CAT3_LEFT_THRESHOLD: int = 120
-    CAT2_LEFT_THRESHOLD: int = 130
-    CAT1_LEFT_THRESHOLD: int = 140
+    CAT3_LEFT_THRESHOLD: float = 120.0
+    CAT2_LEFT_THRESHOLD: float = 130.0
+    CAT1_LEFT_THRESHOLD: float = 140.0
 
     @property
     def name(self):
@@ -496,7 +496,7 @@ class __CategoricalSBPIntervals(NamedTuple):
 CATEGORICAL_SBP_INTERVALS = __CategoricalSBPIntervals()
 
 
-MAX_BMI_STANDARD_DEVIATION = 15
+MAX_BMI_STANDARD_DEVIATION = 15.0
 RELATIVE_RISK_BMI_ON_HEART_FAILURE_DISTRIBUTION = (
     "bmi_relative_risk_for_heart_failure",
     get_norm(mean=1.14, ninety_five_pct_confidence_interval=(1.12, 1.16)),
@@ -567,7 +567,7 @@ class __FPGTesting(NamedTuple):
     BMI_ELIGIBILITY_THRESHOLD: float = 25.0
     AGE_ELIGIBILITY_THRESHOLD: float = 35.0
     PROBABILITY_OF_TESTING_GIVEN_ELIGIBLE: float = 0.71
-    MIN_YEARS_BETWEEN_TESTS: int = 3
+    MIN_YEARS_BETWEEN_TESTS: float = 3.0
     LOWER_ENROLLMENT_BOUND: float = 5.6
     UPPER_ENROLLMENT_BOUND: float = 7.0
 
@@ -600,8 +600,8 @@ class __LifestyleDropValues(NamedTuple):
     BMI_FINAL_DROP_VALUE: float = 0.71
     FPG_INITIAL_DROP_VALUE: float = 0.3
     FPG_FINAL_DROP_VALUE: float = 0.17
-    SBP_INITIAL_DROP_VALUE: int = 3
-    SBP_FINAL_DROP_VALUE: int = 0
+    SBP_INITIAL_DROP_VALUE: float = 3.0
+    SBP_FINAL_DROP_VALUE: float = 0.0
     YEARS_IN_MAINTENANCE_PERIOD: float = 1.0
     YEARS_IN_DECREASING_PERIOD: float = 3.0
     PERCENTAGE_NON_ADHERENT: float = 0.369
@@ -642,7 +642,7 @@ POLYPILL_SBP_MEDICATION_ADHERENCE_COVERAGE = {
 
 BINNED_OBSERVER_THRESHOLDS = {
     "high_ldl_cholesterol": [2.59, 3.36, 4.14, 4.91],
-    "high_systolic_blood_pressure": [130, 140],
+    "high_systolic_blood_pressure": [130.0, 140.0],
 }
 
 
