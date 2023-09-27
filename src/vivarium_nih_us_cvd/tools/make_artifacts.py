@@ -17,7 +17,7 @@ from loguru import logger
 
 from vivarium_nih_us_cvd.constants import data_keys, metadata
 from vivarium_nih_us_cvd.tools.app_logging import add_logging_sink, decode_status
-from vivarium_nih_us_cvd.utilities import sanitize_location
+from vivarium_nih_us_cvd.utilities import mkdir, sanitize_location
 
 
 def running_from_cluster() -> bool:
@@ -99,10 +99,8 @@ def build_artifacts(
     verbose
         How noisy the logger should be.
     """
-    import vivarium_cluster_tools as vct
-
     output_dir = Path(output_dir)
-    vct.mkdir(output_dir, parents=True, exists_ok=True)
+    mkdir(output_dir, parents=True, exists_ok=True)
 
     check_for_existing(output_dir, location, append, replace_keys)
 
