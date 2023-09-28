@@ -3,7 +3,6 @@ from typing import List, Tuple, Union
 
 import click
 import numpy as np
-import os
 import pandas as pd
 from loguru import logger
 from scipy import stats
@@ -189,27 +188,3 @@ def get_random_value_from_normal_distribution(
     """Return a random value assuming normal distribution"""
     draw = randomness.get_draw(index, additional_key=additional_key)
     return stats.norm(loc=mean, scale=sd).ppf(draw)
-
-def mkdir(
-    path: Union[str, Path], umask: int = 0o002, exists_ok: bool = False, parents: bool = False
-) -> None:
-    """Utility method to create a directory with specified permissions.
-
-    Parameters
-    ----------
-    path
-        Path of the directory to create.
-    umask
-        Umask specifying the desired permissions - defaults to 0o002.
-    exists_ok
-        If False, raises FileExistsError if the directory already exists.
-    parents
-        If False, raises FileNotFoundError if the directory's parent doesn't exist.
-
-    """
-    path = Path(path)
-    old_umask = os.umask(umask)
-    try:
-        path.mkdir(exist_ok=exists_ok, parents=parents)
-    finally:
-        os.umask(old_umask)
