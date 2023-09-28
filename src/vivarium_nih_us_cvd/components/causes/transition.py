@@ -1,10 +1,9 @@
 from typing import Callable, Dict
 
 import pandas as pd
-from statsmodels.tsa.statespace.tests.test_mlemodel import kwargs
 from vivarium.framework.engine import Builder
 from vivarium.framework.lookup import LookupTable
-from vivarium.framework.state_machine import State, Transition, Trigger
+from vivarium.framework.state_machine import State, Trigger
 from vivarium.framework.utilities import rate_to_probability
 from vivarium.framework.values import Pipeline, list_combiner, union_post_processor
 from vivarium_public_health.disease import BaseDiseaseState, RateTransition

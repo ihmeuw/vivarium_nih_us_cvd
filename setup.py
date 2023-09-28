@@ -23,9 +23,9 @@ if __name__ == "__main__":
         "loguru",
         "numpy",
         "pandas",
+        "pyyaml",
         "scipy",
         "tables",
-        "pyyaml",
     ]
 
     # use "pip install -e .[dev]" to install all components
