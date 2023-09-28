@@ -1296,7 +1296,6 @@ def load_mediation_factors(*_: str) -> pd.Series:
 
 
 def load_hf_deltas(*_: str) -> pd.Series:
-    # # TODO: use draw-level data when RT provides it
     deltas = pd.read_csv(paths.FILEPATHS.HEART_FAILURE_MEDIATION_DELTAS)
     deltas = deltas.set_index(["age_start", "sex"])[[c for c in deltas.columns if c.startswith("draw_")]]
     # # Get the full index
