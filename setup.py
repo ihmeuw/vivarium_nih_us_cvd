@@ -48,9 +48,9 @@ if __name__ == "__main__":
         install_requires=install_requirements,
         extras_require={
             "test": test_requirements,
-            "data": data_requirements,
             "cluster": cluster_requirements,
-            "dev": test_requirements + data_requirements + cluster_requirements,
+            "data": data_requirements + cluster_requirements, 
+            "dev": test_requirements + cluster_requirements,
         },
         zip_safe=False,
         entry_points="""
