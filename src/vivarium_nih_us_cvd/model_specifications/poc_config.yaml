@@ -1,4 +1,157 @@
+plugins:
+    required:
+        component_configuration_parser:
+            controller: "vivarium_nih_us_cvd.plugins.CausesConfigurationParser"
+
 components:
+    causes:
+#        todo support providing a path to a yaml file instead
+#        configuration_path: ...
+        ischemic_stroke:
+            states:
+                susceptible: { }
+                acute_ischemic_stroke:
+                    cause_type: "sequela"
+                    get_data_functions:
+                        dwell_time: "28 days"
+                chronic_ischemic_stroke:
+                    cause_type: "sequela"
+            transitions:
+                acute_ischemic_stroke_incidence:
+                    source: "susceptible"
+                    sink: "acute_ischemic_stroke"
+                    data_type: "rate"
+                    get_data_functions:
+                        incidence_rate: "cause.ischemic_stroke.incidence_rate"
+                acute_ischemic_stroke_to_chronic_ischemic_stroke:
+                    source: "acute_ischemic_stroke"
+                    sink: "chronic_ischemic_stroke"
+                    data_type: "dwell_time"
+                chronic_ischemic_stroke_to_acute_ischemic_stroke:
+                    source: "chronic_ischemic_stroke"
+                    sink: "acute_ischemic_stroke"
+                    data_type: "rate"
+                    get_data_functions:
+                        transition_rate: "cause.ischemic_stroke.incidence_rate"
+
+        ischemic_heart_disease_and_heart_failure:
+            states:
+                susceptible: { }
+                acute_myocardial_infarction:
+                    get_data_functions:
+                        dwell_time: "28 days"
+                post_myocardial_infarction: { }
+                heart_failure_from_ischemic_heart_disease:
+                    get_data_functions:
+                        excess_mortality_rate: "cause.heart_failure.excess_mortality_rate"
+                heart_failure_residual:
+                    get_data_functions:
+                        excess_mortality_rate: "cause.heart_failure.excess_mortality_rate"
+                acute_myocardial_infarction_and_heart_failure:
+                    get_data_functions:
+                        dwell_time: "28 days"
+                        disability_weight: "cause.acute_myocardial_infarction.disability_weight"
+                        excess_mortality_rate: "cause.acute_myocardial_infarction.excess_mortality_rate"
+            transitions:
+                acute_mi_incidence:
+                    source: "susceptible"
+                    sink: "acute_myocardial_infarction"
+                    data_type: "rate"
+                    get_data_functions:
+                        incidence_rate: "cause.acute_myocardial_infarction.incidence_rate"
+                heart_failure_ihd_incidence:
+                    source: "susceptible"
+                    sink: "heart_failure_from_ischemic_heart_disease"
+                    data_type: "rate"
+                    get_data_functions:
+                        incidence_rate: "cause.heart_failure_from_ischemic_heart_disease.incidence_rate"
+                heart_failure_residual_incidence:
+                    source: "susceptible"
+                    sink: "heart_failure_residual"
+                    data_type: "rate"
+                    get_data_functions:
+                        incidence_rate: "cause.heart_failure_residual.incidence_rate"
+                acute_mi_to_post_mi:
+                    source: "acute_myocardial_infarction"
+                    sink: "post_myocardial_infarction"
+                    data_type: "dwell_time"
+                post_mi_to_acute_mi:
+                    source: "post_myocardial_infarction"
+                    sink: "acute_myocardial_infarction"
+                    data_type: "rate"
+                    get_data_functions:
+                        transition_rate: "cause.acute_myocardial_infarction.incidence_rate"
+                post_mi_to_heart_failure:
+                    source: "post_myocardial_infarction"
+                    sink: "heart_failure_from_ischemic_heart_disease"
+                    data_type: "rate"
+                    get_data_functions:
+                        transition_rate: "cause.heart_failure_from_ischemic_heart_disease.incidence_rate"
+                heart_failure_to_acute_mi_and_heart_failure:
+                    source: "heart_failure_from_ischemic_heart_disease"
+                    sink: "acute_myocardial_infarction_and_heart_failure"
+                    data_type: "rate"
+                    get_data_functions:
+                        transition_rate: "cause.acute_myocardial_infarction.incidence_rate"
+                acute_mi_and_heart_failure_to_heart_failure:
+                    source: "acute_myocardial_infarction_and_heart_failure"
+                    sink: "heart_failure_from_ischemic_heart_disease"
+                    data_type: "dwell_time"
+
+    vivarium_nih_us_cvd:
+        components:
+            - ResultsStratifier()
+
+            - AdjustedRisk("risk_factor.high_ldl_cholesterol")
+            - ContinuousRiskObserver("risk_factor.high_ldl_cholesterol")
+            - BinnedRiskObserver("risk_factor.high_ldl_cholesterol")
+
+            - AdjustedRisk("risk_factor.high_systolic_blood_pressure")
+            - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
+            - BinnedRiskObserver("risk_factor.high_systolic_blood_pressure")
+
+            - TruncatedRisk("risk_factor.high_body_mass_index_in_adults")
+            - ContinuousRiskObserver("risk_factor.high_body_mass_index_in_adults")
+
+            - TruncatedRisk('risk_factor.high_fasting_plasma_glucose')
+            - ContinuousRiskObserver("risk_factor.high_fasting_plasma_glucose")
+
+            - RiskCorrelation()
+
+            - MediatedRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.acute_ischemic_stroke.incidence_rate")
+            - MediatedRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
+            - MediatedRiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_ischemic_stroke.incidence_rate")
+            - MediatedRiskEffect("risk_factor.high_ldl_cholesterol", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
+            - MediatedRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_ischemic_stroke.incidence_rate")
+            - MediatedRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
+            - MediatedRiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.acute_ischemic_stroke.incidence_rate")
+            - MediatedRiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
+
+            - MediatedRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.acute_myocardial_infarction.incidence_rate")
+            - MediatedRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+            - MediatedRiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
+            - MediatedRiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+            - MediatedRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_myocardial_infarction.incidence_rate")
+            - MediatedRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+            - MediatedRiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.acute_myocardial_infarction.incidence_rate")
+            - MediatedRiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+
+            - CategoricalSBPRisk()
+
+            - HealthcareUtilization()  # NOTE: this uses Treatment() as a sub-component
+            - HealthcareVisitObserver()
+
+            - CategoricalColumnObserver("sbp_medication")
+            - CategoricalColumnObserver("ldlc_medication")
+
+            - InterventionAdherenceEffect()
+            - LinearScaleUp("risk_factor.outreach")
+            - LinearScaleUp("risk_factor.polypill")
+            - LinearScaleUp("risk_factor.lifestyle")
+            - CategoricalColumnObserver("outreach")
+            - CategoricalColumnObserver("polypill")
+            - LifestyleObserver()
+
     vivarium_public_health:
         population:
             - BasePopulation()
@@ -16,67 +169,16 @@ components:
             - Risk("risk_factor.polypill")
             - Risk("risk_factor.lifestyle")
 
-            - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
-            - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
-            - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_ischemic_stroke.incidence_rate")
-            - RiskEffect("risk_factor.high_ldl_cholesterol", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
-
-            - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_myocardial_infarction.incidence_rate")
-            - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
-            - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_ischemic_stroke.incidence_rate")
-            - RiskEffect("risk_factor.high_systolic_blood_pressure", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
             - RiskEffect("risk_factor.categorical_high_systolic_blood_pressure", "cause.heart_failure_from_ischemic_heart_disease.incidence_rate")
             - RiskEffect("risk_factor.categorical_high_systolic_blood_pressure", "cause.heart_failure_residual.incidence_rate")
 
-            - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.acute_myocardial_infarction.incidence_rate")
-            - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
-            - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.acute_ischemic_stroke.incidence_rate")
-            - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
             - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_from_ischemic_heart_disease.incidence_rate")
             - RiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_residual.incidence_rate")
 
-            - RiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.acute_myocardial_infarction.incidence_rate")
-            - RiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
-            - RiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.acute_ischemic_stroke.incidence_rate")
-            - RiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
-
-    vivarium_nih_us_cvd:
-        components:
-            - ResultsStratifier()
-
-            - Causes()
-
-            - AdjustedRisk("risk_factor.high_ldl_cholesterol")
-            - ContinuousRiskObserver("risk_factor.high_ldl_cholesterol")
-
-            - AdjustedRisk("risk_factor.high_systolic_blood_pressure")
-            - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
-
-            - TruncatedRisk("risk_factor.high_body_mass_index_in_adults")
-            - ContinuousRiskObserver("risk_factor.high_body_mass_index_in_adults")
-
-            - TruncatedRisk('risk_factor.high_fasting_plasma_glucose')
-            - ContinuousRiskObserver("risk_factor.high_fasting_plasma_glucose")
-
-            - CategoricalSBPRisk()
-
-            - HealthcareUtilization()  # NOTE: this uses Treatment() as a sub-component
-            - HealthcareVisitObserver()
-
-            - CategoricalColumnObserver("sbp_medication")
-            - CategoricalColumnObserver("ldlc_medication")
-
-            - InterventionAdherenceEffect()
-            - LinearScaleUp("risk_factor.outreach")
-            - LinearScaleUp("risk_factor.polypill")
-            - LinearScaleUp("risk_factor.lifestyle")
-            - CategoricalColumnObserver("outreach")
-            - CategoricalColumnObserver("polypill")
 
 configuration:
     input_data:
         input_draw_number: 0
-        location: 'Alabama'
         artifact_path: '/mnt/team/simulation_science/costeffectiveness/artifacts/vivarium_nih_us_cvd/alabama.hdf'
     interpolation:
         order: 0
@@ -90,10 +192,6 @@ configuration:
             year: 2021 # Includes two years for burn-in
             month: 1
             day: 1
-        observation_start: # TODO: Implement for all observers (currently only custom observers)
-            year: 2023
-            month: 1
-            day: 1
         end:
             year: 2040
             month: 12
@@ -104,11 +202,11 @@ configuration:
         age_start: 5
         age_end: 125
         exit_age: 125
-    observers:
+    stratification:
         default:
-            - 'age'
+            - 'age_group'
             - 'sex'
-            - 'year'
+            - 'current_year'
         sbp_medication:
             include:
                 - 'sbp_medication_adherence'

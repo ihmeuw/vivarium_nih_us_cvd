@@ -49,7 +49,7 @@ if __name__ == "__main__":
         extras_require={
             "test": test_requirements,
             "cluster": cluster_requirements,
-            "data": data_requirements + cluster_requirements, 
+            "data": data_requirements + cluster_requirements,
             "dev": test_requirements + cluster_requirements,
         },
         zip_safe=False,
