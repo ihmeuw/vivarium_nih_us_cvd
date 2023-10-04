@@ -266,7 +266,7 @@ class CausesConfigurationParser(ComponentConfigurationParser):
         sink_state
             The state the transition ends at
         transition_config
-            A ConfigTree defining the transition to add
+            A `ConfigTree` defining the transition to add
 
         Returns
         -------
