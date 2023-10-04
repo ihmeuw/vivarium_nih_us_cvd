@@ -34,7 +34,7 @@ class CausesConfigurationParser(ComponentConfigurationParser):
     ) -> List[Component]:
         """
         Parses the component configuration and returns a list of components. In
-        particular, this method looks for a causes key and parses it into a list
+        particular, this method looks for a `causes` key and parses it into a list
         of `DiseaseModel` components.
 
         Parameters
