@@ -50,38 +50,11 @@ class Causes(Component):
             }
 
             for transition_config in cause_config.transitions.values():
-                if "get_data_functions" in transition_config:
-                    data_getters_config = transition_config.get_data_functions
-                    data_getters = {
-                        name: self.get_data_getter(name, data_getters_config[name])
-                        for name in data_getters_config.keys()
-                    }
-                else:
-                    data_getters = None
-
-                triggered = Trigger[transition_config.triggered]
-
-                if transition_config.data_type == "rate":
-                    states[transition_config.source].add_rate_transition(
-                        states[transition_config.sink],
-                        get_data_functions=data_getters,
-                        triggered=triggered,
-                    )
-                elif transition_config.data_type == "proportion":
-                    states[transition_config.source].add_proportion_transition(
-                        states[transition_config.sink],
-                        get_data_functions=data_getters,
-                        triggered=triggered,
-                    )
-                elif transition_config.data_type == "dwell_time":
-                    states[transition_config.source].add_dwell_time_transition(
-                        states[transition_config.sink], triggered=triggered
-                    )
-                else:
-                    raise ValueError(
-                        f"Invalid transition data type '{transition_config.data_type}'"
-                        f" provided for transition '{transition_config}'."
-                    )
+                self.add_transition(
+                    states[transition_config.source],
+                    states[transition_config.sink],
+                    transition_config,
+                )
 
             disease_models.append(DiseaseModel(cause_name, states=list(states.values())))
 
@@ -138,9 +111,8 @@ class Causes(Component):
 
         config.update(default_config, layer="default")
 
-    @staticmethod
     def get_state(
-        state_name: str, state_config: ConfigTree, cause_name: str
+        self, state_name: str, state_config: ConfigTree, cause_name: str
     ) -> BaseDiseaseState:
         state_id = cause_name if state_name in ["susceptible", "recovered"] else state_name
         state_kwargs = {
@@ -156,7 +128,7 @@ class Causes(Component):
         if "get_data_functions" in state_config:
             data_getters_config = state_config.get_data_functions
             state_kwargs["get_data_functions"] = {
-                name: Causes.get_data_getter(name, data_getters_config[name])
+                name: self.get_data_getter(name, data_getters_config[name])
                 for name in data_getters_config.keys()
             }
 
@@ -176,10 +148,42 @@ class Causes(Component):
         state = state_type(state_id, **state_kwargs)
         return state
 
+    def add_transition(
+        self,
+        source_state: BaseDiseaseState,
+        sink_state: BaseDiseaseState,
+        transition_config: ConfigTree,
+    ) -> None:
+        triggered = Trigger[transition_config.triggered]
+        if "get_data_functions" in transition_config:
+            data_getters_config = transition_config.get_data_functions
+            data_getters = {
+                name: self.get_data_getter(name, data_getters_config[name])
+                for name in data_getters_config.keys()
+            }
+        else:
+            data_getters = None
+
+        if transition_config.data_type == "rate":
+            source_state.add_rate_transition(
+                sink_state, get_data_functions=data_getters, triggered=triggered
+            )
+        elif transition_config.data_type == "proportion":
+            source_state.add_proportion_transition(
+                sink_state, get_data_functions=data_getters, triggered=triggered
+            )
+        elif transition_config.data_type == "dwell_time":
+            source_state.add_dwell_time_transition(sink_state, triggered=triggered)
+        else:
+            raise ValueError(
+                f"Invalid transition data type '{transition_config.data_type}'"
+                f" provided for transition '{transition_config}'."
+            )
+
     @staticmethod
     def get_data_getter(
         name: str, getter: Union[str, float]
-    ) -> Callable[[Any, Builder], Any]:
+    ) -> Callable[[Builder, Any], Any]:
         if isinstance(getter, float):
             return lambda builder, *_: getter
 
