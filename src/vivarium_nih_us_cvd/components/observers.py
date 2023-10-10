@@ -415,6 +415,10 @@ class JointPAFObserver(Component):
         self.risks_and_mediators = self._get_risks_and_mediators()
 
     def _get_risks_and_mediators(self) -> Set[str]:
+        """ MEDIATOR_NAMES is a nested dict like {risk: {target: [mediators]}}.
+        For each target in MEDIATOR_NAMES (the second-level keys), extract the
+        risks (the outer keys) and the mediator names (the child node lists).
+        """
         risks = {
             risk
             for risk, mediator_dict in MEDIATOR_NAMES.items()
