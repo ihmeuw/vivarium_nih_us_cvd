@@ -34,8 +34,13 @@ class CausesConfigurationParser(ComponentConfigurationParser):
     ) -> List[Component]:
         """
         Parses the component configuration and returns a list of components. In
-        particular, this method looks for a `causes` key and parses it into a list
-        of `DiseaseModel` components.
+        particular, this method looks for a `causes` key and parses it into a
+        list of `DiseaseModel` components.
+
+        Note that this method modifies the simulation's component configuration
+        by adding default cause model configuration values to the
+        `component_config` layer and marks states that have multiple exiting
+        transitions with the `is_multi_transition` key.
 
         Parameters
         ----------
@@ -50,10 +55,13 @@ class CausesConfigurationParser(ComponentConfigurationParser):
         """
         components = []
         if isinstance(component_config, ConfigTree) and "causes" in component_config:
+            self.mark_multi_transition_states(component_config)
+            self.add_default_config_layer(component_config)
+            components += self.get_cause_model_components(component_config["causes"])
+
             # Create a shallow copy of the config tree so that we can delete the
             # causes key without affecting the original ConfigTree.
-            component_config = self.construct_full_cause_model_config(component_config)
-            components += self.get_cause_model_components(component_config["causes"])
+            component_config = ConfigTree(component_config)
             del component_config["causes"]
 
         components += super().get_components(component_config)
@@ -62,31 +70,6 @@ class CausesConfigurationParser(ComponentConfigurationParser):
     ##################################
     # Configuration creation methods #
     ##################################
-
-    def construct_full_cause_model_config(self, component_config: ConfigTree) -> ConfigTree:
-        """
-        Constructs a full cause model configuration with two layers - a default
-        layer and a layer containing the information from the provided
-        configuration.
-
-        This method also marks states that have multiple transitions using the
-        `is_multi_transition` key.
-
-        Parameters
-        ----------
-        component_config
-            A `ConfigTree` defining the components to initialize
-
-        Returns
-        -------
-        ConfigTree
-            A modified ConfigTree additionally including a default layer
-        """
-        updated_component_config = ConfigTree(layers=["default", "model_spec"])
-        updated_component_config.update(component_config, layer="model_spec")
-        self.mark_multi_transition_states(updated_component_config)
-        self.add_default_config_layer(updated_component_config)
-        return updated_component_config
 
     @staticmethod
     def mark_multi_transition_states(component_config: ConfigTree) -> None:
@@ -115,7 +98,9 @@ class CausesConfigurationParser(ComponentConfigurationParser):
         for cause, states in transition_counts.items():
             for state, counts in states.items():
                 component_config.causes[cause].states[state].update(
-                    {"is_multi_transition": counts > 1}
+                    {"is_multi_transition": counts > 1},
+                    layer="model_override",
+                    source="causes_configuration_parser",
                 )
 
     @staticmethod
@@ -155,7 +140,9 @@ class CausesConfigurationParser(ComponentConfigurationParser):
             for transition_name, transition_config in cause_config.transitions.items():
                 default_transitions_config[transition_name] = {"triggered": "NOT_TRIGGERED"}
 
-        component_config.update(default_config, layer="default")
+        component_config.update(
+            default_config, layer="component_configs", source="causes_configuration_parser"
+        )
 
     ################################
     # Cause model creation methods #
