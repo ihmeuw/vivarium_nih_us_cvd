@@ -60,7 +60,7 @@ STEP 4: ADD PAFS TO THE ARTIFACTS
     ```
     >>> make_artifacts --pdb -vvval all -o /mnt/team/simulation_science/costeffectiveness/artifacts/vivarium_nih_us_cvd/51-locations/<VERSION>
     ```
-2. Confirm that all artifacts have 5 PAF keys
+2. Confirm that all artifacts have the joint PAF key
     ```
     python3 check_artifact_pafs.py -d <ROOT-DIR> -v <VERSION>
     ```

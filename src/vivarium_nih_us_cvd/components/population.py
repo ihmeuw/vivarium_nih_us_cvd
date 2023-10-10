@@ -22,6 +22,7 @@ class EvenlyDistributedPopulation(BasePopulation):
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
         self.location = builder.data.load(data_keys.POPULATION.LOCATION)
+        self.time_step = builder.configuration.time.step_size
 
     ########################
     # Event-driven methods #
@@ -29,8 +30,9 @@ class EvenlyDistributedPopulation(BasePopulation):
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         age_start = pop_data.user_data.get("age_start", self.config.age_start)
-        age_end = pop_data.user_data.get("age_end", self.config.age_end)
-
+        age_end = (
+            pop_data.user_data.get("age_end", self.config.age_end) - self.time_step / 365.25
+        )
         population = pd.DataFrame(index=pop_data.index)
         population["entrance_time"] = pop_data.creation_time
         population["exit_time"] = pd.NaT

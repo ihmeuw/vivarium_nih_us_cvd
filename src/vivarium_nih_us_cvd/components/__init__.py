@@ -11,8 +11,8 @@ from .observers import (
     CategoricalColumnObserver,
     ContinuousRiskObserver,
     HealthcareVisitObserver,
+    JointPAFObserver,
     LifestyleObserver,
-    PAFObserver,
     ResultsStratifier,
     SimpleResultsStratifier,
 )

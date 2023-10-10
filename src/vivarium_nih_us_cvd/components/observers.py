@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 import pandas as pd
 from vivarium import Component
@@ -8,6 +8,7 @@ from vivarium_public_health.metrics.stratification import (
 )
 from vivarium_public_health.utilities import EntityString, TargetString, to_years
 
+from vivarium_nih_us_cvd.components.effects import MEDIATOR_NAMES
 from vivarium_nih_us_cvd.constants import data_values
 
 
@@ -388,7 +389,7 @@ class BinnedRiskObserver(Component):
         return len(x) * to_years(self.step_size())
 
 
-class PAFObserver(Component):
+class JointPAFObserver(Component):
     CONFIGURATION_DEFAULTS = {
         "stratification": {
             "paf": {
@@ -402,38 +403,57 @@ class PAFObserver(Component):
     def configuration_defaults(self) -> Dict[str, Dict]:
         return {
             "stratification": {
-                f"{self.risk.name}_paf_on_{self.target.name}": self.CONFIGURATION_DEFAULTS[
+                f"joint_paf_on_{self.target.name}": self.CONFIGURATION_DEFAULTS[
                     "stratification"
                 ]["paf"]
             }
         }
 
-    def __init__(self, risk: str, target: str):
+    def __init__(self, target: str):
         super().__init__()
-        self.risk = EntityString(risk)
         self.target = TargetString(target)
+        self.risks_and_mediators = self._get_risks_and_mediators()
 
-    # noinspection PyAttributeOutsideInit
-    def setup(self, builder: Builder) -> None:
-        self.risk_effect = builder.components.get_component(
-            f"paf_calculation_risk_effect.{self.risk}.{self.target}"
+    def _get_risks_and_mediators(self) -> Set[str]:
+        """MEDIATOR_NAMES is a nested dict like {risk: {target: [mediators]}}.
+        For this instance target (the second-level keys), extract the
+        risks (the outer keys) and the mediator names (the child node lists).
+        """
+        risks = {
+            risk
+            for risk, mediator_dict in MEDIATOR_NAMES.items()
+            if self.target.name in mediator_dict.keys()
+        }
+        mediator_lists = [MEDIATOR_NAMES[risk][self.target.name] for risk in risks]
+        return risks.union(
+            {mediator for mediators in mediator_lists for mediator in mediators}
         )
 
-        config = builder.configuration.stratification[f"{self.risk.name}_paf"]
-
+    def setup(self, builder: Builder) -> None:
+        self.risk_effects = {
+            risk: builder.components.get_component(
+                f"paf_calculation_risk_effect.risk_factor.{risk}.{self.target}"
+            )
+            for risk in self.risks_and_mediators
+        }
+        config = builder.configuration.stratification[f"joint_paf_on_{self.target.name}"]
         builder.results.register_observation(
-            name=f"calculated_paf_{self.risk}_on_{self.target}",
+            name=f"joint_paf_on_{self.target}",
             pop_filter='alive == "alive"',
             aggregator=self.calculate_paf,
             requires_columns=["alive"],
+            requires_values=[
+                f"unadjusted_rr_{x}_on_{self.target.name}" for x in self.risks_and_mediators
+            ],
             additional_stratifications=config.include,
             excluded_stratifications=config.exclude,
             when="time_step__prepare",
         )
 
     def calculate_paf(self, x: pd.DataFrame) -> float:
-        relative_risk = self.risk_effect.target_modifier(x.index, pd.Series(1, index=x.index))
-        mean_rr = relative_risk.mean()
-        paf = (mean_rr - 1) / mean_rr
-
+        joint_rrs = pd.Series(1.0, index=x.index)
+        for risk in self.risk_effects:
+            joint_rrs = self.risk_effects[risk].mediated_target_modifier(x.index, joint_rrs)
+        mean_rr = joint_rrs.mean()
+        paf = (mean_rr - 1.0) / mean_rr
         return paf
