@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     # use "pip install -e .[dev]" to install all components
     data_requirements = ["vivarium_inputs[data]==4.1.0"]
-    cluster_requirements = ["vivarium_cluster_tools>=1.3.9"]
+    cluster_requirements = ["vivarium_cluster_tools>=1.3.13"]
     test_requirements = ["pytest"]
 
     setup(

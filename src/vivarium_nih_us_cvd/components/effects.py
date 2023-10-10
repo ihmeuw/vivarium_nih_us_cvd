@@ -96,21 +96,6 @@ class InterventionAdherenceEffect(Component):
         return target
 
 
-class PAFCalculationRiskEffect(RiskEffect):
-    """Risk effect component for calculating PAFs"""
-
-    def get_population_attributable_fraction_source(
-        self, builder: Builder
-    ) -> Optional[LookupTable]:
-        return None
-
-    def register_target_modifier(self, builder: Builder) -> None:
-        pass
-
-    def register_paf_modifier(self, builder: Builder) -> None:
-        pass
-
-
 MEDIATOR_NAMES = {
     "high_body_mass_index_in_adults": {
         "acute_ischemic_stroke": [
@@ -253,3 +238,18 @@ class MediatedRiskEffect(RiskEffect):
             requires_values=[f"{self.risk.name}.exposure"],
             requires_columns=["age", "sex"],
         )
+
+
+class PAFCalculationRiskEffect(MediatedRiskEffect):
+    """Risk effect component for calculating PAFs"""
+
+    def get_population_attributable_fraction_source(
+        self, builder: Builder
+    ) -> Optional[LookupTable]:
+        return None
+
+    def register_target_modifier(self, builder: Builder) -> None:
+        pass
+
+    def register_paf_modifier(self, builder: Builder) -> None:
+        pass

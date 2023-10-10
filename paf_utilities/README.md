@@ -58,7 +58,7 @@ STEP 4: ADD PAFS TO THE ARTIFACTS
 ---------------------------------
 1. Append the new PAF data to the artifacts
     ```
-    >>> make_artifacts --pdb -vvval all -o /mnt/team/simulation_science/costeffectiveness/artifacts/vivarium_nih_us_cvd/51-locations/<VERSION>
+    >>> make_artifacts --pdb -vvv -a -o /mnt/team/simulation_science/costeffectiveness/artifacts/vivarium_nih_us_cvd/51-locations/<VERSION>
     ```
 2. Confirm that all artifacts have 5 PAF keys
     ```
