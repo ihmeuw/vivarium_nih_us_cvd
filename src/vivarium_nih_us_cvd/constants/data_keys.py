@@ -364,7 +364,9 @@ MEDIATION = __Mediation()
 
 
 class __JointPAFs(NamedTuple):
-    PAFS: TargetString = TargetString("risk_factor.joint.population_attributable_fraction")
+    PAFS: TargetString = TargetString(
+        "risk_factor.joint_mediated_risks.population_attributable_fraction"
+    )
 
     @property
     def name(self):

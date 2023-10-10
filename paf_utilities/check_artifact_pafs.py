@@ -15,7 +15,13 @@ def main(root_dir: Path) -> None:
         filename = file.name
         print(f"Checking {filename}")
         art = Artifact(file)
-        num_paf_keys = len([k for k in art.keys if "joint.population_attributable_fraction" in k])
+        num_paf_keys = len(
+            [
+                k
+                for k in art.keys
+                if "joint_mediated_risks.population_attributable_fraction" in k
+            ]
+        )
         if num_paf_keys != EXPECTED_NUM_PAF_KEYS:
             print(f"\nMISSING! - {filename}: {num_paf_keys} PAF keys\n")
             bad_files.append(filename)

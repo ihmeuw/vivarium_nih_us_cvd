@@ -415,8 +415,8 @@ class JointPAFObserver(Component):
         self.risks_and_mediators = self._get_risks_and_mediators()
 
     def _get_risks_and_mediators(self) -> Set[str]:
-        """ MEDIATOR_NAMES is a nested dict like {risk: {target: [mediators]}}.
-        For each target in MEDIATOR_NAMES (the second-level keys), extract the
+        """MEDIATOR_NAMES is a nested dict like {risk: {target: [mediators]}}.
+        For this instance target (the second-level keys), extract the
         risks (the outer keys) and the mediator names (the child node lists).
         """
         risks = {
@@ -453,10 +453,7 @@ class JointPAFObserver(Component):
     def calculate_paf(self, x: pd.DataFrame) -> float:
         joint_rrs = pd.Series(1.0, index=x.index)
         for risk in self.risk_effects:
-            relative_risk = self.risk_effects[risk].mediated_target_modifier(
-                x.index, pd.Series(1.0, index=x.index)
-            )
-            joint_rrs *= relative_risk
+            joint_rrs = self.risk_effects[risk].mediated_target_modifier(x.index, joint_rrs)
         mean_rr = joint_rrs.mean()
         paf = (mean_rr - 1.0) / mean_rr
         return paf
