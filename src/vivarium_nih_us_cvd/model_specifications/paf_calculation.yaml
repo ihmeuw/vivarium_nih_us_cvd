@@ -80,21 +80,3 @@ configuration:
         exit_age: 100
     stratification:
         default: ['sex', 'age_group']
-        # acute_ischemic_stroke_paf:
-        #     include: [ ]
-        #     exclude: [ ]
-        # chronic_ischemic_stroke_to_acute_ischemic_stroke_paf:
-        #     include: [ ]
-        #     exclude: [ ]
-        # acute_myocardial_infarction_paf:
-        #     include: [ ]
-        #     exclude: [ ]
-        # post_myocardial_infarction_to_acute_myocardial_infarction_paf:
-        #     include: [ ]
-        #     exclude: [ ]
-        # heart_failure_from_ischemic_heart_disease_paf:
-        #     include: [ ]
-        #     exclude: [ ]
-        # heart_failure_residual_paf:
-        #     include: [ ]
-        #     exclude: [ ]
