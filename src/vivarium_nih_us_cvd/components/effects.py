@@ -164,8 +164,14 @@ class MediatedRiskEffect(RiskEffect):
         self.mediated_target_modifier = self.get_mediated_target_modifier(builder)
         self.register_mediated_target_modifier(builder)
 
+    #################
+    # Setup methods #
+    #################
+
     def register_target_modifier(self, builder: Builder) -> None:
-        """We do not want to register the super's target modifier, so we override it here"""
+        pass
+
+    def register_paf_modifier(self, builder: Builder) -> None:
         pass
 
     def get_mediated_target_modifier(

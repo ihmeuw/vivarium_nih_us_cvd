@@ -4,7 +4,9 @@ import numpy as np
 import pandas as pd
 import scipy
 from vivarium import Component
+from vivarium.framework.artifact import EntityKey
 from vivarium.framework.engine import Builder
+from vivarium.framework.lookup import LookupTable
 from vivarium.framework.population.manager import SimulantData
 from vivarium.framework.randomness import get_hash
 from vivarium_public_health.utilities import EntityString
@@ -14,7 +16,10 @@ from vivarium_nih_us_cvd.constants import paths
 
 
 class RiskCorrelation(Component):
-    """Apply correlation to risk factor propensities"""
+    """Apply correlation to risk factor propensities. It also registers the
+    PAF pipeline modifiers since with correlated risk factors we can no longer
+    assume independent risks when calculating PAFs.
+    """
 
     ##############
     # Properties #
@@ -47,6 +52,38 @@ class RiskCorrelation(Component):
         self.input_draw = builder.configuration.input_data.input_draw_number
         self.random_seed = builder.configuration.randomness.random_seed
         self.correlation_data = pd.read_csv(paths.FILEPATHS.RISK_CORRELATION)
+        self.population_attributable_fractions = (
+            self.get_population_attributable_fraction_source(builder)
+        )
+        self.register_paf_modifiers(builder)
+
+    #################
+    # Setup methods #
+    #################
+
+    def get_population_attributable_fraction_source(
+        self, builder: Builder
+    ) -> Dict[str, LookupTable]:
+        paf_data = builder.data.load(
+            "risk_factor.joint_mediated_risks.population_attributable_fraction"
+        )
+        pafs = {}
+        for name, group in paf_data.groupby(["affected_entity", "affected_measure"]):
+            target = EntityKey(f"cause.{name[0]}.{name[1]}")
+            data = group.drop(columns=["affected_entity", "affected_measure"])
+            pafs[target] = builder.lookup.build_table(
+                data, key_columns=["sex"], parameter_columns=["age", "year"]
+            )
+        return pafs
+
+    def register_paf_modifiers(self, builder: Builder) -> None:
+        for target, pafs in self.population_attributable_fractions.items():
+            target_paf_pipeline_name = f"{target.name}.{target.measure}.paf"
+            builder.value.register_value_modifier(
+                target_paf_pipeline_name,
+                modifier=pafs,
+                requires_columns=["age", "sex"],
+            )
 
     ########################
     # Event-driven methods #

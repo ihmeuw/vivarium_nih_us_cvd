@@ -1019,9 +1019,6 @@ def load_joint_pafs(artifact_path: str, entity: str, location: str) -> pd.DataFr
     affected_entity_col = pd.Series(
         [output_col.split(".")[-2] for output_col in pafs["index"]]
     )
-    affected_entity_col = affected_entity_col.replace(
-        "heart_failure_residual", "heart_failure"
-    )
     affected_measure_col = pd.Series(
         [output_col.split(".")[-1].split("_AGE_GROUP")[0] for output_col in pafs["index"]]
     )
