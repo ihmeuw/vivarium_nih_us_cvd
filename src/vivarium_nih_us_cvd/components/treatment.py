@@ -2,6 +2,7 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from scipy import stats
 from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
@@ -32,8 +33,8 @@ class Treatment(Component):
             data_values.COLUMNS.OUTREACH,
             data_values.COLUMNS.POLYPILL,
             data_values.COLUMNS.LIFESTYLE,
-            data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY,
-            data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_PROPENSITY,
+            data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_CONSTANT_COMPONENT,
+            data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_CONSTANT_COMPONENT,
         ]
 
     @property
@@ -380,16 +381,24 @@ class Treatment(Component):
             ]
         ).get(pop_data.index)
 
-        # Define propensities for therapeutic inertia
+        # Define therapeutic inertia constant components
         pop[
-            data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY
-        ] = self.randomness.get_draw(
-            pop.index, additional_key=data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY
+            data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_CONSTANT_COMPONENT
+        ] = get_random_value_from_normal_distribution(
+            index=pop.index,
+            mean=0.0,
+            sd=np.sqrt(0.5),
+            randomness=self.randomness,
+            additional_key=data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_CONSTANT_COMPONENT,
         )
         pop[
-            data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_PROPENSITY
-        ] = self.randomness.get_draw(
-            pop.index, additional_key=data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_PROPENSITY
+            data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_CONSTANT_COMPONENT
+        ] = get_random_value_from_normal_distribution(
+            index=pop.index,
+            mean=0.0,
+            sd=np.sqrt(0.5),
+            randomness=self.randomness,
+            additional_key=data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_CONSTANT_COMPONENT,
         )
 
         # Generate initial medication adherence columns and initialize coverage
@@ -531,8 +540,8 @@ class Treatment(Component):
                     data_values.COLUMNS.OUTREACH,
                     data_values.COLUMNS.POLYPILL,
                     data_values.COLUMNS.LIFESTYLE,
-                    data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY,
-                    data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_PROPENSITY,
+                    data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_CONSTANT_COMPONENT,
+                    data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_CONSTANT_COMPONENT,
                 ]
             ]
         )
@@ -649,8 +658,6 @@ class Treatment(Component):
                 [
                     data_values.COLUMNS.SBP_MEDICATION,
                     data_values.COLUMNS.LDLC_MEDICATION,
-                    data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY,
-                    data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_PROPENSITY,
                 ]
             ]
         )
@@ -670,46 +677,42 @@ class Treatment(Component):
         if not exposure_pipeline:
             exposure_pipeline = self.sbp
 
-        sbp_prescription_inertia_propensity = pop_visitors[
-            data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY
-        ].copy()
-        # Uses old propensity to determine who changed medication the previous time step
-        overcome_prescription_inertia = pop_visitors[
-            sbp_prescription_inertia_propensity > data_values.SBP_THERAPEUTIC_INERTIA
-        ].index
-        currently_medicated = pop_visitors[
-            pop_visitors[data_values.COLUMNS.SBP_MEDICATION]
-            != data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
-        ].index
-
+        sbp_therapeutic_inertia_dynamic_component = get_random_value_from_normal_distribution(
+            index=pop_visitors.index,
+            mean=0.0,
+            sd=np.sqrt(0.5),
+            randomness=self.randomness,
+            additional_key="sbp_therapeutic_inertia_dynamic_component",
+        )
+        sbp_prescription_inertia_propensity = stats.norm().cdf(
+            pop_visitors[data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_CONSTANT_COMPONENT]
+            + sbp_therapeutic_inertia_dynamic_component
+        )
         measured_sbp = self.get_measured_sbp(
             index=pop_visitors.index,
             exposure_pipeline=exposure_pipeline,
         )
 
-        # Generate other useful helper indexes
+        # Helper indexes and masks
+        currently_medicated = pop_visitors[
+            pop_visitors[data_values.COLUMNS.SBP_MEDICATION]
+            != data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
+        ].index
         low_sbp = measured_sbp[measured_sbp < data_values.SBP_THRESHOLD.LOW].index
         high_sbp = measured_sbp[measured_sbp >= data_values.SBP_THRESHOLD.HIGH].index
         medicated_high_sbp = currently_medicated.intersection(high_sbp)
-
-        # Update inertia values for those who moved up a medication level
-        # last time they had a high SBP measured during a doctor visit
-        changed_prescription_last_time = overcome_prescription_inertia.intersection(
-            medicated_high_sbp
-        )
-        sbp_prescription_inertia_propensity.loc[
-            changed_prescription_last_time
-        ] = self.randomness.get_draw(
-            changed_prescription_last_time, additional_key="dynamic_sbp_inertia_propensity"
-        )
-        updated_overcome_prescription_inertia = pop_visitors[
-            sbp_prescription_inertia_propensity > data_values.SBP_THERAPEUTIC_INERTIA
+        overcome_change_medication_inertia = pop_visitors[
+            sbp_prescription_inertia_propensity
+            > data_values.SBP_THERAPEUTIC_INERTIA.CHANGE_MEDICATION
         ].index
-
-        newly_prescribed = updated_overcome_prescription_inertia.difference(
+        overcome_first_medication_inertia = pop_visitors[
+            sbp_prescription_inertia_propensity
+            > data_values.SBP_THERAPEUTIC_INERTIA.FIRST_MEDICATION
+        ].index
+        newly_prescribed = overcome_first_medication_inertia.difference(
             currently_medicated
         ).difference(low_sbp)
-        mask_history_mi = (
+        mask_history_ihd_or_hf = (
             pop_visitors[models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME]
             != models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_SUSCEPTIBLE_STATE_NAME
         )
@@ -717,7 +720,7 @@ class Treatment(Component):
             pop_visitors[models.ISCHEMIC_STROKE_MODEL_NAME]
             != models.ISCHEMIC_STROKE_SUSCEPTIBLE_STATE_NAME
         )
-        history_mi_or_is = pop_visitors[mask_history_mi | mask_history_is].index
+        history_ihd_hf_or_is = pop_visitors[mask_history_ihd_or_hf | mask_history_is].index
 
         # [Treatment ramp ID C] Simulants who overcome therapeutic inertia, have
         # high SBP, and are not currently medicated
@@ -727,11 +730,21 @@ class Treatment(Component):
         to_prescribe_b = newly_prescribed.difference(to_prescribe_c)
         # [Treatment ramp ID D] Simulants who overcome therapeutic inertia, have
         # high sbp, and are currently medicated
-        to_prescribe_d = medicated_high_sbp.intersection(
-            updated_overcome_prescription_inertia
-        )
+        to_prescribe_d = medicated_high_sbp.intersection(overcome_change_medication_inertia)
 
-        # Prescribe initial medications
+        # Prescribe medications for newly-medicated simulants (ramp IDs B and C)
+        pop_visitors.loc[
+            to_prescribe_b, data_values.COLUMNS.SBP_MEDICATION
+        ] = self.randomness.choice(
+            to_prescribe_b,
+            choices=list(
+                data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["sbp"]["medium"].keys()
+            ),
+            p=list(
+                data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["sbp"]["medium"].values()
+            ),
+            additional_key="medium_sbp_first_prescriptions",
+        )
         pop_visitors.loc[
             to_prescribe_c, data_values.COLUMNS.SBP_MEDICATION
         ] = self.randomness.choice(
@@ -743,10 +756,8 @@ class Treatment(Component):
             additional_key="high_sbp_first_prescriptions",
         )
 
-        # Change medications
-        # Only move up if currently untreated (treatment ramp ID B) or currently
-        # treated (treatment ramp ID D) but adherent and not already at the max
-        # ramp level
+        # Change medications (ramp ID D)
+        # Only move up if adherent and not already at the max ramp level
         adherent = pop_visitors[
             pop_visitors[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE]
             == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
@@ -755,10 +766,8 @@ class Treatment(Component):
             pop_visitors[data_values.COLUMNS.SBP_MEDICATION]
             != self.sbp_treatment_map[max(self.sbp_treatment_map)]
         ].index
-        medication_change = (
-            to_prescribe_b.union(to_prescribe_d)
-            .intersection(adherent)
-            .intersection(not_already_max_medicated)
+        medication_change = to_prescribe_d.intersection(adherent).intersection(
+            not_already_max_medicated
         )
         pop_visitors.loc[medication_change, data_values.COLUMNS.SBP_MEDICATION] = (
             pop_visitors[data_values.COLUMNS.SBP_MEDICATION].map(
@@ -780,13 +789,8 @@ class Treatment(Component):
         # 2. measured sbp >= 130 and a history of MI or stroke
         if self.scenario.is_polypill_scenario:
             maybe_enroll = maybe_enroll.intersection(
-                high_sbp.union(history_mi_or_is.difference(low_sbp))
+                high_sbp.union(history_ihd_hf_or_is.difference(low_sbp))
             )
-
-        # Update propensity in visitors
-        pop_visitors[
-            data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_PROPENSITY
-        ] = sbp_prescription_inertia_propensity
 
         return pop_visitors, maybe_enroll
 
@@ -812,17 +816,20 @@ class Treatment(Component):
             ldlc_pipeline = self.ldlc
         if not sbp_pipeline:
             sbp_pipeline = self.sbp
-        ldlc_prescription_inertia_propensity = pop_visitors[
-            data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_PROPENSITY
-        ].copy()
-        # Uses old propensity to determine who changed medication the previous time step
-        overcome_prescription_inertia = pop_visitors[
-            ldlc_prescription_inertia_propensity > data_values.LDLC_THERAPEUTIC_INERTIA
-        ].index
-        currently_medicated = pop_visitors[
-            pop_visitors[data_values.COLUMNS.LDLC_MEDICATION]
-            != data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
-        ].index
+
+        ldlc_therapeutic_inertia_dynamic_component = (
+            get_random_value_from_normal_distribution(
+                index=pop_visitors.index,
+                mean=0.0,
+                sd=np.sqrt(0.5),
+                randomness=self.randomness,
+                additional_key="ldlc_therapeutic_inertia_dynamic_component",
+            )
+        )
+        ldlc_prescription_inertia_propensity = stats.norm().cdf(
+            pop_visitors[data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_CONSTANT_COMPONENT]
+            + ldlc_therapeutic_inertia_dynamic_component
+        )
 
         ascvd = self.get_ascvd(pop_visitors=pop_visitors, sbp_pipeline=sbp_pipeline)
         measured_ldlc = self.get_measured_ldlc(
@@ -830,27 +837,32 @@ class Treatment(Component):
             exposure_pipeline=ldlc_pipeline,
         )
 
-        # Generate other useful helper indexes
-        old_pop = pop_visitors[pop_visitors["age"] >= 75].index
+        # Helper indexes and masks
+        currently_medicated = pop_visitors[
+            pop_visitors[data_values.COLUMNS.LDLC_MEDICATION]
+            != data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
+        ].index
+        overcome_prescription_inertia = pop_visitors[
+            ldlc_prescription_inertia_propensity > data_values.LDLC_THERAPEUTIC_INERTIA
+        ].index
         low_ascvd = ascvd[ascvd < data_values.ASCVD_THRESHOLD.LOW].index
         high_ascvd = ascvd[ascvd >= data_values.ASCVD_THRESHOLD.HIGH].index
         low_ldlc = measured_ldlc[measured_ldlc < data_values.LDLC_THRESHOLD.LOW].index
         above_medium_ldlc = measured_ldlc[
             measured_ldlc >= data_values.LDLC_THRESHOLD.MEDIUM
         ].index
-        high_ldlc = measured_ldlc[measured_ldlc >= data_values.LDLC_THRESHOLD.HIGH].index
-        mask_history_mi = (
-            pop_visitors[models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME]
-            != models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_SUSCEPTIBLE_STATE_NAME
+        old_pop = pop_visitors[pop_visitors["age"] >= 75].index
+        newly_prescribed_young = (
+            overcome_prescription_inertia.difference(currently_medicated)
+            .difference(low_ascvd)
+            .difference(low_ldlc)
+            .difference(old_pop)
         )
-        mask_history_is = (
-            pop_visitors[models.ISCHEMIC_STROKE_MODEL_NAME]
-            != models.ISCHEMIC_STROKE_SUSCEPTIBLE_STATE_NAME
+        newly_prescribed_old = (
+            overcome_prescription_inertia.difference(currently_medicated)
+            .intersection(old_pop)
+            .intersection(above_medium_ldlc)
         )
-        history_mi_or_is = pop_visitors[mask_history_mi | mask_history_is].index
-
-        # Update inertia values for those who moved up a medication level
-        # last time they had high LDL and ASVCD during a doctor visit
         treatment_change_eligible_young = (
             currently_medicated.difference(low_ascvd).difference(low_ldlc).difference(old_pop)
         )
@@ -862,30 +874,21 @@ class Treatment(Component):
         treatment_change_eligible = treatment_change_eligible_young.union(
             treatment_change_eligible_old
         )
-
-        changed_prescription_last_time = overcome_prescription_inertia.intersection(
-            treatment_change_eligible
+        high_ldlc = measured_ldlc[measured_ldlc >= data_values.LDLC_THRESHOLD.HIGH].index
+        mask_history_ihd_or_hf = (
+            pop_visitors[models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME]
+            != models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_SUSCEPTIBLE_STATE_NAME
         )
-        ldlc_prescription_inertia_propensity.loc[
-            changed_prescription_last_time
-        ] = self.randomness.get_draw(
-            changed_prescription_last_time, additional_key="dynamic_ldlc_inertia_propensity"
+        mask_history_is = (
+            pop_visitors[models.ISCHEMIC_STROKE_MODEL_NAME]
+            != models.ISCHEMIC_STROKE_SUSCEPTIBLE_STATE_NAME
         )
-        updated_overcome_prescription_inertia = pop_visitors[
-            ldlc_prescription_inertia_propensity > data_values.LDLC_THERAPEUTIC_INERTIA
-        ].index
-
-        newly_prescribed_young = (
-            updated_overcome_prescription_inertia.difference(currently_medicated)
-            .difference(low_ascvd)
-            .difference(low_ldlc)
-            .difference(old_pop)
-        )
+        history_ihd_hf_or_is = pop_visitors[mask_history_ihd_or_hf | mask_history_is].index
 
         # [Treatment ramp ID D] Simulants who overcome therapeutic inertia, have
         # elevated LDLC, are not currently medicated, have elevated ASCVD, and
         # have a history of MI or IS
-        to_prescribe_d = newly_prescribed_young.intersection(history_mi_or_is)
+        to_prescribe_d = newly_prescribed_young.intersection(history_ihd_hf_or_is)
         # [Treatment ramp ID E] Simulants who overcome therapeutic inertia, have
         # elevated LDLC, are not currently medicated, have elevated ASCVD, have
         # no history of MI or IS, and who have high LDLC or ASCVD
@@ -893,24 +896,18 @@ class Treatment(Component):
             high_ascvd.union(high_ldlc)
         )
         # [Treatment ramp ID F] Simulants who overcome therapeutic inertia, have
-        # elevated LDLC, are not currently medicated, have elevated ASCVD, have
-        # no history of MI or IS, but who do NOT have high LDLC or ASCVD
-        to_prescribe_f = newly_prescribed_young.difference(to_prescribe_d).difference(
+        # elevated LDLC, are not currently medicated, and are either (1) old or
+        # (2) have elevated ASCVD, have no history of MI or IS, but who do NOT
+        # have high LDLC or ASCVD
+        to_prescribe_f_young = newly_prescribed_young.difference(to_prescribe_d).difference(
             to_prescribe_e
         )
+        to_prescribe_f = to_prescribe_f_young.union(newly_prescribed_old)
         # [Treatment ramp ID G] Simulants who overcome therapeutic inertia, have
         # age-specific elevated LDLC, have elevated ASCVD, and are currently medicated
-        to_prescribe_g = updated_overcome_prescription_inertia.intersection(
-            treatment_change_eligible
-        )
-        # [Treatment ramp ID F2] Simulants who are 75+ with above medium LDL and not currently medicated
-        newly_prescribed_old = (
-            updated_overcome_prescription_inertia.difference(currently_medicated)
-            .intersection(old_pop)
-            .intersection(above_medium_ldlc)
-        )
+        to_prescribe_g = overcome_prescription_inertia.intersection(treatment_change_eligible)
 
-        # Prescribe initial medications
+        # Prescribe medications for newly-medicated simulants (ramp IDs D, E, and F)
         newly_prescribed = newly_prescribed_young.union(newly_prescribed_old)
         df_newly_prescribed = pd.DataFrame(index=newly_prescribed)
         df_newly_prescribed.loc[
@@ -925,10 +922,7 @@ class Treatment(Component):
             to_prescribe_f,
             data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_f"].keys(),
         ] = data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_f"].values()
-        df_newly_prescribed.loc[
-            newly_prescribed_old,
-            data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_f"].keys(),
-        ] = data_values.FIRST_PRESCRIPTION_LEVEL_PROBABILITY["ldlc"]["ramp_id_f"].values()
+
         pop_visitors.loc[
             newly_prescribed, data_values.COLUMNS.LDLC_MEDICATION
         ] = self.randomness.choice(
@@ -938,7 +932,7 @@ class Treatment(Component):
             additional_key="high_ldlc_first_prescriptions",
         )
 
-        # Change medications
+        # Change medications (ramp ID G)
         # Only move up if adherent and not already at the max ramp level
         adherent = pop_visitors[
             pop_visitors[data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE]
@@ -959,16 +953,11 @@ class Treatment(Component):
         ).map(self.ldlc_treatment_map)
 
         # Determine potential new outreach enrollees; applies to groups
-        # 'newly_prescribed' (d, e, f, f2) and simulants already on medication
+        # 'newly_prescribed' (d, e, f) and simulants already on medication
         if self.scenario.is_outreach_scenario:
             maybe_enroll = newly_prescribed.union(currently_medicated)
         else:
             maybe_enroll = pd.Index([])  # baseline or polypill scenario
-
-        # Update propensity in visitors
-        pop_visitors[
-            data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_PROPENSITY
-        ] = ldlc_prescription_inertia_propensity
 
         return pop_visitors, maybe_enroll
 
