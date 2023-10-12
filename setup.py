@@ -33,7 +33,6 @@ if __name__ == "__main__":
     data_requirements = ["vivarium_inputs[data]==4.1.0"]
     cluster_requirements = ["vivarium_cluster_tools>=1.3.13"]
     test_requirements = ["pytest"]
-    dev_requirements = ["black", "isort"]
 
     setup(
         name=about["__title__"],
@@ -51,7 +50,7 @@ if __name__ == "__main__":
             "test": test_requirements,
             "cluster": cluster_requirements,
             "data": data_requirements + cluster_requirements,
-            "dev": test_requirements + cluster_requirements + dev_requirements,
+            "dev": test_requirements + cluster_requirements,
         },
         zip_safe=False,
         use_scm_version={
