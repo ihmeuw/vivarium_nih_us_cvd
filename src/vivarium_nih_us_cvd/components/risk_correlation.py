@@ -68,8 +68,8 @@ class RiskCorrelation(Component):
             "risk_factor.joint_mediated_risks.population_attributable_fraction"
         )
         pafs = {}
-        for name, group in paf_data.groupby(["affected_entity", "affected_measure"]):
-            target = EntityKey(f"cause.{name[0]}.{name[1]}")
+        for (name, measure), group in paf_data.groupby(["affected_entity", "affected_measure"]):
+            target = EntityKey(f"cause.{name}.{measure}")
             data = group.drop(columns=["affected_entity", "affected_measure"])
             pafs[target] = builder.lookup.build_table(
                 data, key_columns=["sex"], parameter_columns=["age", "year"]
