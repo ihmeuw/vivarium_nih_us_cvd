@@ -1,4 +1,13 @@
+plugins:
+    required:
+        component_configuration_parser:
+            controller: "vivarium_nih_us_cvd.plugins.CausesConfigurationParser"
+
 components:
+    external_configuration:
+        vivarium_nih_us_cvd:
+            - "components/causes/causes.yaml"
+
     vivarium_nih_us_cvd:
         components:
             - Causes()
