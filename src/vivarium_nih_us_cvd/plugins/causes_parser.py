@@ -62,8 +62,7 @@ class CausesConfigurationParser(ComponentConfigurationParser):
         Parameters
         ----------
         component_config
-            A ConfigTree or list of strings defining the components to
-            initialize.
+            A ConfigTree defining the components to initialize.
 
         Returns
         -------
