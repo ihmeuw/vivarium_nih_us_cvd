@@ -1,4 +1,6 @@
 from importlib import import_module
+
+from pkg_resources import resource_filename
 from typing import Any, Callable, Dict, List, Union
 
 import pandas as pd
@@ -29,24 +31,38 @@ class CausesConfigurationParser(ComponentConfigurationParser):
     `causes` key and create `DiseaseModel` components.
     """
 
-    def get_components(
-        self, component_config: Union[ConfigTree, List[str]]
-    ) -> List[Component]:
+    def parse_component_config(self, component_config: ConfigTree) -> List[Component]:
         """
-        Parses the component configuration and returns a list of components. In
-        particular, this method looks for a `causes` key and parses it into a
-        list of `DiseaseModel` components.
+        Parses the component configuration and returns a list of components.
+
+        In particular, this method looks for an `external_configuration` key and
+        a `causes` key.
+
+        The `external_configuration` key should have names of packages that
+        contain cause model configuration files. Within that key should be a list
+        of paths to cause model configuration files relative to the package.
+
+        .. code-block:: yaml
+
+            external_configuration:
+                some_package:
+                    - some/path/cause_model_1.yaml
+                    - some/path/cause_model_2.yaml
+
+        The `causes` key should contain configuration information for cause
+        models.
 
         Note that this method modifies the simulation's component configuration
-        by adding default cause model configuration values to the
-        `component_config` layer and marks states that have multiple exiting
-        transitions with the `is_multi_transition` key.
+        by adding the contents of external configuration files to the
+        `model_override` layer and adding default cause model configuration
+        values for all cause models to the `component_config` layer.
+        It also marks states that have multiple exiting transitions with the
+        `is_multi_transition` key in the `model_override` layer.
 
         Parameters
         ----------
         component_config
-            A ConfigTree or list of strings defining the components to
-            initialize.
+            A ConfigTree defining the components to initialize.
 
         Returns
         -------
@@ -54,17 +70,33 @@ class CausesConfigurationParser(ComponentConfigurationParser):
             A list of initialized components.
         """
         components = []
-        if isinstance(component_config, ConfigTree) and "causes" in component_config:
+
+        if not component_config:
+            return components
+
+        if "external_configuration" in component_config:
+            for package, config_files in component_config["external_configuration"].items():
+                for config_file in config_files.get_value(None):
+                    source = f"{package}::{config_file}"
+                    config_file = resource_filename(package, config_file)
+
+                    external_config = ConfigTree(config_file)
+                    component_config.update(
+                        external_config, layer="model_override", source=source
+                    )
+
+        if "causes" in component_config:
             self.mark_multi_transition_states(component_config)
             self.add_default_config_layer(component_config)
             components += self.get_cause_model_components(component_config["causes"])
 
-            # Create a shallow copy of the config tree so that we can delete the
-            # causes key without affecting the original ConfigTree.
-            component_config = ConfigTree(component_config)
-            del component_config["causes"]
+        # Create a copy of the config tree excluding "external_config" and
+        # "causes" keys.
+        component_config_dict = component_config.to_dict()
+        component_config_dict.pop("external_configuration", None)
+        component_config_dict.pop("causes", None)
 
-        components += super().get_components(component_config)
+        components += self.process_level(component_config_dict, [])
         return components
 
     ##################################
