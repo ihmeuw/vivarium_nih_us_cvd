@@ -28,14 +28,14 @@ if __name__ == "__main__":
         "tables",
     ]
 
-    # use "pip install -e .[dev]" to install all components
+    setup_requires = ["setuptools_scm"]
+
     data_requirements = ["vivarium_inputs[data]==4.1.0"]
     cluster_requirements = ["vivarium_cluster_tools>=1.3.13"]
     test_requirements = ["pytest"]
 
     setup(
         name=about["__title__"],
-        version=about["__version__"],
         description=about["__summary__"],
         long_description=long_description,
         license=about["__license__"],
@@ -53,6 +53,12 @@ if __name__ == "__main__":
             "dev": test_requirements + cluster_requirements,
         },
         zip_safe=False,
+        use_scm_version={
+            "write_to": "src/vivarium_nih_us_cvd/_version.py",
+            "write_to_template": '__version__ = "{version}"\n',
+            "tag_regex": r"^(?P<prefix>v)?(?P<version>[^\+]+)(?P<suffix>.*)?$",
+        },
+        setup_requires=setup_requires,
         entry_points="""
             [console_scripts]
             make_artifacts=vivarium_nih_us_cvd.tools.cli:make_artifacts

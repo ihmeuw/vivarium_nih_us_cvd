@@ -1,9 +1,8 @@
 from importlib import import_module
-
-from pkg_resources import resource_filename
 from typing import Any, Callable, Dict, List, Union
 
 import pandas as pd
+from pkg_resources import resource_filename
 from vivarium import Component, ConfigTree
 from vivarium.framework.components import ComponentConfigurationParser
 from vivarium.framework.engine import Builder
