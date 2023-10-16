@@ -110,7 +110,7 @@ BINNED_LDL_LIMITS = (
     "between_4.14_and_4.91",
     "above_4.91",
 )
-BINNED_SBP_LIMITS = ("below_130", "between_130_and_140", "above_140")
+BINNED_SBP_LIMITS = ("below_130.0", "between_130.0_and_140.0", "above_140.0")
 MEDICATION_ADHERENCES = tuple(x for x in data_values.MEDICATION_ADHERENCE_TYPE)
 SBP_MEDICATIONS = tuple(x.DESCRIPTION for x in data_values.SBP_MEDICATION_LEVEL)
 LDLC_MEDICATIONS = tuple(x.DESCRIPTION for x in data_values.LDLC_MEDICATION_LEVEL)

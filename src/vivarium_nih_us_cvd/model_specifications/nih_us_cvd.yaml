@@ -10,8 +10,7 @@ components:
 
     vivarium_nih_us_cvd:
         components:
-            - Causes()
-
+        
             - ResultsStratifier()
 
             - AdjustedRisk("risk_factor.high_ldl_cholesterol")
