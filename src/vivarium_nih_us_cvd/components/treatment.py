@@ -851,7 +851,7 @@ class Treatment(Component):
         above_medium_ldlc = measured_ldlc[
             measured_ldlc >= data_values.LDLC_THRESHOLD.MEDIUM
         ].index
-        old_pop = pop_visitors[pop_visitors["age"] >= 75].index
+        old_pop = pop_visitors[pop_visitors["age"] >= 70].index
         newly_prescribed_young = (
             overcome_prescription_inertia.difference(currently_medicated)
             .difference(low_ascvd)
