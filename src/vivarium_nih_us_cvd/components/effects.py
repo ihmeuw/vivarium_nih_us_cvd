@@ -174,6 +174,9 @@ class MediatedRiskEffect(RiskEffect):
     def register_paf_modifier(self, builder: Builder) -> None:
         pass
 
+    def get_population_attributable_fraction_source(self, builder: Builder) -> LookupTable:
+        pass
+
     def get_mediated_target_modifier(
         self, builder: Builder
     ) -> Callable[[pd.Index, pd.Series], pd.Series]:
