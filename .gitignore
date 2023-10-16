@@ -128,3 +128,6 @@ dmypy.json
 
 # vscode
 .vscode/
+ 
+# Version file
+src/vivarium_nih_us_cvd/_version.py
