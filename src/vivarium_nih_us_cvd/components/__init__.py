@@ -17,6 +17,6 @@ from .observers import (
     SimpleResultsStratifier,
 )
 from .population import EvenlyDistributedPopulation
-from .risk_correlation import RiskCorrelation
+from .risk_correlation import JointPAF, RiskCorrelation
 from .risks import AdjustedRisk, CategoricalSBPRisk, TruncatedRisk
 from .treatment import Treatment
