@@ -16,10 +16,7 @@ from vivarium_nih_us_cvd.constants import paths
 
 
 class RiskCorrelation(Component):
-    """Apply correlation to risk factor propensities. It also registers the
-    PAF pipeline modifiers since with correlated risk factors we can no longer
-    assume independent risks when calculating PAFs.
-    """
+    """Apply correlation to risk factor propensities"""
 
     ##############
     # Properties #
@@ -52,40 +49,6 @@ class RiskCorrelation(Component):
         self.input_draw = builder.configuration.input_data.input_draw_number
         self.random_seed = builder.configuration.randomness.random_seed
         self.correlation_data = pd.read_csv(paths.FILEPATHS.RISK_CORRELATION)
-        self.population_attributable_fractions = (
-            self.get_population_attributable_fraction_source(builder)
-        )
-        self.register_paf_modifiers(builder)
-
-    #################
-    # Setup methods #
-    #################
-
-    def get_population_attributable_fraction_source(
-        self, builder: Builder
-    ) -> Dict[str, LookupTable]:
-        paf_data = builder.data.load(
-            "risk_factor.joint_mediated_risks.population_attributable_fraction"
-        )
-        pafs = {}
-        for (name, measure), group in paf_data.groupby(
-            ["affected_entity", "affected_measure"]
-        ):
-            target = EntityKey(f"cause.{name}.{measure}")
-            data = group.drop(columns=["affected_entity", "affected_measure"])
-            pafs[target] = builder.lookup.build_table(
-                data, key_columns=["sex"], parameter_columns=["age", "year"]
-            )
-        return pafs
-
-    def register_paf_modifiers(self, builder: Builder) -> None:
-        for target, pafs in self.population_attributable_fractions.items():
-            target_paf_pipeline_name = f"{target.name}.{target.measure}.paf"
-            builder.value.register_value_modifier(
-                target_paf_pipeline_name,
-                modifier=pafs,
-                requires_columns=["age", "sex"],
-            )
 
     ########################
     # Event-driven methods #
@@ -144,3 +107,49 @@ class RiskCorrelation(Component):
             correlation_data[new_column] = correlation_data[original_column].values
 
         return correlation_data
+
+
+class JointPAF(Component):
+    """Registers the PAF pipeline modifiers since with correlated risk factors
+    we can no longer assume independent risks when calculating PAFs."""
+
+    #####################
+    # Lifecycle methods #
+    #####################
+
+    # noinspection PyAttributeOutsideInit
+    def setup(self, builder: Builder) -> None:
+        self.population_attributable_fractions = (
+            self.get_population_attributable_fraction_source(builder)
+        )
+        self.register_paf_modifiers(builder)
+
+    #################
+    # Setup methods #
+    #################
+
+    def get_population_attributable_fraction_source(
+        self, builder: Builder
+    ) -> Dict[str, LookupTable]:
+        paf_data = builder.data.load(
+            "risk_factor.joint_mediated_risks.population_attributable_fraction"
+        )
+        pafs = {}
+        for (name, measure), group in paf_data.groupby(
+            ["affected_entity", "affected_measure"]
+        ):
+            target = EntityKey(f"cause.{name}.{measure}")
+            data = group.drop(columns=["affected_entity", "affected_measure"])
+            pafs[target] = builder.lookup.build_table(
+                data, key_columns=["sex"], parameter_columns=["age", "year"]
+            )
+        return pafs
+
+    def register_paf_modifiers(self, builder: Builder) -> None:
+        for target, pafs in self.population_attributable_fractions.items():
+            target_paf_pipeline_name = f"{target.name}.{target.measure}.paf"
+            builder.value.register_value_modifier(
+                target_paf_pipeline_name,
+                modifier=pafs,
+                requires_columns=["age", "sex"],
+            )
