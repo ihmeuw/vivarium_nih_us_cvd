@@ -10,6 +10,8 @@ Research repository for the vivarium_nih_us_cvd project.
 Installation
 ------------
 
+Installation requires a Python version between 3.9 and 3.11.
+
 You will need ``git``, ``git-lfs`` and ``conda`` to get this repository
 and install all of its requirements.  You should follow the instructions for
 your operating system at the following places:
@@ -23,7 +25,7 @@ Once you have all three installed, you should open up your normal shell
 You'll then make an environment, clone this repository, then install
 all necessary requirements as follows::
 
-  :~$ conda create --name=vivarium_nih_us_cvd python=3.8
+  :~$ conda create --name=vivarium_nih_us_cvd python=<3.9-3.11>
   ...conda will download python and base dependencies...
   :~$ conda activate vivarium_nih_us_cvd
   (vivarium_nih_us_cvd) :~$ git clone https://github.com/ihmeuw/vivarium_nih_us_cvd.git

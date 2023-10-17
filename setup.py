@@ -17,7 +17,18 @@ if not (min_version[0] <= sys.version_info[:2] <= max_version[0]):
     )
     print(error, file=sys.stderr)
     sys.exit(1)
-
+# Update the README.rst
+with open("README.rst", "r") as f:
+    readme = f.readlines()
+for i, line in enumerate(readme):
+    instruction_pattern = "Installation requires a Python version between"
+    if instruction_pattern in line:
+        readme[i] = f"{instruction_pattern} {min_version[1]} and {max_version[1]}.\n"
+    code_pattern = "  :~$ conda create --name=vivarium_nih_us_cvd python="
+    if code_pattern in line:
+        readme[i] = f"{code_pattern}<{min_version[1]}-{max_version[1]}>\n"
+with open("README.rst", "w") as f:
+    f.writelines(readme)
 
 if __name__ == "__main__":
     base_dir = os.path.dirname(__file__)
