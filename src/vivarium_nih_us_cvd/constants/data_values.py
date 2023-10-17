@@ -127,6 +127,7 @@ VISIT_TYPE = __VisitType()
 # Medication Parameters #
 #########################
 
+LDLC_OLD_AGE_THRESHOLD = 70.0
 
 # Therapeutic inertias (probability that a patient will not have their medication changed)
 class __SBPTherapeuticInertia(NamedTuple):
