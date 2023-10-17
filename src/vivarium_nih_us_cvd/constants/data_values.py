@@ -25,8 +25,12 @@ class __Columns(NamedTuple):
     POLYPILL: str = "polypill"
     LIFESTYLE: str = "lifestyle"
     LAST_FPG_TEST_DATE: str = "last_fpg_test_date"
-    SBP_THERAPEUTIC_INERTIA_PROPENSITY: str = "sbp_therapeutic_inertia_propensity"
-    LDLC_THERAPEUTIC_INERTIA_PROPENSITY: str = "ldlc_therapeutic_inertia_propensity"
+    SBP_THERAPEUTIC_INERTIA_CONSTANT_COMPONENT: str = (
+        "sbp_therapeutic_inertia_constant_component"
+    )
+    LDLC_THERAPEUTIC_INERTIA_CONSTANT_COMPONENT: str = (
+        "ldlc_therapeutic_inertia_constant_component"
+    )
 
     @property
     def name(self):
@@ -123,9 +127,22 @@ VISIT_TYPE = __VisitType()
 # Medication Parameters #
 #########################
 
+LDLC_OLD_AGE_THRESHOLD = 70.0
+
 # Therapeutic inertias (probability that a patient will not have their medication changed)
-SBP_THERAPEUTIC_INERTIA = 0.4176
-LDLC_THERAPEUTIC_INERTIA = 0.194
+class __SBPTherapeuticInertia(NamedTuple):
+    FIRST_MEDICATION: float = 0.8
+    CHANGE_MEDICATION: float = 0.87
+
+    @property
+    def name(self):
+        return "sbp_therapeutic_inertia"
+
+
+SBP_THERAPEUTIC_INERTIA = __SBPTherapeuticInertia()
+
+
+LDLC_THERAPEUTIC_INERTIA = 0.84
 
 
 class __SBPThreshold(NamedTuple):
@@ -343,6 +360,10 @@ BASELINE_MEDICATION_LEVEL_PROBABILITY = {
 # Define first-prescribed medication ramp levels for simulants who overcome therapeutic inertia
 FIRST_PRESCRIPTION_LEVEL_PROBABILITY = {
     "sbp": {
+        "medium": {
+            SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE.DESCRIPTION: 0.795,
+            SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE.DESCRIPTION: 0.205,
+        },
         "high": {
             SBP_MEDICATION_LEVEL.ONE_DRUG_HALF_DOSE.DESCRIPTION: 0.55,
             SBP_MEDICATION_LEVEL.TWO_DRUGS_HALF_DOSE.DESCRIPTION: 0.45,
@@ -366,8 +387,9 @@ FIRST_PRESCRIPTION_LEVEL_PROBABILITY = {
             LDLC_MEDICATION_LEVEL.HIGH.DESCRIPTION: 0.24,
         },
         # [Treatment ramp ID F] Simulants who overcome therapeutic inertia, have
-        # elevated LDLC, are not currently medicated, have elevated ASCVD, have
-        # no history of MI or IS, but who do NOT have high LDLC or ASCVD
+        # elevated LDLC, are not currently medicated, and are either (1) old or
+        # (2) have elevated ASCVD, have no history of MI or IS, but who do NOT
+        # have high LDLC or ASCVD
         "ramp_id_f": {
             LDLC_MEDICATION_LEVEL.LOW.DESCRIPTION: 0.14,
             LDLC_MEDICATION_LEVEL.MED.DESCRIPTION: 0.71,
