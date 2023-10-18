@@ -1,11 +1,14 @@
 #!/usr/bin/env python
+import json
 import os
 import sys
 
 from packaging.version import parse
 from setuptools import find_packages, setup
 
-supported_python_versions = ["3.9", "3.10", "3.11"]
+f = open("python_versions.json")
+supported_python_versions = json.load(f)
+f.close()
 
 python_versions = [parse(v) for v in supported_python_versions]
 min_version = min(python_versions)
