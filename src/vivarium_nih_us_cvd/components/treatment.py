@@ -387,7 +387,7 @@ class Treatment(Component):
         ] = get_random_value_from_normal_distribution(
             index=pop.index,
             mean=0.0,
-            sd=np.sqrt(0.5),
+            sd=np.sqrt(data_values.THERAPEUTIC_INERTIA_CONSTANT_COMPONENT_VARIANCE),
             randomness=self.randomness,
             additional_key=data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_CONSTANT_COMPONENT,
         )
@@ -396,7 +396,7 @@ class Treatment(Component):
         ] = get_random_value_from_normal_distribution(
             index=pop.index,
             mean=0.0,
-            sd=np.sqrt(0.5),
+            sd=np.sqrt(data_values.THERAPEUTIC_INERTIA_CONSTANT_COMPONENT_VARIANCE),
             randomness=self.randomness,
             additional_key=data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_CONSTANT_COMPONENT,
         )
@@ -680,7 +680,7 @@ class Treatment(Component):
         sbp_therapeutic_inertia_dynamic_component = get_random_value_from_normal_distribution(
             index=pop_visitors.index,
             mean=0.0,
-            sd=np.sqrt(0.5),
+            sd=np.sqrt(data_values.THERAPEUTIC_INERTIA_DYNAMIC_COMPONENT_VARIANCE),
             randomness=self.randomness,
             additional_key="sbp_therapeutic_inertia_dynamic_component",
         )
@@ -821,7 +821,7 @@ class Treatment(Component):
             get_random_value_from_normal_distribution(
                 index=pop_visitors.index,
                 mean=0.0,
-                sd=np.sqrt(0.5),
+                sd=np.sqrt(data_values.THERAPEUTIC_INERTIA_DYNAMIC_COMPONENT_VARIANCE),
                 randomness=self.randomness,
                 additional_key="ldlc_therapeutic_inertia_dynamic_component",
             )
