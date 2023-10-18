@@ -110,8 +110,7 @@ class ContinuousRiskObserver(Component):
 
         builder.results.register_observation(
             name=f"total_exposure_time_risk_{self.risk.name}",
-            # pop_filter='alive=="alive" and tracked==True',
-            pop_filter='alive=="alive"',
+            pop_filter='alive=="alive" and tracked==True',
             aggregator=self.aggregate_state_person_time,
             requires_columns=["alive"],
             requires_values=[f"{self.risk.name}.exposure"],
@@ -222,8 +221,7 @@ class CategoricalColumnObserver(Component):
             builder.results.register_observation(
                 name=f"{self.column}_{category}_person_time",
                 pop_filter=(
-                    # 'alive=="alive" and tracked==True and '
-                    'alive=="alive" and '
+                    'alive=="alive" and tracked==True and '
                     f'{self.column}=="{category}"'
                 ),
                 aggregator=self.calculate_categorical_person_time,
