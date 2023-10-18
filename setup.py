@@ -2,21 +2,22 @@
 import os
 import sys
 
+from packaging.version import parse
 from setuptools import find_packages, setup
 
-min_version, max_version = ("3.9", "3.11")
+supported_python_versions = ["3.9", "3.10", "3.11"]
 
-min_version_parts = tuple(int(v) for v in min_version.split("."))
-max_version_parts = tuple(int(v) for v in max_version.split("."))
-if not (min_version_parts <= sys.version_info[:2] <= max_version_parts):
-    # Python 3.5 does not support f-strings
+python_versions = [parse(v) for v in supported_python_versions]
+min_version = min(python_versions)
+max_version = max(python_versions)
+if not (
+    min_version <= parse(".".join([str(v) for v in sys.version_info[:2]])) <= max_version
+):
     py_version = ".".join([str(v) for v in sys.version_info[:3]])
     error = (
         "\n----------------------------------------\n"
-        "Error: This repo requires python {min_version}-{max_version}.\n"
-        "You are running python {py_version}".format(
-            min_version=min_version, max_version=max_version, py_version=py_version
-        )
+        f"Error: This repo requires python {min_version.base_version}-{max_version.base_version}.\n"
+        f"You are running python {py_version}."
     )
     print(error, file=sys.stderr)
     sys.exit(1)

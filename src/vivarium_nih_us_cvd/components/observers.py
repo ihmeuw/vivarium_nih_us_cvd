@@ -158,10 +158,7 @@ class HealthcareVisitObserver(Component):
         for visit_type in data_values.VISIT_TYPE:
             builder.results.register_observation(
                 name=f"healthcare_visits_{visit_type}",
-                pop_filter=(
-                    'alive=="alive" and tracked==True and '
-                    f'visit_type=="{visit_type}"'
-                ),
+                pop_filter=f'alive=="alive" and tracked==True and visit_type=="{visit_type}"',
                 requires_columns=["alive", data_values.COLUMNS.VISIT_TYPE],
                 additional_stratifications=self.config.include,
                 excluded_stratifications=self.config.exclude,
@@ -220,10 +217,7 @@ class CategoricalColumnObserver(Component):
         for category in self.categories:
             builder.results.register_observation(
                 name=f"{self.column}_{category}_person_time",
-                pop_filter=(
-                    'alive=="alive" and tracked==True and '
-                    f'{self.column}=="{category}"'
-                ),
+                pop_filter=f'alive=="alive" and tracked==True and {self.column}=="{category}"',
                 aggregator=self.calculate_categorical_person_time,
                 requires_columns=["alive", self.column],
                 additional_stratifications=self.config.include,
@@ -350,7 +344,7 @@ class BinnedRiskObserver(Component):
             name=f"total_exposure_time_risk_{self.risk.name}_below_{thresholds[0]}",
             pop_filter=(
                 'alive=="alive" and tracked==True and '
-                f'`{self.risk.name}.exposure`<{thresholds[0]}'
+                f"`{self.risk.name}.exposure`<{thresholds[0]}"
             ),
             aggregator=self.aggregate_state_person_time,
             requires_columns=["alive"],
@@ -368,8 +362,8 @@ class BinnedRiskObserver(Component):
                 ),
                 pop_filter=(
                     'alive=="alive" and tracked==True and '
-                    f'`{self.risk.name}.exposure`>={thresholds[left_threshold_idx]} and '
-                    f'`{self.risk.name}.exposure`<{thresholds[left_threshold_idx+1]}'
+                    f"`{self.risk.name}.exposure`>={thresholds[left_threshold_idx]} and "
+                    f"`{self.risk.name}.exposure`<{thresholds[left_threshold_idx+1]}"
                 ),
                 aggregator=self.aggregate_state_person_time,
                 requires_columns=["alive"],
@@ -383,7 +377,7 @@ class BinnedRiskObserver(Component):
             name=f"total_exposure_time_risk_{self.risk.name}_above_{thresholds[len(thresholds)-1]}",
             pop_filter=(
                 'alive=="alive" and tracked==True and '
-                f'`{self.risk.name}.exposure`>={thresholds[len(thresholds)-1]}'
+                f"`{self.risk.name}.exposure`>={thresholds[len(thresholds)-1]}"
             ),
             aggregator=self.aggregate_state_person_time,
             requires_columns=["alive"],
