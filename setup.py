@@ -4,15 +4,18 @@ import sys
 
 from setuptools import find_packages, setup
 
-min_version, max_version = ((3, 9), "3.9"), ((3, 11), "3.11")
-if not (min_version[0] <= sys.version_info[:2] <= max_version[0]):
+min_version, max_version = ("3.9", "3.11")
+
+min_version_parts = tuple(int(v) for v in min_version.split("."))
+max_version_parts = tuple(int(v) for v in max_version.split("."))
+if not (min_version_parts <= sys.version_info[:2] <= max_version_parts):
     # Python 3.5 does not support f-strings
     py_version = ".".join([str(v) for v in sys.version_info[:3]])
     error = (
         "\n----------------------------------------\n"
         "Error: This repo requires python {min_version}-{max_version}.\n"
         "You are running python {py_version}".format(
-            min_version=min_version[1], max_version=max_version[1], py_version=py_version
+            min_version=min_version, max_version=max_version, py_version=py_version
         )
     )
     print(error, file=sys.stderr)
