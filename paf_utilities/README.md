@@ -8,12 +8,11 @@ TODO: This workflow needs to be updated as it is refined (feature branches are m
 
 STEP 1: SET UP ENV
 ------------------
-1. Set up the environment
+1. Set up the artifact environment
     ```
-    >>> conda create -n <ENV-NAME> python=3.10
-    >>> conda activate <ENV-NAME>
-    >>> cd <REPOS-DIR>/vivarium_nih_us_cvd; pip install -e .; git checkout main
-    >>> cd <REPOS-DIR>/vivarium_public_health; pip install -e .; git checkout develop
+    >>> conda create -n <ARTIFACT-ENV-NAME> python=3.11
+    >>> conda activate <ARTIFACT-ENV-NAME>
+    >>> cd <REPOS-DIR>/vivarium_nih_us_cvd; pip install -e .[data]; git checkout main
     ```
 
 
@@ -32,13 +31,19 @@ STEP 2: GENERATE ARTIFACTS (WITHOUT PAFS)
 
 STEP 3: CALCULATE PAFS
 ----------------------
-1. Request cluster resources appropriate for running the PAF simulations. This may take some trial and error! A good starting point is 3 threads, 11 hours, 50 GB
-2. Make a `paf-calculations` subdirectory in the current artifact version folder (alongside the artifacts already generated) and set the directory permissions
+1. Set up the sim environment
+    ```
+    >>> conda create -n <SIM-ENV-NAME> python=3.11
+    >>> conda activate <SIM-ENV-NAME>
+    >>> cd <REPOS-DIR>/vivarium_nih_us_cvd; pip install -e .; git checkout main
+    ```
+2. Request cluster resources appropriate for running the PAF simulations. This may take some trial and error! A good starting point is 3 threads, 11 hours, 50 GB
+3. Make a `paf-calculations` subdirectory in the current artifact version folder (alongside the artifacts already generated) and set the directory permissions
     ```
     >>> mkdir -p /mnt/team/simulation_science/costeffectiveness/artifacts/vivarium_nih_us_cvd/51-locations/<VERSION>/paf-calculations
     >>> chmod 775 /mnt/team/simulation_science/costeffectiveness/artifacts/vivarium_nih_us_cvd/51-locations/<VERSION>/paf-calculations
     ```
-3. Run the PAF-generating simulations. There are two options to do so.
+4. Run the PAF-generating simulations. There are two options to do so.
     A.1. (OPTIONAL) Update the cluster requests in ./paf_runner.py
     A.2. Navigate to the repository root directory and run the ./calculate_pafs.sh script to serially launch a `psimulate run` command for all locations (defined in the shell script)
         ```
@@ -71,6 +76,7 @@ STEP 4: ADD PAFS TO THE ARTIFACTS
 ---------------------------------
 1. Append the new PAF data to the artifacts
     ```
+    >>> conda activate <ARTIFACT-ENV-NAME>
     >>> make_artifacts --pdb -vvval all -o /mnt/team/simulation_science/costeffectiveness/artifacts/vivarium_nih_us_cvd/51-locations/<VERSION>
     ```
 2. Confirm that all artifacts have the joint PAF key
