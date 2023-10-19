@@ -36,6 +36,7 @@ STEP 3: CALCULATE PAFS
     >>> conda create -n <SIM-ENV-NAME> python=3.11
     >>> conda activate <SIM-ENV-NAME>
     >>> cd <REPOS-DIR>/vivarium_nih_us_cvd; pip install -e .; git checkout main
+    >>> conda install redis
     ```
 2. Request cluster resources appropriate for running the PAF simulations. This may take some trial and error! A good starting point is 3 threads, 11 hours, 50 GB
 3. Make a `paf-calculations` subdirectory in the current artifact version folder (alongside the artifacts already generated) and set the directory permissions
