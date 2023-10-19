@@ -131,6 +131,12 @@ LDLC_OLD_AGE_THRESHOLD = 70.0
 
 
 # Therapeutic inertias (probability that a patient will not have their medication changed)
+THERAPEUTIC_INERTIA_CONSTANT_COMPONENT_VARIANCE = 0.25
+THERAPEUTIC_INERTIA_DYNAMIC_COMPONENT_VARIANCE = (
+    1.0 - THERAPEUTIC_INERTIA_CONSTANT_COMPONENT_VARIANCE
+)
+
+
 class __SBPTherapeuticInertia(NamedTuple):
     FIRST_MEDICATION: float = 0.8
     CHANGE_MEDICATION: float = 0.87
