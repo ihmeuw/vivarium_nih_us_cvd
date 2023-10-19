@@ -38,12 +38,25 @@ STEP 3: CALCULATE PAFS
     >>> mkdir -p /mnt/team/simulation_science/costeffectiveness/artifacts/vivarium_nih_us_cvd/51-locations/<VERSION>/paf-calculations
     >>> chmod 775 /mnt/team/simulation_science/costeffectiveness/artifacts/vivarium_nih_us_cvd/51-locations/<VERSION>/paf-calculations
     ```
-3. (OPTIONAL) Update the cluster requests in ./paf_runner.py
-4. Navigate to the repository root directory and run the ./calculate_pafs.sh script to launch a `psimulate run` command for all locations (defined in the shell script)
-    ```
-    >>> sh ./paf_utilities/calculate_pafs.sh run <VERSION> <ROOT-DIR>
-    ```
-    NOTE: the <ROOT-DIR> is optional and has a sensible default.
+3. Run the PAF-generating simulations. There are two options to do so.
+    A.1. (OPTIONAL) Update the cluster requests in ./paf_runner.py
+    A.2. Navigate to the repository root directory and run the ./calculate_pafs.sh script to serially launch a `psimulate run` command for all locations (defined in the shell script)
+        ```
+        >>> sh ./paf_utilities/calculate_pafs.sh run <VERSION> <ROOT-DIR>
+        ```
+        NOTE: the <ROOT-DIR> is optional and has a sensible default.
+    --- OR (new feature as of October 2023) ---
+    B.1. Add all artifact paths to the paf_scenarios.yaml as a new branches key like:
+        ```
+        branches:
+        - input_data:
+            artifact_path:
+                - '<ROOT-DIR>/<VERSION>/alabama.hdf'
+                - '<ROOT-DIR>/<VERSION>/alaska.hdf'
+                # ...
+                - '<ROOT-DIR>/<VERSION>/wyoming.hdf'
+        ```
+    B.2. Run `psimulate run --max-workers <N> -o <ROOT-DIR>/<VERSION>/paf-calculations/` where N is the maximum number of jobs you want to run at once (maybe 5000?).
 5. Review the output from ./calculate_pafs.sh and check if any states do not have 1000 rows generated.
 6. If any locations lack 1000 draws, run the ./calculate_pafs.sh script to launch the `psimulate restart` command
     ```
