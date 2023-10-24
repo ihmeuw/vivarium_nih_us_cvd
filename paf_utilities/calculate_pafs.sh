@@ -86,6 +86,6 @@ wait
 echo ""
 echo "Simulations finished. Scanning main.log files and printing number of completed jobs:"
 echo ""
-sh ./paf_utilities/check_completion.sh $artifact_dir/$artifact_ver/paf-calculations
+sh ./paf_utilities/check_completion.sh $artifact_dir/$artifact_ver/paf_calculation
 echo ""
 echo "*** FINISHED ***"

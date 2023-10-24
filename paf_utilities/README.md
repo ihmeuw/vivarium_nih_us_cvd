@@ -47,19 +47,28 @@ STEP 3: CALCULATE PAFS
     >>> conda install redis
     ```
 2. Request cluster resources appropriate for running the PAF simulations. This may take some trial and error! A good starting point is 3 threads, 11 hours, 50 GB
-3. Make a `paf-calculations` subdirectory in the current artifact version folder (alongside the artifacts already generated) and set the directory permissions
+3. Run the PAF-generating simulations. There are two options to do so.
+    A.1. Make a `paf_calculation` subdirectory in the current artifact version folder (alongside the artifacts already generated) and set the directory permissions
     ```
-    >>> mkdir -p <OUTPUT-ROOT-DIR>/<VERSION>/paf-calculations
-    >>> chmod 775 <OUTPUT-ROOT-DIR>/<VERSION>/paf-calculations
+    >>> mkdir -p <OUTPUT-ROOT-DIR>/<VERSION>/paf_calculation
+    >>> chmod 775 <OUTPUT-ROOT-DIR>/<VERSION>/paf_calculation
     ```
-4. Run the PAF-generating simulations. There are two options to do so.
-    A.1. (OPTIONAL) Update the cluster requests in ./paf_runner.py
-    A.2. Navigate to the repository root directory and run the ./calculate_pafs.sh script to serially launch a `psimulate run` command for all locations (defined in the shell script)
+    A.2. (OPTIONAL) Update the cluster requests in ./paf_runner.py
+    A.3. Navigate to the repository root directory and run the ./calculate_pafs.sh script to serially launch a `psimulate run` command for all locations (defined in the shell script)
         ```
         >>> sh ./paf_utilities/calculate_pafs.sh run <VERSION> <ROOT-DIR>
         ```
         NOTE: the <OUTPUT-ROOT-DIR> is optional but defaults to /mnt/team/simulation_science/costeffectiveness/artifacts/vivarium_nih_us_cvd/51-locations/.
+    A.4. Review the output from ./calculate_pafs.sh and check if any states do not have 1000 rows generated.
+    A.5. If any locations lack 1000 draws, run the ./calculate_pafs.sh script to launch the `psimulate restart` command
+    ```
+    >>> sh <REPOS-DIR>/vivarium_nih_us_cvd/paf_utilities/calculate_pafs.sh restart <VERSION> <OUTPUT-ROOT-DIR>
+    ```
+
+    NOTE: ./calculate_pafs.sh calls ./check_completion.sh as the final step; you can always run ./check_completion.sh on its own.
+
     --- OR (new feature as of October 2023) ---
+
     B.1. Add all artifact paths to the paf_scenarios.yaml as a new branches key like:
         ```
         branches:
@@ -72,18 +81,10 @@ STEP 3: CALCULATE PAFS
         ```
     B.2. Run PAF-generation sims:
         ```
-        psimulate run <REPOS-DIR>/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/model_specifications/paf_calculation.yaml <REPOS-DIR>/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/model_specifications/branches/paf_scenarios.yaml -o <OUTPUT-ROOT-DIR>/<VERSION>/paf-calculations/ --max-workers <MAX-WORKERS> -vvv --pdb -m 20 -r 1:00:00 -P proj_simscience_prod
+        psimulate run <REPOS-DIR>/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/model_specifications/paf_calculation.yaml <REPOS-DIR>/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/model_specifications/branches/paf_scenarios.yaml -o <OUTPUT-ROOT-DIR>/<VERSION>/ --max-workers <MAX-WORKERS> -vvv --pdb -m 20 -r 1:00:00 -P proj_simscience_prod
         ```
         where <MAX-WORKERS> is the maximum number of jobs you want to run at once (maybe 5000?)
-5. Review the output from ./calculate_pafs.sh and check if any states do not have 1000 rows generated.
-6. If any locations lack 1000 draws, run the ./calculate_pafs.sh script to launch the `psimulate restart` command
-    ```
-    >>> sh <REPOS-DIR>/vivarium_nih_us_cvd/paf_utilities/calculate_pafs.sh restart <VERSION> <OUTPUT-ROOT-DIR>
-    ```
-7. Continue to restart the simulation until all locations have complete PAF outputs (1000 draws). This should hopefully not be more than once.
-
-NOTE: ./calculate_pafs.sh calls ./check_completion.sh as the final step; you can always run ./check_completion.sh on its own.
-
+4. Continue to restart the simulation until all locations have complete PAF outputs (1000 draws).
 
 STEP 4: ADD PAFS TO THE ARTIFACTS
 ---------------------------------

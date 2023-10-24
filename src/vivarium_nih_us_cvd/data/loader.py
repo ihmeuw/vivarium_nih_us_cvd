@@ -1003,12 +1003,14 @@ def load_joint_pafs(artifact_path: str, entity: str, location: str) -> pd.DataFr
     population_structure = load_population_structure(
         data_keys.POPULATION.STRUCTURE, location
     ).droplevel("location")
-    pafs_run_dir = (
-        Path(artifact_path).parent / "paf-calculations" / f"{sanitize_location(location)}"
-    )
+    # NOTE: "paf_calculation" is the name of the PAF sim branches file, paf_calculation.yaml
+    pafs_run_dir = Path(artifact_path).parent / "paf_calculation"
     # assume the last path is the correct one
     paf_path = sorted([d for d in pafs_run_dir.iterdir() if d.is_dir()])[-1] / "output.hdf"
     pafs = pd.read_hdf(paf_path)
+    # Subset to location (extracted from artifact path)
+    # TODO: clarify 'input_data.artifact_path' vs 'run_configuration.run_key.input_data.artifact_path'?
+    pafs = pafs[pafs["input_data.artifact_path"].apply(lambda x: Path(x).name) == Path(artifact_path).name]
     pafs = pafs[[col for col in pafs.columns if col.startswith("MEASURE_joint_paf_on_")]].T
     pafs.columns = ARTIFACT_COLUMNS
     pafs = pafs.reset_index()
