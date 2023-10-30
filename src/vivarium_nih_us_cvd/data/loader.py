@@ -1010,7 +1010,10 @@ def load_joint_pafs(artifact_path: str, entity: str, location: str) -> pd.DataFr
     pafs = pd.read_hdf(paf_path)
     # Subset to location (extracted from artifact path)
     # TODO: clarify 'input_data.artifact_path' vs 'run_configuration.run_key.input_data.artifact_path'?
-    pafs = pafs[pafs["input_data.artifact_path"].apply(lambda x: Path(x).name) == Path(artifact_path).name]
+    pafs = pafs[
+        pafs["input_data.artifact_path"].apply(lambda x: Path(x).name)
+        == Path(artifact_path).name
+    ]
     pafs = pafs[[col for col in pafs.columns if col.startswith("MEASURE_joint_paf_on_")]].T
     pafs.columns = ARTIFACT_COLUMNS
     pafs = pafs.reset_index()
