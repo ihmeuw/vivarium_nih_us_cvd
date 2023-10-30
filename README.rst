@@ -23,7 +23,7 @@ Once you have all three installed, you should open up your normal shell
 You'll then make an environment, clone this repository, then install
 all necessary requirements as follows::
 
-  :~$ conda create --name=vivarium_nih_us_cvd python=3.111
+  :~$ conda create --name=vivarium_nih_us_cvd python=3.11
   ...conda will download python and base dependencies...
   :~$ conda activate vivarium_nih_us_cvd
   (vivarium_nih_us_cvd) :~$ git clone https://github.com/ihmeuw/vivarium_nih_us_cvd.git
@@ -32,7 +32,7 @@ all necessary requirements as follows::
   (vivarium_nih_us_cvd) :~$ pip install -e .
   ...pip will install vivarium and other requirements...
 
-Supported Python versions: 3.19, 3.110, 3.111
+Supported Python versions: 3.9, 3.10, 3.11
 
 Note the ``-e`` flag that follows pip install. This will install the python
 package in-place, which is important for making the model specifications later.
