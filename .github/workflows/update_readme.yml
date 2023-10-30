@@ -2,11 +2,7 @@
 #   - invoked on PR to main branch
 # -----------------------------------------------------------------------------
 name: update README
-
-on:
-  pull_request:
-    branches:
-      - main
+on: push
 
 jobs:
   update-readme:
