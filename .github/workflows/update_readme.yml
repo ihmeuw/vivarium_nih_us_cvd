@@ -25,8 +25,8 @@ jobs:
           git diff --quiet && git diff --staged --quiet || (
             git add README.rst
             git commit -am "update README with supported Python versions"
-            git pull --rebase origin main
-            git push origin main
+            git pull --rebase origin ${{ github.ref_name }}
+            git push origin ${{ github.ref_name }}
           )
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
