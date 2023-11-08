@@ -308,63 +308,9 @@ class Treatment(Component):
     def _apply_lifestyle_to_sbp(self, index, target):
         return self._apply_lifestyle(index, target, risk="sbp")
 
-    ##################
-    # Helper methods #
-    ##################
-
-    def get_updated_drop_values(self, target, enrollment_dates, risk):
-        try:
-            initial_drop_value, final_drop_value = {
-                "bmi": (
-                    data_values.LIFESTYLE_DROP_VALUES.BMI_INITIAL_DROP_VALUE,
-                    data_values.LIFESTYLE_DROP_VALUES.BMI_FINAL_DROP_VALUE,
-                ),
-                "fpg": (
-                    data_values.LIFESTYLE_DROP_VALUES.FPG_INITIAL_DROP_VALUE,
-                    data_values.LIFESTYLE_DROP_VALUES.FPG_FINAL_DROP_VALUE,
-                ),
-                "sbp": (
-                    data_values.LIFESTYLE_DROP_VALUES.SBP_INITIAL_DROP_VALUE,
-                    data_values.LIFESTYLE_DROP_VALUES.SBP_FINAL_DROP_VALUE,
-                ),
-            }[risk]
-        except KeyError:
-            raise ValueError(f"Unrecognized risk {risk}. Risk should be bmi, fpg, or sbp.")
-
-        # drop value at enrollment and during maintenance period
-        decreasing_period_start_dates = enrollment_dates + pd.Timedelta(
-            days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_MAINTENANCE_PERIOD
-        )
-        at_initial_drop_value = self.clock() <= decreasing_period_start_dates
-        target.loc[at_initial_drop_value] = initial_drop_value
-
-        # update drop value for decreasing period
-        decreasing_period_end_dates = decreasing_period_start_dates + pd.Timedelta(
-            days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_DECREASING_PERIOD
-        )
-        progress = (self.clock() - decreasing_period_start_dates) / (
-            pd.Timedelta(
-                days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_DECREASING_PERIOD
-            )
-        )
-        in_decreasing_period = (decreasing_period_start_dates < self.clock()) & (
-            self.clock() <= decreasing_period_end_dates
-        )
-        target.loc[in_decreasing_period] = initial_drop_value - progress[
-            in_decreasing_period
-        ] * (initial_drop_value - final_drop_value)
-
-        # update drop value once final value has been reached
-        reached_final_value = self.clock() > decreasing_period_end_dates
-        target.loc[reached_final_value] = final_drop_value
-
-        # don't update drop values for non-adherent simulants
-        target = (
-            target
-            * self.population_view.get(target.index)[data_values.COLUMNS.LIFESTYLE_ADHERENCE]
-        )
-
-        return target
+    ########################
+    # Event-driven methods #
+    ########################
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         """Implements baseline medication coverage as well as adherence levels
@@ -546,6 +492,107 @@ class Treatment(Component):
             ]
         )
 
+    def on_time_step_cleanup(self, event: Event) -> None:
+        """Update treatments"""
+        pop = self.population_view.get(event.index, query='alive == "alive" & tracked==True')
+
+        visitors = pop[
+            pop[data_values.COLUMNS.VISIT_TYPE].isin(
+                [
+                    data_values.VISIT_TYPE.EMERGENCY,
+                    data_values.VISIT_TYPE.SCHEDULED,
+                    data_values.VISIT_TYPE.BACKGROUND,
+                ]
+            )
+        ].index
+
+        pop.loc[visitors], maybe_enroll_sbp = self.apply_sbp_treatment_ramp(
+            pop_visitors=pop.loc[visitors]
+        )
+        pop.loc[visitors], maybe_enroll_ldlc = self.apply_ldlc_treatment_ramp(
+            pop_visitors=pop.loc[visitors]
+        )
+
+        # Enroll in interventions. The sbp treatment ramp includes both
+        # outreach and polypill enrollment logic while the ldlc ramp
+        # only includes outreach
+        if self.scenario.is_outreach_scenario:
+            maybe_enroll = maybe_enroll_sbp.union(maybe_enroll_ldlc)
+            pop.loc[visitors] = self.enroll_in_outreach(
+                pop_visitors=pop.loc[visitors], maybe_enroll=maybe_enroll
+            )
+        if self.scenario.is_polypill_scenario:
+            pop.loc[visitors] = self.enroll_in_polypill(
+                pop_visitors=pop.loc[visitors], maybe_enroll=maybe_enroll_sbp
+            )
+
+        self.population_view.update(
+            pop[
+                [
+                    data_values.COLUMNS.SBP_MEDICATION,
+                    data_values.COLUMNS.LDLC_MEDICATION,
+                ]
+            ]
+        )
+
+    ##################
+    # Helper methods #
+    ##################
+
+    def get_updated_drop_values(self, target, enrollment_dates, risk):
+        try:
+            initial_drop_value, final_drop_value = {
+                "bmi": (
+                    data_values.LIFESTYLE_DROP_VALUES.BMI_INITIAL_DROP_VALUE,
+                    data_values.LIFESTYLE_DROP_VALUES.BMI_FINAL_DROP_VALUE,
+                ),
+                "fpg": (
+                    data_values.LIFESTYLE_DROP_VALUES.FPG_INITIAL_DROP_VALUE,
+                    data_values.LIFESTYLE_DROP_VALUES.FPG_FINAL_DROP_VALUE,
+                ),
+                "sbp": (
+                    data_values.LIFESTYLE_DROP_VALUES.SBP_INITIAL_DROP_VALUE,
+                    data_values.LIFESTYLE_DROP_VALUES.SBP_FINAL_DROP_VALUE,
+                ),
+            }[risk]
+        except KeyError:
+            raise ValueError(f"Unrecognized risk {risk}. Risk should be bmi, fpg, or sbp.")
+
+        # drop value at enrollment and during maintenance period
+        decreasing_period_start_dates = enrollment_dates + pd.Timedelta(
+            days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_MAINTENANCE_PERIOD
+        )
+        at_initial_drop_value = self.clock() <= decreasing_period_start_dates
+        target.loc[at_initial_drop_value] = initial_drop_value
+
+        # update drop value for decreasing period
+        decreasing_period_end_dates = decreasing_period_start_dates + pd.Timedelta(
+            days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_DECREASING_PERIOD
+        )
+        progress = (self.clock() - decreasing_period_start_dates) / (
+            pd.Timedelta(
+                days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_DECREASING_PERIOD
+            )
+        )
+        in_decreasing_period = (decreasing_period_start_dates < self.clock()) & (
+            self.clock() <= decreasing_period_end_dates
+        )
+        target.loc[in_decreasing_period] = initial_drop_value - progress[
+            in_decreasing_period
+        ] * (initial_drop_value - final_drop_value)
+
+        # update drop value once final value has been reached
+        reached_final_value = self.clock() > decreasing_period_end_dates
+        target.loc[reached_final_value] = final_drop_value
+
+        # don't update drop values for non-adherent simulants
+        target = (
+            target
+            * self.population_view.get(target.index)[data_values.COLUMNS.LIFESTYLE_ADHERENCE]
+        )
+
+        return target
+
     def initialize_medication_coverage(self, pop: pd.DataFrame) -> pd.DataFrame:
         """Initializes medication coverage"""
         pop[
@@ -618,49 +665,6 @@ class Treatment(Component):
         df["none"] = 1 / p_denominator
 
         return df
-
-    def on_time_step_cleanup(self, event: Event) -> None:
-        """Update treatments"""
-        pop = self.population_view.get(event.index, query='alive == "alive" & tracked==True')
-
-        visitors = pop[
-            pop[data_values.COLUMNS.VISIT_TYPE].isin(
-                [
-                    data_values.VISIT_TYPE.EMERGENCY,
-                    data_values.VISIT_TYPE.SCHEDULED,
-                    data_values.VISIT_TYPE.BACKGROUND,
-                ]
-            )
-        ].index
-
-        pop.loc[visitors], maybe_enroll_sbp = self.apply_sbp_treatment_ramp(
-            pop_visitors=pop.loc[visitors]
-        )
-        pop.loc[visitors], maybe_enroll_ldlc = self.apply_ldlc_treatment_ramp(
-            pop_visitors=pop.loc[visitors]
-        )
-
-        # Enroll in interventions. The sbp treatment ramp includes both
-        # outreach and polypill enrollment logic while the ldlc ramp
-        # only includes outreach
-        if self.scenario.is_outreach_scenario:
-            maybe_enroll = maybe_enroll_sbp.union(maybe_enroll_ldlc)
-            pop.loc[visitors] = self.enroll_in_outreach(
-                pop_visitors=pop.loc[visitors], maybe_enroll=maybe_enroll
-            )
-        if self.scenario.is_polypill_scenario:
-            pop.loc[visitors] = self.enroll_in_polypill(
-                pop_visitors=pop.loc[visitors], maybe_enroll=maybe_enroll_sbp
-            )
-
-        self.population_view.update(
-            pop[
-                [
-                    data_values.COLUMNS.SBP_MEDICATION,
-                    data_values.COLUMNS.LDLC_MEDICATION,
-                ]
-            ]
-        )
 
     def apply_sbp_treatment_ramp(
         self, pop_visitors: pd.DataFrame, exposure_pipeline: Optional[Pipeline] = None
