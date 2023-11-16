@@ -27,6 +27,10 @@ class Treatment(Component):
             data_values.COLUMNS.LDLC_MEDICATION,
             data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
             data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
+            data_values.COLUMNS.SBP_MEDICATION_START_DATE,
+            data_values.COLUMNS.LDLC_MEDICATION_START_DATE,
+            data_values.COLUMNS.DISCONTINUED_SBP_MEDICATION,
+            data_values.COLUMNS.DISCONTINUED_LDLC_MEDICATION,
             data_values.COLUMNS.LIFESTYLE_ADHERENCE,
             data_values.COLUMNS.SBP_MULTIPLIER,
             data_values.COLUMNS.LDLC_MULTIPLIER,
@@ -355,6 +359,7 @@ class Treatment(Component):
             pop.index
         )
         pop = self.initialize_medication_coverage(pop)
+        pop = self.initialize_medication_discontinuation(pop)
 
         # Generate lifestyle adherence column
         lifestyle_propensity = self.randomness.get_draw(
@@ -396,7 +401,7 @@ class Treatment(Component):
 
         fpg_test_date_column = pd.Series(pd.NaT, index=pop.index)
         fpg_test_date_column[simulants_with_test_date.index] = (
-            self.clock() + pd.Timedelta(days=28) - time_before_event_start
+            self.clock() + self.step_size() - time_before_event_start
         )
         pop[data_values.COLUMNS.LAST_FPG_TEST_DATE] = fpg_test_date_column
 
@@ -478,8 +483,12 @@ class Treatment(Component):
                 [
                     data_values.COLUMNS.SBP_MEDICATION,
                     data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
+                    data_values.COLUMNS.SBP_MEDICATION_START_DATE,
+                    data_values.COLUMNS.DISCONTINUED_SBP_MEDICATION,
                     data_values.COLUMNS.LDLC_MEDICATION,
                     data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
+                    data_values.COLUMNS.LDLC_MEDICATION_START_DATE,
+                    data_values.COLUMNS.DISCONTINUED_LDLC_MEDICATION,
                     data_values.COLUMNS.LIFESTYLE_ADHERENCE,
                     data_values.COLUMNS.SBP_MULTIPLIER,
                     data_values.COLUMNS.LDLC_MULTIPLIER,
@@ -624,7 +633,7 @@ class Treatment(Component):
             additional_key="initial_ldlc_medication",
         )
 
-        # # Move medicated but non-adherent simulants to lowest level
+        # Move medicated but non-adherent simulants to lowest level
         sbp_non_adherent = pop[
             pop[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE]
             != data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
@@ -665,6 +674,70 @@ class Treatment(Component):
         df["none"] = 1 / p_denominator
 
         return df
+
+    def initialize_medication_discontinuation(self, pop: pd.DataFrame) -> pd.DataFrame:
+        """Initializes medication discontinuation"""
+
+        pop[data_values.COLUMNS.SBP_MEDICATION_START_DATE] = pd.NaT
+        pop[data_values.COLUMNS.LDLC_MEDICATION_START_DATE] = pd.NaT
+        pop[data_values.COLUMNS.DISCONTINUED_SBP_MEDICATION] = False
+        pop[data_values.COLUMNS.DISCONTINUED_LDLC_MEDICATION] = False
+
+        sim_start = self.clock() + self.step_size()
+
+        # Uniformly distribute medication start dates between 0-3 years in the past
+        ## sbp medication
+        sbp_medicated_idx = pop[
+            pop[data_values.COLUMNS.SBP_MEDICATION]
+            != data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
+        ].index
+        pop.loc[
+            sbp_medicated_idx,
+            data_values.COLUMNS.SBP_MEDICATION_START_DATE,
+        ] = sim_start - self.randomness.get_draw(
+            index=sbp_medicated_idx,
+            additional_key="initialized_sbp_medication_start_date",
+        ) * pd.Timedelta(
+            days=365.25 * data_values.INITIALIZATION_MEDICATON_START_DATE_YEARS_IN_PAST
+        )
+
+        ## ldlc medication
+        ldlc_medicated_idx = pop[
+            pop[data_values.COLUMNS.LDLC_MEDICATION]
+            != data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
+        ].index
+        pop.loc[
+            ldlc_medicated_idx,
+            data_values.COLUMNS.LDLC_MEDICATION_START_DATE,
+        ] = sim_start - self.randomness.get_draw(
+            index=ldlc_medicated_idx,
+            additional_key="initialized_ldlc_medication_start_date",
+        ) * pd.Timedelta(
+            days=365.25 * data_values.INITIALIZATION_MEDICATON_START_DATE_YEARS_IN_PAST
+        )
+
+        # Initialize medication discontinuation
+        ## sbp medication
+        not_sbp_medicated_idx = pop.index.difference(sbp_medicated_idx)
+        discontinued_sbp_idx = self.randomness.filter_for_probability(
+            population=not_sbp_medicated_idx,
+            probability=data_values.MEDICATION_DISCONTINUATION_PROBABILITY,
+            additional_key="initialize_discontinued_sbp_medication",
+        )
+        pop.loc[discontinued_sbp_idx, data_values.COLUMNS.DISCONTINUED_SBP_MEDICATION] = True
+
+        ## ldlc medication
+        not_ldlc_medicated_idx = pop.index.difference(ldlc_medicated_idx)
+        discontinued_ldlc_idx = self.randomness.filter_for_probability(
+            population=not_ldlc_medicated_idx,
+            probability=data_values.MEDICATION_DISCONTINUATION_PROBABILITY,
+            additional_key="initialize_discontinued_ldlc_medication",
+        )
+        pop.loc[
+            discontinued_ldlc_idx, data_values.COLUMNS.DISCONTINUED_LDLC_MEDICATION
+        ] = True
+
+        return pop
 
     def apply_sbp_treatment_ramp(
         self, pop_visitors: pd.DataFrame, exposure_pipeline: Optional[Pipeline] = None
