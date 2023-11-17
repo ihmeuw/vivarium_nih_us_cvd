@@ -7,6 +7,7 @@ from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
+from vivarium.framework.utilities import probability_to_rate
 from vivarium.framework.values import Pipeline
 
 from vivarium_nih_us_cvd.constants import data_values, models, paths, scenarios
@@ -505,6 +506,25 @@ class Treatment(Component):
         """Update treatments"""
         pop = self.population_view.get(event.index, query='alive == "alive" & tracked==True')
 
+        # Discontinue medications
+        self.discontinue_medication(
+            pop=pop,
+            event=event,
+            medication_col=data_values.COLUMNS.SBP_MEDICATION,
+            start_date_col=data_values.COLUMNS.SBP_MEDICATION_START_DATE,
+            discontinued_col=data_values.COLUMNS.DISCONTINUED_SBP_MEDICATION,
+            no_treatment_description=data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION,
+        )
+        self.discontinue_medication(
+            pop=pop,
+            event=event,
+            medication_col=data_values.COLUMNS.LDLC_MEDICATION,
+            start_date_col=data_values.COLUMNS.LDLC_MEDICATION_START_DATE,
+            discontinued_col=data_values.COLUMNS.DISCONTINUED_LDLC_MEDICATION,
+            no_treatment_description=data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION,
+        )
+
+        # Apply treatment ramps (i.e. visit the hospital)
         visitors = pop[
             pop[data_values.COLUMNS.VISIT_TYPE].isin(
                 [
@@ -539,7 +559,11 @@ class Treatment(Component):
             pop[
                 [
                     data_values.COLUMNS.SBP_MEDICATION,
+                    data_values.COLUMNS.SBP_MEDICATION_START_DATE,
+                    data_values.COLUMNS.DISCONTINUED_SBP_MEDICATION,
                     data_values.COLUMNS.LDLC_MEDICATION,
+                    data_values.COLUMNS.LDLC_MEDICATION_START_DATE,
+                    data_values.COLUMNS.DISCONTINUED_LDLC_MEDICATION,
                 ]
             ]
         )
@@ -717,6 +741,7 @@ class Treatment(Component):
         )
 
         # Initialize medication discontinuation
+        ## NOTE: we use the same medicated-within-1-year annual rate as a probability here
         ## sbp medication
         not_sbp_medicated_idx = pop.index.difference(sbp_medicated_idx)
         discontinued_sbp_idx = self.randomness.filter_for_probability(
@@ -739,10 +764,49 @@ class Treatment(Component):
 
         return pop
 
+    def discontinue_medication(
+        self,
+        pop: pd.DataFrame,
+        event: Event,
+        medication_col: str,
+        start_date_col: str,
+        discontinued_col: str,
+        no_treatment_description: str,
+    ) -> None:
+        """Simulants who started medication within the last year have a chance of discontinuing.
+        If chosen, set the discontinued column to True and the medication column to not medicated.
+        """
+        treated_idx = pop[pop[medication_col] != no_treatment_description].index
+        started_recently_idx = pop[
+            pop[start_date_col] >= event.time - pd.Timedelta(days=365.25)
+        ].index
+        maybe_discontinue_idx = treated_idx.intersection(started_recently_idx)
+
+        # The probability if discontinuation is per year so we can convert that to a rate and scale
+        scaled_rate = (
+            probability_to_rate(data_values.MEDICATION_DISCONTINUATION_PROBABILITY)
+            * self.step_size().days
+            / 365.25
+        )
+
+        discontinue_idx = self.randomness.filter_for_rate(
+            population=maybe_discontinue_idx,
+            rate=scaled_rate,
+            additional_key=f"discontinue_{medication_col}",
+        )
+
+        pop.loc[discontinue_idx, discontinued_col] = True
+        pop.loc[discontinue_idx, medication_col] = no_treatment_description
+
     def apply_sbp_treatment_ramp(
         self, pop_visitors: pd.DataFrame, exposure_pipeline: Optional[Pipeline] = None
     ) -> Tuple[pd.DataFrame, pd.Index]:
-        """Applies the SBP treatment ramp
+        """Applies the SBP treatment ramp.
+
+        NOTE: simulants who have discontinued medication are not candidates
+        for outreach or polypill interventions.
+        NOTE: simulants who have discontinued medication are not candidates
+        for being put (back on) medication.
 
         Arguments:
             pop_visitors: dataframe subset to simulants visiting the doctor
@@ -775,6 +839,9 @@ class Treatment(Component):
             pop_visitors[data_values.COLUMNS.SBP_MEDICATION]
             != data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
         ].index
+        discontinued = pop_visitors[
+            pop_visitors[data_values.COLUMNS.DISCONTINUED_SBP_MEDICATION]
+        ].index
         low_sbp = measured_sbp[measured_sbp < data_values.SBP_THRESHOLD.LOW].index
         high_sbp = measured_sbp[measured_sbp >= data_values.SBP_THRESHOLD.HIGH].index
         medicated_high_sbp = currently_medicated.intersection(high_sbp)
@@ -786,9 +853,12 @@ class Treatment(Component):
             sbp_prescription_inertia_propensity
             > data_values.SBP_THERAPEUTIC_INERTIA.FIRST_MEDICATION
         ].index
-        newly_prescribed = overcome_first_medication_inertia.difference(
-            currently_medicated
-        ).difference(low_sbp)
+        # NOTE: we do not prescribe to people who have already discontinued medication
+        newly_prescribed = (
+            overcome_first_medication_inertia.difference(currently_medicated)
+            .difference(discontinued)
+            .difference(low_sbp)
+        )
         mask_history_ihd_or_hf = (
             pop_visitors[models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME]
             != models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_SUSCEPTIBLE_STATE_NAME
@@ -800,10 +870,10 @@ class Treatment(Component):
         history_ihd_hf_or_is = pop_visitors[mask_history_ihd_or_hf | mask_history_is].index
 
         # [Treatment ramp ID C] Simulants who overcome therapeutic inertia, have
-        # high SBP, and are not currently medicated
+        # high SBP, and are not currently medicated (or discontinued)
         to_prescribe_c = newly_prescribed.intersection(high_sbp)
         # [Treatment ramp ID B] Simulants who overcome therapeutic inertia, have
-        # medium-level SBP, and are not currently medicated
+        # medium-level SBP, and are not currently medicated (or discontinued)
         to_prescribe_b = newly_prescribed.difference(to_prescribe_c)
         # [Treatment ramp ID D] Simulants who overcome therapeutic inertia, have
         # high sbp, and are currently medicated
@@ -855,6 +925,7 @@ class Treatment(Component):
 
         # Determine potential new outreach enrollees; applies to groups b, c, and
         # everyone already on medication
+        # NOTE: simulants who discontinued medication are not candidates for enrollment
         if (self.scenario.is_outreach_scenario) or (self.scenario.is_polypill_scenario):
             maybe_enroll = to_prescribe_b.union(to_prescribe_c).union(currently_medicated)
         else:
@@ -864,6 +935,7 @@ class Treatment(Component):
         # enrollees except must also have one of the following two requirements
         # 1. measured sbp >= 140
         # 2. measured sbp >= 130 and a history of MI or stroke
+        # NOTE: simulants who discontinued medication are not candidates for enrollment
         if self.scenario.is_polypill_scenario:
             maybe_enroll = maybe_enroll.intersection(
                 high_sbp.union(history_ihd_hf_or_is.difference(low_sbp))
@@ -877,7 +949,12 @@ class Treatment(Component):
         ldlc_pipeline: Optional[Pipeline] = None,
         sbp_pipeline: Optional[Pipeline] = None,
     ) -> Tuple[pd.DataFrame, pd.Index]:
-        """Applies the LDL-C treatment ramp
+        """Applies the LDL-C treatment ramp.
+
+        NOTE: simulants who have discontinued medication are not candidates
+        for outreach or polypill interventions.
+        NOTE: simulants who have discontinued medication are not candidates
+        for being put (back on) medication.
 
         Arguments:
             pop_visitors: dataframe subset to simulants visiting the doctor
@@ -919,6 +996,9 @@ class Treatment(Component):
             pop_visitors[data_values.COLUMNS.LDLC_MEDICATION]
             != data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
         ].index
+        discontinued = pop_visitors[
+            pop_visitors[data_values.COLUMNS.DISCONTINUED_LDLC_MEDICATION]
+        ].index
         overcome_prescription_inertia = pop_visitors[
             ldlc_prescription_inertia_propensity > data_values.LDLC_THERAPEUTIC_INERTIA
         ].index
@@ -931,14 +1011,17 @@ class Treatment(Component):
         old_pop = pop_visitors[
             pop_visitors["age"] >= data_values.LDLC_OLD_AGE_THRESHOLD
         ].index
+        # NOTE: we do not prescribe to people who have already discontinued medication
         newly_prescribed_young = (
             overcome_prescription_inertia.difference(currently_medicated)
+            .difference(discontinued)
             .difference(low_ascvd)
             .difference(low_ldlc)
             .difference(old_pop)
         )
         newly_prescribed_old = (
             overcome_prescription_inertia.difference(currently_medicated)
+            .difference(discontinued)
             .intersection(old_pop)
             .intersection(above_medium_ldlc)
         )
@@ -965,19 +1048,19 @@ class Treatment(Component):
         history_ihd_hf_or_is = pop_visitors[mask_history_ihd_or_hf | mask_history_is].index
 
         # [Treatment ramp ID D] Simulants who overcome therapeutic inertia, have
-        # elevated LDLC, are not currently medicated, have elevated ASCVD, and
-        # have a history of MI or IS
+        # elevated LDLC, are not currently medicated (or discontinued), have
+        # elevated ASCVD, and have a history of MI or IS
         to_prescribe_d = newly_prescribed_young.intersection(history_ihd_hf_or_is)
         # [Treatment ramp ID E] Simulants who overcome therapeutic inertia, have
-        # elevated LDLC, are not currently medicated, have elevated ASCVD, have
-        # no history of MI or IS, and who have high LDLC or ASCVD
+        # elevated LDLC, are not currently medicated (or discontinued), have
+        # elevated ASCVD, have no history of MI or IS, and who have high LDLC or ASCVD
         to_prescribe_e = newly_prescribed_young.difference(to_prescribe_d).intersection(
             high_ascvd.union(high_ldlc)
         )
         # [Treatment ramp ID F] Simulants who overcome therapeutic inertia, have
-        # elevated LDLC, are not currently medicated, and are either (1) old or
-        # (2) have elevated ASCVD, have no history of MI or IS, but who do NOT
-        # have high LDLC or ASCVD
+        # elevated LDLC, are not currently medicated (or discontinued), and are
+        # either (1) old or (2) have elevated ASCVD, have no history of MI or IS,
+        # but who do NOT have high LDLC or ASCVD
         to_prescribe_f_young = newly_prescribed_young.difference(to_prescribe_d).difference(
             to_prescribe_e
         )
@@ -1033,6 +1116,7 @@ class Treatment(Component):
 
         # Determine potential new outreach enrollees; applies to groups
         # 'newly_prescribed' (d, e, f) and simulants already on medication
+        # NOTE: simulants who discontinued medication are not candidates for enrollment
         if self.scenario.is_outreach_scenario:
             maybe_enroll = newly_prescribed.union(currently_medicated)
         else:
