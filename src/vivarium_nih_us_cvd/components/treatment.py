@@ -742,7 +742,6 @@ class Treatment(Component):
         )
 
         # Initialize medication discontinuation
-        ## NOTE: we use the same medicated-within-1-year annual rate as a probability here
         ## sbp medication
         not_sbp_medicated_idx = pop.index.difference(sbp_medicated_idx)
         discontinued_sbp_idx = self.randomness.filter_for_probability(
@@ -783,7 +782,7 @@ class Treatment(Component):
         ].index
         maybe_discontinue_idx = treated_idx.intersection(started_recently_idx)
 
-        # The probability if discontinuation is per year so we can convert that to a rate and scale
+        # The probability of discontinuing is per year so we can convert that to a rate and scale
         scaled_rate = (
             probability_to_rate(data_values.MEDICATION_DISCONTINUATION_PROBABILITY)
             * self.step_size().days
