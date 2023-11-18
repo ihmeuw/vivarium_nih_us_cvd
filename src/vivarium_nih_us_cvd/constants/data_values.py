@@ -14,8 +14,12 @@ class __Columns(NamedTuple):
     SCHEDULED_VISIT_DATE: str = "scheduled_date"
     SBP_MEDICATION: str = "sbp_medication"
     SBP_MEDICATION_ADHERENCE: str = "sbp_medication_adherence"
+    SBP_MEDICATION_START_DATE: str = "sbp_medication_start_date"
+    DISCONTINUED_SBP_MEDICATION: str = "discontinued_sbp_medication"
     LDLC_MEDICATION: str = "ldlc_medication"
     LDLC_MEDICATION_ADHERENCE: str = "ldlc_medication_adherence"
+    LDLC_MEDICATION_START_DATE: str = "ldlc_medication_start_date"
+    DISCONTINUED_LDLC_MEDICATION: str = "discontinued_ldlc_medication"
     LIFESTYLE_ADHERENCE: str = "lifestyle_adherence"
     BASELINE_SBP_MEDICATION: str = "baseline_sbp_medication"
     BASELINE_LDLC_MEDICATION: str = "baseline_ldlc_medication"
@@ -404,6 +408,9 @@ FIRST_PRESCRIPTION_LEVEL_PROBABILITY = {
         },
     },
 }
+
+INITIALIZATION_MEDICATON_START_DATE_YEARS_IN_PAST = 3.0
+MEDICATION_DISCONTINUATION_PROBABILITY = 0.314
 
 
 class __MedicationAdherenceType(NamedTuple):

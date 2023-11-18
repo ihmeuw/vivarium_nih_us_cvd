@@ -27,6 +27,10 @@ class Treatment(Component):
             data_values.COLUMNS.LDLC_MEDICATION,
             data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
             data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
+            data_values.COLUMNS.SBP_MEDICATION_START_DATE,
+            data_values.COLUMNS.LDLC_MEDICATION_START_DATE,
+            data_values.COLUMNS.DISCONTINUED_SBP_MEDICATION,
+            data_values.COLUMNS.DISCONTINUED_LDLC_MEDICATION,
             data_values.COLUMNS.LIFESTYLE_ADHERENCE,
             data_values.COLUMNS.SBP_MULTIPLIER,
             data_values.COLUMNS.LDLC_MULTIPLIER,
@@ -308,63 +312,9 @@ class Treatment(Component):
     def _apply_lifestyle_to_sbp(self, index, target):
         return self._apply_lifestyle(index, target, risk="sbp")
 
-    ##################
-    # Helper methods #
-    ##################
-
-    def get_updated_drop_values(self, target, enrollment_dates, risk):
-        try:
-            initial_drop_value, final_drop_value = {
-                "bmi": (
-                    data_values.LIFESTYLE_DROP_VALUES.BMI_INITIAL_DROP_VALUE,
-                    data_values.LIFESTYLE_DROP_VALUES.BMI_FINAL_DROP_VALUE,
-                ),
-                "fpg": (
-                    data_values.LIFESTYLE_DROP_VALUES.FPG_INITIAL_DROP_VALUE,
-                    data_values.LIFESTYLE_DROP_VALUES.FPG_FINAL_DROP_VALUE,
-                ),
-                "sbp": (
-                    data_values.LIFESTYLE_DROP_VALUES.SBP_INITIAL_DROP_VALUE,
-                    data_values.LIFESTYLE_DROP_VALUES.SBP_FINAL_DROP_VALUE,
-                ),
-            }[risk]
-        except KeyError:
-            raise ValueError(f"Unrecognized risk {risk}. Risk should be bmi, fpg, or sbp.")
-
-        # drop value at enrollment and during maintenance period
-        decreasing_period_start_dates = enrollment_dates + pd.Timedelta(
-            days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_MAINTENANCE_PERIOD
-        )
-        at_initial_drop_value = self.clock() <= decreasing_period_start_dates
-        target.loc[at_initial_drop_value] = initial_drop_value
-
-        # update drop value for decreasing period
-        decreasing_period_end_dates = decreasing_period_start_dates + pd.Timedelta(
-            days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_DECREASING_PERIOD
-        )
-        progress = (self.clock() - decreasing_period_start_dates) / (
-            pd.Timedelta(
-                days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_DECREASING_PERIOD
-            )
-        )
-        in_decreasing_period = (decreasing_period_start_dates < self.clock()) & (
-            self.clock() <= decreasing_period_end_dates
-        )
-        target.loc[in_decreasing_period] = initial_drop_value - progress[
-            in_decreasing_period
-        ] * (initial_drop_value - final_drop_value)
-
-        # update drop value once final value has been reached
-        reached_final_value = self.clock() > decreasing_period_end_dates
-        target.loc[reached_final_value] = final_drop_value
-
-        # don't update drop values for non-adherent simulants
-        target = (
-            target
-            * self.population_view.get(target.index)[data_values.COLUMNS.LIFESTYLE_ADHERENCE]
-        )
-
-        return target
+    ########################
+    # Event-driven methods #
+    ########################
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         """Implements baseline medication coverage as well as adherence levels
@@ -409,6 +359,7 @@ class Treatment(Component):
             pop.index
         )
         pop = self.initialize_medication_coverage(pop)
+        pop = self.initialize_medication_discontinuation(pop)
 
         # Generate lifestyle adherence column
         lifestyle_propensity = self.randomness.get_draw(
@@ -450,7 +401,7 @@ class Treatment(Component):
 
         fpg_test_date_column = pd.Series(pd.NaT, index=pop.index)
         fpg_test_date_column[simulants_with_test_date.index] = (
-            self.clock() + pd.Timedelta(days=28) - time_before_event_start
+            self.clock() + self.step_size() - time_before_event_start
         )
         pop[data_values.COLUMNS.LAST_FPG_TEST_DATE] = fpg_test_date_column
 
@@ -532,8 +483,12 @@ class Treatment(Component):
                 [
                     data_values.COLUMNS.SBP_MEDICATION,
                     data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
+                    data_values.COLUMNS.SBP_MEDICATION_START_DATE,
+                    data_values.COLUMNS.DISCONTINUED_SBP_MEDICATION,
                     data_values.COLUMNS.LDLC_MEDICATION,
                     data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
+                    data_values.COLUMNS.LDLC_MEDICATION_START_DATE,
+                    data_values.COLUMNS.DISCONTINUED_LDLC_MEDICATION,
                     data_values.COLUMNS.LIFESTYLE_ADHERENCE,
                     data_values.COLUMNS.SBP_MULTIPLIER,
                     data_values.COLUMNS.LDLC_MULTIPLIER,
@@ -545,79 +500,6 @@ class Treatment(Component):
                 ]
             ]
         )
-
-    def initialize_medication_coverage(self, pop: pd.DataFrame) -> pd.DataFrame:
-        """Initializes medication coverage"""
-        pop[
-            data_values.COLUMNS.SBP_MEDICATION
-        ] = data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
-        pop[
-            data_values.COLUMNS.LDLC_MEDICATION
-        ] = data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
-        p_medication = self.calculate_initial_medication_coverage_probabilities(pop)
-        medicated_states = self.randomness.choice(
-            p_medication.index,
-            choices=p_medication.columns,
-            p=np.array(p_medication),
-            additional_key="initial_medication_coverage",
-        )
-        medicated_sbp = medicated_states[medicated_states.isin(["sbp", "both"])].index
-        medicated_ldlc = medicated_states[medicated_states.isin(["ldlc", "both"])].index
-        # Define what level of medication for the medicated simulants
-        pop.loc[medicated_sbp, data_values.COLUMNS.SBP_MEDICATION] = self.randomness.choice(
-            medicated_sbp,
-            choices=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["sbp"].keys()),
-            p=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["sbp"].values()),
-            additional_key="initial_sbp_medication",
-        )
-        pop.loc[medicated_ldlc, data_values.COLUMNS.LDLC_MEDICATION] = self.randomness.choice(
-            medicated_ldlc,
-            choices=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["ldlc"].keys()),
-            p=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["ldlc"].values()),
-            additional_key="initial_ldlc_medication",
-        )
-
-        # # Move medicated but non-adherent simulants to lowest level
-        sbp_non_adherent = pop[
-            pop[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE]
-            != data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
-        ].index
-        ldlc_non_adherent = pop[
-            pop[data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE]
-            != data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
-        ].index
-        pop.loc[
-            medicated_sbp.intersection(sbp_non_adherent), data_values.COLUMNS.SBP_MEDICATION
-        ] = self.sbp_treatment_map[1]
-        pop.loc[
-            medicated_ldlc.intersection(ldlc_non_adherent),
-            data_values.COLUMNS.LDLC_MEDICATION,
-        ] = self.ldlc_treatment_map[1]
-
-        return pop
-
-    def calculate_initial_medication_coverage_probabilities(
-        self, pop: pd.DataFrame
-    ) -> pd.DataFrame:
-        """Determine the probability of each simulant being medicated"""
-
-        # Calculate the covariates
-        df = pd.DataFrame()
-        for coefficients in data_values.MEDICATION_COVERAGE_COEFFICIENTS:
-            df[coefficients.NAME] = np.exp(
-                coefficients.INTERCEPT
-                + coefficients.SBP * self.gbd_sbp(pop.index)
-                + coefficients.LDLC * self.gbd_ldlc(pop.index)
-                + coefficients.AGE * pop["age"]
-                + coefficients.SEX
-                * pop["sex"].map(data_values.BASELINE_MEDICATION_COVERAGE_SEX_MAPPING)
-            )
-        # Calculate probabilities of being medicated
-        p_denominator = df.sum(axis=1) + 1
-        df = df.divide(p_denominator, axis=0)
-        df["none"] = 1 / p_denominator
-
-        return df
 
     def on_time_step_cleanup(self, event: Event) -> None:
         """Update treatments"""
@@ -661,6 +543,201 @@ class Treatment(Component):
                 ]
             ]
         )
+
+    ##################
+    # Helper methods #
+    ##################
+
+    def get_updated_drop_values(self, target, enrollment_dates, risk):
+        try:
+            initial_drop_value, final_drop_value = {
+                "bmi": (
+                    data_values.LIFESTYLE_DROP_VALUES.BMI_INITIAL_DROP_VALUE,
+                    data_values.LIFESTYLE_DROP_VALUES.BMI_FINAL_DROP_VALUE,
+                ),
+                "fpg": (
+                    data_values.LIFESTYLE_DROP_VALUES.FPG_INITIAL_DROP_VALUE,
+                    data_values.LIFESTYLE_DROP_VALUES.FPG_FINAL_DROP_VALUE,
+                ),
+                "sbp": (
+                    data_values.LIFESTYLE_DROP_VALUES.SBP_INITIAL_DROP_VALUE,
+                    data_values.LIFESTYLE_DROP_VALUES.SBP_FINAL_DROP_VALUE,
+                ),
+            }[risk]
+        except KeyError:
+            raise ValueError(f"Unrecognized risk {risk}. Risk should be bmi, fpg, or sbp.")
+
+        # drop value at enrollment and during maintenance period
+        decreasing_period_start_dates = enrollment_dates + pd.Timedelta(
+            days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_MAINTENANCE_PERIOD
+        )
+        at_initial_drop_value = self.clock() <= decreasing_period_start_dates
+        target.loc[at_initial_drop_value] = initial_drop_value
+
+        # update drop value for decreasing period
+        decreasing_period_end_dates = decreasing_period_start_dates + pd.Timedelta(
+            days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_DECREASING_PERIOD
+        )
+        progress = (self.clock() - decreasing_period_start_dates) / (
+            pd.Timedelta(
+                days=365.25 * data_values.LIFESTYLE_DROP_VALUES.YEARS_IN_DECREASING_PERIOD
+            )
+        )
+        in_decreasing_period = (decreasing_period_start_dates < self.clock()) & (
+            self.clock() <= decreasing_period_end_dates
+        )
+        target.loc[in_decreasing_period] = initial_drop_value - progress[
+            in_decreasing_period
+        ] * (initial_drop_value - final_drop_value)
+
+        # update drop value once final value has been reached
+        reached_final_value = self.clock() > decreasing_period_end_dates
+        target.loc[reached_final_value] = final_drop_value
+
+        # don't update drop values for non-adherent simulants
+        target = (
+            target
+            * self.population_view.get(target.index)[data_values.COLUMNS.LIFESTYLE_ADHERENCE]
+        )
+
+        return target
+
+    def initialize_medication_coverage(self, pop: pd.DataFrame) -> pd.DataFrame:
+        """Initializes medication coverage"""
+        pop[
+            data_values.COLUMNS.SBP_MEDICATION
+        ] = data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
+        pop[
+            data_values.COLUMNS.LDLC_MEDICATION
+        ] = data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
+        p_medication = self.calculate_initial_medication_coverage_probabilities(pop)
+        medicated_states = self.randomness.choice(
+            p_medication.index,
+            choices=p_medication.columns,
+            p=np.array(p_medication),
+            additional_key="initial_medication_coverage",
+        )
+        medicated_sbp = medicated_states[medicated_states.isin(["sbp", "both"])].index
+        medicated_ldlc = medicated_states[medicated_states.isin(["ldlc", "both"])].index
+        # Define what level of medication for the medicated simulants
+        pop.loc[medicated_sbp, data_values.COLUMNS.SBP_MEDICATION] = self.randomness.choice(
+            medicated_sbp,
+            choices=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["sbp"].keys()),
+            p=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["sbp"].values()),
+            additional_key="initial_sbp_medication",
+        )
+        pop.loc[medicated_ldlc, data_values.COLUMNS.LDLC_MEDICATION] = self.randomness.choice(
+            medicated_ldlc,
+            choices=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["ldlc"].keys()),
+            p=list(data_values.BASELINE_MEDICATION_LEVEL_PROBABILITY["ldlc"].values()),
+            additional_key="initial_ldlc_medication",
+        )
+
+        # Move medicated but non-adherent simulants to lowest level
+        sbp_non_adherent = pop[
+            pop[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE]
+            != data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
+        ].index
+        ldlc_non_adherent = pop[
+            pop[data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE]
+            != data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
+        ].index
+        pop.loc[
+            medicated_sbp.intersection(sbp_non_adherent), data_values.COLUMNS.SBP_MEDICATION
+        ] = self.sbp_treatment_map[1]
+        pop.loc[
+            medicated_ldlc.intersection(ldlc_non_adherent),
+            data_values.COLUMNS.LDLC_MEDICATION,
+        ] = self.ldlc_treatment_map[1]
+
+        return pop
+
+    def calculate_initial_medication_coverage_probabilities(
+        self, pop: pd.DataFrame
+    ) -> pd.DataFrame:
+        """Determine the probability of each simulant being medicated"""
+
+        # Calculate the covariates
+        df = pd.DataFrame()
+        for coefficients in data_values.MEDICATION_COVERAGE_COEFFICIENTS:
+            df[coefficients.NAME] = np.exp(
+                coefficients.INTERCEPT
+                + coefficients.SBP * self.gbd_sbp(pop.index)
+                + coefficients.LDLC * self.gbd_ldlc(pop.index)
+                + coefficients.AGE * pop["age"]
+                + coefficients.SEX
+                * pop["sex"].map(data_values.BASELINE_MEDICATION_COVERAGE_SEX_MAPPING)
+            )
+        # Calculate probabilities of being medicated
+        p_denominator = df.sum(axis=1) + 1
+        df = df.divide(p_denominator, axis=0)
+        df["none"] = 1 / p_denominator
+
+        return df
+
+    def initialize_medication_discontinuation(self, pop: pd.DataFrame) -> pd.DataFrame:
+        """Initializes medication discontinuation"""
+
+        pop[data_values.COLUMNS.SBP_MEDICATION_START_DATE] = pd.NaT
+        pop[data_values.COLUMNS.LDLC_MEDICATION_START_DATE] = pd.NaT
+        pop[data_values.COLUMNS.DISCONTINUED_SBP_MEDICATION] = False
+        pop[data_values.COLUMNS.DISCONTINUED_LDLC_MEDICATION] = False
+
+        sim_start = self.clock() + self.step_size()
+
+        # Uniformly distribute medication start dates between 0-3 years in the past
+        ## sbp medication
+        sbp_medicated_idx = pop[
+            pop[data_values.COLUMNS.SBP_MEDICATION]
+            != data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
+        ].index
+        pop.loc[
+            sbp_medicated_idx,
+            data_values.COLUMNS.SBP_MEDICATION_START_DATE,
+        ] = sim_start - self.randomness.get_draw(
+            index=sbp_medicated_idx,
+            additional_key="initialized_sbp_medication_start_date",
+        ) * pd.Timedelta(
+            days=365.25 * data_values.INITIALIZATION_MEDICATON_START_DATE_YEARS_IN_PAST
+        )
+
+        ## ldlc medication
+        ldlc_medicated_idx = pop[
+            pop[data_values.COLUMNS.LDLC_MEDICATION]
+            != data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
+        ].index
+        pop.loc[
+            ldlc_medicated_idx,
+            data_values.COLUMNS.LDLC_MEDICATION_START_DATE,
+        ] = sim_start - self.randomness.get_draw(
+            index=ldlc_medicated_idx,
+            additional_key="initialized_ldlc_medication_start_date",
+        ) * pd.Timedelta(
+            days=365.25 * data_values.INITIALIZATION_MEDICATON_START_DATE_YEARS_IN_PAST
+        )
+
+        # Initialize medication discontinuation
+        ## sbp medication
+        not_sbp_medicated_idx = pop.index.difference(sbp_medicated_idx)
+        discontinued_sbp_idx = self.randomness.filter_for_probability(
+            population=not_sbp_medicated_idx,
+            probability=data_values.MEDICATION_DISCONTINUATION_PROBABILITY,
+            additional_key="initialize_discontinued_sbp_medication",
+        )
+        pop.loc[discontinued_sbp_idx, data_values.COLUMNS.DISCONTINUED_SBP_MEDICATION] = True
+
+        ## ldlc medication
+        not_ldlc_medicated_idx = pop.index.difference(ldlc_medicated_idx)
+        discontinued_ldlc_idx = self.randomness.filter_for_probability(
+            population=not_ldlc_medicated_idx,
+            probability=data_values.MEDICATION_DISCONTINUATION_PROBABILITY,
+            additional_key="initialize_discontinued_ldlc_medication",
+        )
+        pop.loc[
+            discontinued_ldlc_idx, data_values.COLUMNS.DISCONTINUED_LDLC_MEDICATION
+        ] = True
+
+        return pop
 
     def apply_sbp_treatment_ramp(
         self, pop_visitors: pd.DataFrame, exposure_pipeline: Optional[Pipeline] = None
