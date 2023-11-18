@@ -507,6 +507,7 @@ class Treatment(Component):
         pop = self.population_view.get(event.index, query='alive == "alive" & tracked==True')
 
         # Discontinue medications
+        ## NOTE: These two methods modify the pop dataframe
         self.discontinue_medication(
             pop=pop,
             event=event,
