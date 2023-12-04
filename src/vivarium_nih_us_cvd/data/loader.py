@@ -163,6 +163,8 @@ def get_data(
         data_keys.MEDIATION.HF_DELTAS: load_hf_deltas,
         # PAFs
         data_keys.JOINT_PAFS.PAFS: partial(load_joint_pafs, artifact_path),
+        # Medication coverage
+        data_keys.MEDICATION_COVERAGE.SCALING_FACTOR: load_medication_coverage_scaling_factor,
     }
     source_key = _get_source_key(lookup_key)
     data = mapping[lookup_key](source_key, location)
@@ -1239,19 +1241,45 @@ def load_mediation_factors(*_: str) -> pd.Series:
     return mf.set_index(["risk_name", "mediator_name", "affected_entity"])
 
 
-def load_hf_deltas(*_: str) -> pd.Series:
+def load_hf_deltas(_: str, location) -> pd.Series:
     deltas = pd.read_csv(paths.FILEPATHS.HEART_FAILURE_MEDIATION_DELTAS)
     deltas = deltas.set_index(["age_start", "sex"])[
         [c for c in deltas.columns if c.startswith("draw_")]
     ]
-    # # Get the full index
+    # Get the full index
     idx = (
-        load_population_structure(data_keys.POPULATION.STRUCTURE, "Alabama")
+        load_population_structure(data_keys.POPULATION.STRUCTURE, location)
         .droplevel(["location", "year_start", "year_end"])
         .index.drop_duplicates()
     )
     deltas = pd.DataFrame([], index=idx).join(deltas)
+    deltas = deltas.sort_index()
     # Back- and forward-fill missing data
     deltas = deltas.groupby("sex").ffill().bfill()
 
     return deltas
+
+
+def load_medication_coverage_scaling_factor(_: str, location: str):
+    sf = pd.read_csv(paths.FILEPATHS.MEDICATION_COVERAGE_RRS)
+    sf = sf[sf["state"] == location.lower()]
+    assert (
+        not sf.empty
+    ), f"no medication coverage relative risks found for location {location.lower()}"
+    sf["sex"] = sf["sex"].str.title()
+    sf = sf.set_index(["age_start", "sex"])[["sbp_rr", "ldl_rr", "both_rr"]]
+    # Get the full index
+    idx = (
+        load_population_structure(data_keys.POPULATION.STRUCTURE, location)
+        .droplevel(["location", "year_start", "year_end"])
+        .index.drop_duplicates()
+    )
+    sf = pd.DataFrame([], index=idx).join(sf)
+    sf = sf.sort_index()
+    # Back- and forward-fill missing data
+    sf = sf.groupby("sex").ffill().bfill()
+    # Need to put the columns into the index b/c they are non-standard draw_* cols
+    sf = sf.reset_index()
+    sf = sf.set_index(list(sf.columns))
+
+    return sf

@@ -380,6 +380,23 @@ class __JointPAFs(NamedTuple):
 JOINT_PAFS = __JointPAFs()
 
 
+class __MedicationCoverage(NamedTuple):
+    SCALING_FACTOR: TargetString = TargetString(
+        "risk_factor.medication_coverage.scaling_factor"
+    )
+
+    @property
+    def name(self):
+        return "medication_coverage"
+
+    @property
+    def log_name(self):
+        return self.name.replace("_", " ")
+
+
+MEDICATION_COVERAGE = __MedicationCoverage()
+
+
 ##################
 # Artifact Items #
 ##################
@@ -398,4 +415,5 @@ MAKE_ARTIFACT_KEY_GROUPS = [
     POLYPILL,
     MEDIATION,
     JOINT_PAFS,
+    MEDICATION_COVERAGE,
 ]

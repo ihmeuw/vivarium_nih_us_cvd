@@ -6,11 +6,18 @@ from scipy import stats
 from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
+from vivarium.framework.lookup import LookupTable
 from vivarium.framework.population import SimulantData
 from vivarium.framework.utilities import probability_to_rate
 from vivarium.framework.values import Pipeline
 
-from vivarium_nih_us_cvd.constants import data_values, models, paths, scenarios
+from vivarium_nih_us_cvd.constants import (
+    data_keys,
+    data_values,
+    models,
+    paths,
+    scenarios,
+)
 from vivarium_nih_us_cvd.utilities import get_random_value_from_normal_distribution
 
 
@@ -116,6 +123,9 @@ class Treatment(Component):
         self.sbp_target_modifier = self._get_sbp_target_modifier(builder)
         self.ldlc_medication_effects = self._get_ldlc_medication_effects(builder)
         self.ldlc_target_modifier = self._get_ldlc_target_modifier(builder)
+        self.medication_coverage_scaling_factors = (
+            self._get_medication_coverage_scaling_factors(builder)
+        )
         self._register_target_modifiers(builder)
 
     #################
@@ -244,6 +254,10 @@ class Treatment(Component):
             return target * ldlc_multiplier
 
         return adjust_target
+
+    def _get_medication_coverage_scaling_factors(self, builder: Builder) -> LookupTable:
+        sf = builder.data.load(data_keys.MEDICATION_COVERAGE.SCALING_FACTOR)
+        return builder.lookup.build_table(sf, parameter_columns=["age"], key_columns=["sex"])
 
     def _register_target_modifiers(self, builder: Builder) -> None:
         # medication effects
@@ -693,6 +707,14 @@ class Treatment(Component):
                 + coefficients.SEX
                 * pop["sex"].map(data_values.BASELINE_MEDICATION_COVERAGE_SEX_MAPPING)
             )
+        # Apply covariate scaling factor "relative risks"
+        sf = self.medication_coverage_scaling_factors(pop.index)
+        df = df.join(sf)
+        df["sbp"] *= df["sbp_rr"]
+        df["ldlc"] *= df["ldl_rr"]
+        df["both"] *= df["both_rr"]
+        df = df.drop(sf.columns, axis=1)
+
         # Calculate probabilities of being medicated
         p_denominator = df.sum(axis=1) + 1
         df = df.divide(p_denominator, axis=0)
