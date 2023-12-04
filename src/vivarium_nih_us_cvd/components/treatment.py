@@ -708,12 +708,10 @@ class Treatment(Component):
                 * pop["sex"].map(data_values.BASELINE_MEDICATION_COVERAGE_SEX_MAPPING)
             )
         # Apply covariate scaling factor "relative risks"
-        sf = self.medication_coverage_scaling_factors(pop.index)
-        df = df.join(sf)
-        df["sbp"] *= df["sbp_rr"]
-        df["ldlc"] *= df["ldl_rr"]
-        df["both"] *= df["both_rr"]
-        df = df.drop(sf.columns, axis=1)
+        sf = self.medication_coverage_scaling_factors(df.index)
+        df["sbp"] *= sf["sbp_rr"]
+        df["ldlc"] *= sf["ldl_rr"]
+        df["both"] *= sf["both_rr"]
 
         # Calculate probabilities of being medicated
         p_denominator = df.sum(axis=1) + 1
