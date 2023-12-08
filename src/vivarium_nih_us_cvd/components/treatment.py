@@ -763,6 +763,10 @@ class Treatment(Component):
 
         # Initialize medication discontinuation
         not_medicated_idx = pop.index.difference(medicated_idx)
+        # NOTE: The raw discontinuation "relative risk" values were scaled by RT such 
+        # that the scaled probabilities that get calculated in the Treatment component
+        # are <= ~0.95. Ensure future data updates guarantee this as well or
+        # the issue is otherwise handled.
         scaling_factor = self.medication_coverage_scaling_factors(not_medicated_idx)[
             {
                 data_values.COLUMNS.SBP_MEDICATION: "sbp_rr",
@@ -801,6 +805,10 @@ class Treatment(Component):
         maybe_discontinue_idx = treated_idx.intersection(started_recently_idx)
 
         # The probability of discontinuing is per year so we can convert that to a rate and scale
+        # NOTE: The raw discontinuation "relative risk" values were scaled by RT such 
+        # that the scaled probabilities that get calculated in the Treatment component
+        # are <= ~0.95. Ensure future data updates guarantee this as well or
+        # the issue is otherwise handled.
         scaling_factor = self.medication_coverage_scaling_factors(maybe_discontinue_idx)[
             {
                 data_values.COLUMNS.SBP_MEDICATION: "sbp_rr",

@@ -1259,6 +1259,10 @@ def load_hf_deltas(_: str, location) -> pd.Series:
 
 
 def load_medication_coverage_scaling_factor(_: str, location: str):
+    # NOTE: The raw discontinuation "relative risk" values were scaled by RT such 
+    # that the scaled probabilities that get calculated in the Treatment component
+    # are <= ~0.95. Ensure future data updates guarantee this as well or
+    # the issue is otherwise handled.
     sf = pd.read_csv(paths.FILEPATHS.STATE_MEDICATION_DATA)
     sf = sf[sf["state"] == location]
     assert (
