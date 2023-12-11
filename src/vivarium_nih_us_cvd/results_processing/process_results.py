@@ -100,7 +100,9 @@ def read_data(path: Path, single_run: bool) -> (pd.DataFrame, List[str]):
         with (path.parent / "keyspace.yaml").open() as f:
             keyspace = yaml.full_load(f)
     # Convert the artifacts to locations
-    data[LOCATION_COLUMN] = data[ARTIFACT_COLUMN].apply(lambda x: str(Path(x).name).split(".")[0])
+    data[LOCATION_COLUMN] = data[ARTIFACT_COLUMN].apply(
+        lambda x: str(Path(x).name).split(".")[0]
+    )
     return data, keyspace
 
 
