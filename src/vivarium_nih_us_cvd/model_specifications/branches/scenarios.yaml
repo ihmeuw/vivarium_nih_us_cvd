@@ -13,17 +13,59 @@ branches:
     lifestyle_scale_up:
       value:
         end: 0.0855
-  # - intervention:
-  #     scenario: "outreach_50"
-  #   outreach_scale_up:
-  #     value:
-  #       end: 0.5
-  #   polypill_scale_up:
-  #     value:
-  #       end: 0
-  #   lifestyle_scale_up:
-  #     value:
-  #       end: 0.0855
+    input_data:
+      artifact_path:
+        - '/PATH-TO-ARTIFACTS/alabama.hdf'
+        - '/PATH-TO-ARTIFACTS/alaska.hdf'
+        - '/PATH-TO-ARTIFACTS/arizona.hdf'
+        - '/PATH-TO-ARTIFACTS/arkansas.hdf'
+        - '/PATH-TO-ARTIFACTS/california.hdf'
+        - '/PATH-TO-ARTIFACTS/colorado.hdf'
+        - '/PATH-TO-ARTIFACTS/connecticut.hdf'
+        - '/PATH-TO-ARTIFACTS/delaware.hdf'
+        - '/PATH-TO-ARTIFACTS/district_of_columbia.hdf'
+        - '/PATH-TO-ARTIFACTS/florida.hdf'
+        - '/PATH-TO-ARTIFACTS/georgia.hdf'
+        - '/PATH-TO-ARTIFACTS/hawaii.hdf'
+        - '/PATH-TO-ARTIFACTS/idaho.hdf'
+        - '/PATH-TO-ARTIFACTS/illinois.hdf'
+        - '/PATH-TO-ARTIFACTS/indiana.hdf'
+        - '/PATH-TO-ARTIFACTS/iowa.hdf'
+        - '/PATH-TO-ARTIFACTS/kansas.hdf'
+        - '/PATH-TO-ARTIFACTS/kentucky.hdf'
+        - '/PATH-TO-ARTIFACTS/louisiana.hdf'
+        - '/PATH-TO-ARTIFACTS/maine.hdf'
+        - '/PATH-TO-ARTIFACTS/maryland.hdf'
+        - '/PATH-TO-ARTIFACTS/massachusetts.hdf'
+        - '/PATH-TO-ARTIFACTS/michigan.hdf'
+        - '/PATH-TO-ARTIFACTS/minnesota.hdf'
+        - '/PATH-TO-ARTIFACTS/mississippi.hdf'
+        - '/PATH-TO-ARTIFACTS/missouri.hdf'
+        - '/PATH-TO-ARTIFACTS/montana.hdf'
+        - '/PATH-TO-ARTIFACTS/nebraska.hdf'
+        - '/PATH-TO-ARTIFACTS/nevada.hdf'
+        - '/PATH-TO-ARTIFACTS/new_hampshire.hdf'
+        - '/PATH-TO-ARTIFACTS/new_jersey.hdf'
+        - '/PATH-TO-ARTIFACTS/new_mexico.hdf'
+        - '/PATH-TO-ARTIFACTS/new_york.hdf'
+        - '/PATH-TO-ARTIFACTS/north_carolina.hdf'
+        - '/PATH-TO-ARTIFACTS/north_dakota.hdf'
+        - '/PATH-TO-ARTIFACTS/ohio.hdf'
+        - '/PATH-TO-ARTIFACTS/oklahoma.hdf'
+        - '/PATH-TO-ARTIFACTS/oregon.hdf'
+        - '/PATH-TO-ARTIFACTS/pennsylvania.hdf'
+        - '/PATH-TO-ARTIFACTS/rhode_island.hdf'
+        - '/PATH-TO-ARTIFACTS/south_carolina.hdf'
+        - '/PATH-TO-ARTIFACTS/south_dakota.hdf'
+        - '/PATH-TO-ARTIFACTS/tennessee.hdf'
+        - '/PATH-TO-ARTIFACTS/texas.hdf'
+        - '/PATH-TO-ARTIFACTS/utah.hdf'
+        - '/PATH-TO-ARTIFACTS/vermont.hdf'
+        - '/PATH-TO-ARTIFACTS/virginia.hdf'
+        - '/PATH-TO-ARTIFACTS/washington.hdf'
+        - '/PATH-TO-ARTIFACTS/west_virginia.hdf'
+        - '/PATH-TO-ARTIFACTS/wisconsin.hdf'
+        - '/PATH-TO-ARTIFACTS/wyoming.hdf'
   - intervention:
       scenario: "outreach_100"
     outreach_scale_up:
@@ -35,17 +77,59 @@ branches:
     lifestyle_scale_up:
       value:
         end: 0.0855
-  # - intervention:
-  #     scenario: "polypill_50"  # both adherence + medication level effects
-  #   outreach_scale_up:
-  #     value:
-  #       end: 0
-  #   polypill_scale_up:
-  #     value:
-  #       end: 0.5
-  #   lifestyle_scale_up:
-  #     value:
-  #       end: 0.0855
+    input_data:
+      artifact_path:
+        - '/PATH-TO-ARTIFACTS/alabama.hdf'
+        - '/PATH-TO-ARTIFACTS/alaska.hdf'
+        - '/PATH-TO-ARTIFACTS/arizona.hdf'
+        - '/PATH-TO-ARTIFACTS/arkansas.hdf'
+        - '/PATH-TO-ARTIFACTS/california.hdf'
+        - '/PATH-TO-ARTIFACTS/colorado.hdf'
+        - '/PATH-TO-ARTIFACTS/connecticut.hdf'
+        - '/PATH-TO-ARTIFACTS/delaware.hdf'
+        - '/PATH-TO-ARTIFACTS/district_of_columbia.hdf'
+        - '/PATH-TO-ARTIFACTS/florida.hdf'
+        - '/PATH-TO-ARTIFACTS/georgia.hdf'
+        - '/PATH-TO-ARTIFACTS/hawaii.hdf'
+        - '/PATH-TO-ARTIFACTS/idaho.hdf'
+        - '/PATH-TO-ARTIFACTS/illinois.hdf'
+        - '/PATH-TO-ARTIFACTS/indiana.hdf'
+        - '/PATH-TO-ARTIFACTS/iowa.hdf'
+        - '/PATH-TO-ARTIFACTS/kansas.hdf'
+        - '/PATH-TO-ARTIFACTS/kentucky.hdf'
+        - '/PATH-TO-ARTIFACTS/louisiana.hdf'
+        - '/PATH-TO-ARTIFACTS/maine.hdf'
+        - '/PATH-TO-ARTIFACTS/maryland.hdf'
+        - '/PATH-TO-ARTIFACTS/massachusetts.hdf'
+        - '/PATH-TO-ARTIFACTS/michigan.hdf'
+        - '/PATH-TO-ARTIFACTS/minnesota.hdf'
+        - '/PATH-TO-ARTIFACTS/mississippi.hdf'
+        - '/PATH-TO-ARTIFACTS/missouri.hdf'
+        - '/PATH-TO-ARTIFACTS/montana.hdf'
+        - '/PATH-TO-ARTIFACTS/nebraska.hdf'
+        - '/PATH-TO-ARTIFACTS/nevada.hdf'
+        - '/PATH-TO-ARTIFACTS/new_hampshire.hdf'
+        - '/PATH-TO-ARTIFACTS/new_jersey.hdf'
+        - '/PATH-TO-ARTIFACTS/new_mexico.hdf'
+        - '/PATH-TO-ARTIFACTS/new_york.hdf'
+        - '/PATH-TO-ARTIFACTS/north_carolina.hdf'
+        - '/PATH-TO-ARTIFACTS/north_dakota.hdf'
+        - '/PATH-TO-ARTIFACTS/ohio.hdf'
+        - '/PATH-TO-ARTIFACTS/oklahoma.hdf'
+        - '/PATH-TO-ARTIFACTS/oregon.hdf'
+        - '/PATH-TO-ARTIFACTS/pennsylvania.hdf'
+        - '/PATH-TO-ARTIFACTS/rhode_island.hdf'
+        - '/PATH-TO-ARTIFACTS/south_carolina.hdf'
+        - '/PATH-TO-ARTIFACTS/south_dakota.hdf'
+        - '/PATH-TO-ARTIFACTS/tennessee.hdf'
+        - '/PATH-TO-ARTIFACTS/texas.hdf'
+        - '/PATH-TO-ARTIFACTS/utah.hdf'
+        - '/PATH-TO-ARTIFACTS/vermont.hdf'
+        - '/PATH-TO-ARTIFACTS/virginia.hdf'
+        - '/PATH-TO-ARTIFACTS/washington.hdf'
+        - '/PATH-TO-ARTIFACTS/west_virginia.hdf'
+        - '/PATH-TO-ARTIFACTS/wisconsin.hdf'
+        - '/PATH-TO-ARTIFACTS/wyoming.hdf'
   - intervention:
       scenario: "polypill_100"  # both adherence + medication level effects
     outreach_scale_up:
@@ -57,17 +141,59 @@ branches:
     lifestyle_scale_up:
       value:
         end: 0.0855
-  # - intervention:
-  #     scenario: "lifestyle_50"
-  #   outreach_scale_up:
-  #     value:
-  #       end: 0
-  #   polypill_scale_up:
-  #     value:
-  #       end: 0
-  #   lifestyle_scale_up:
-  #     value:
-  #       end: 0.5
+    input_data:
+      artifact_path:
+        - '/PATH-TO-ARTIFACTS/alabama.hdf'
+        - '/PATH-TO-ARTIFACTS/alaska.hdf'
+        - '/PATH-TO-ARTIFACTS/arizona.hdf'
+        - '/PATH-TO-ARTIFACTS/arkansas.hdf'
+        - '/PATH-TO-ARTIFACTS/california.hdf'
+        - '/PATH-TO-ARTIFACTS/colorado.hdf'
+        - '/PATH-TO-ARTIFACTS/connecticut.hdf'
+        - '/PATH-TO-ARTIFACTS/delaware.hdf'
+        - '/PATH-TO-ARTIFACTS/district_of_columbia.hdf'
+        - '/PATH-TO-ARTIFACTS/florida.hdf'
+        - '/PATH-TO-ARTIFACTS/georgia.hdf'
+        - '/PATH-TO-ARTIFACTS/hawaii.hdf'
+        - '/PATH-TO-ARTIFACTS/idaho.hdf'
+        - '/PATH-TO-ARTIFACTS/illinois.hdf'
+        - '/PATH-TO-ARTIFACTS/indiana.hdf'
+        - '/PATH-TO-ARTIFACTS/iowa.hdf'
+        - '/PATH-TO-ARTIFACTS/kansas.hdf'
+        - '/PATH-TO-ARTIFACTS/kentucky.hdf'
+        - '/PATH-TO-ARTIFACTS/louisiana.hdf'
+        - '/PATH-TO-ARTIFACTS/maine.hdf'
+        - '/PATH-TO-ARTIFACTS/maryland.hdf'
+        - '/PATH-TO-ARTIFACTS/massachusetts.hdf'
+        - '/PATH-TO-ARTIFACTS/michigan.hdf'
+        - '/PATH-TO-ARTIFACTS/minnesota.hdf'
+        - '/PATH-TO-ARTIFACTS/mississippi.hdf'
+        - '/PATH-TO-ARTIFACTS/missouri.hdf'
+        - '/PATH-TO-ARTIFACTS/montana.hdf'
+        - '/PATH-TO-ARTIFACTS/nebraska.hdf'
+        - '/PATH-TO-ARTIFACTS/nevada.hdf'
+        - '/PATH-TO-ARTIFACTS/new_hampshire.hdf'
+        - '/PATH-TO-ARTIFACTS/new_jersey.hdf'
+        - '/PATH-TO-ARTIFACTS/new_mexico.hdf'
+        - '/PATH-TO-ARTIFACTS/new_york.hdf'
+        - '/PATH-TO-ARTIFACTS/north_carolina.hdf'
+        - '/PATH-TO-ARTIFACTS/north_dakota.hdf'
+        - '/PATH-TO-ARTIFACTS/ohio.hdf'
+        - '/PATH-TO-ARTIFACTS/oklahoma.hdf'
+        - '/PATH-TO-ARTIFACTS/oregon.hdf'
+        - '/PATH-TO-ARTIFACTS/pennsylvania.hdf'
+        - '/PATH-TO-ARTIFACTS/rhode_island.hdf'
+        - '/PATH-TO-ARTIFACTS/south_carolina.hdf'
+        - '/PATH-TO-ARTIFACTS/south_dakota.hdf'
+        - '/PATH-TO-ARTIFACTS/tennessee.hdf'
+        - '/PATH-TO-ARTIFACTS/texas.hdf'
+        - '/PATH-TO-ARTIFACTS/utah.hdf'
+        - '/PATH-TO-ARTIFACTS/vermont.hdf'
+        - '/PATH-TO-ARTIFACTS/virginia.hdf'
+        - '/PATH-TO-ARTIFACTS/washington.hdf'
+        - '/PATH-TO-ARTIFACTS/west_virginia.hdf'
+        - '/PATH-TO-ARTIFACTS/wisconsin.hdf'
+        - '/PATH-TO-ARTIFACTS/wyoming.hdf'
   - intervention:
       scenario: "lifestyle_100"
     outreach_scale_up:
@@ -79,3 +205,91 @@ branches:
     lifestyle_scale_up:
       value:
         end: 1.0
+    input_data:
+      artifact_path:
+        - '/PATH-TO-ARTIFACTS/alabama.hdf'
+        - '/PATH-TO-ARTIFACTS/alaska.hdf'
+        - '/PATH-TO-ARTIFACTS/arizona.hdf'
+        - '/PATH-TO-ARTIFACTS/arkansas.hdf'
+        - '/PATH-TO-ARTIFACTS/california.hdf'
+        - '/PATH-TO-ARTIFACTS/colorado.hdf'
+        - '/PATH-TO-ARTIFACTS/connecticut.hdf'
+        - '/PATH-TO-ARTIFACTS/delaware.hdf'
+        - '/PATH-TO-ARTIFACTS/district_of_columbia.hdf'
+        - '/PATH-TO-ARTIFACTS/florida.hdf'
+        - '/PATH-TO-ARTIFACTS/georgia.hdf'
+        - '/PATH-TO-ARTIFACTS/hawaii.hdf'
+        - '/PATH-TO-ARTIFACTS/idaho.hdf'
+        - '/PATH-TO-ARTIFACTS/illinois.hdf'
+        - '/PATH-TO-ARTIFACTS/indiana.hdf'
+        - '/PATH-TO-ARTIFACTS/iowa.hdf'
+        - '/PATH-TO-ARTIFACTS/kansas.hdf'
+        - '/PATH-TO-ARTIFACTS/kentucky.hdf'
+        - '/PATH-TO-ARTIFACTS/louisiana.hdf'
+        - '/PATH-TO-ARTIFACTS/maine.hdf'
+        - '/PATH-TO-ARTIFACTS/maryland.hdf'
+        - '/PATH-TO-ARTIFACTS/massachusetts.hdf'
+        - '/PATH-TO-ARTIFACTS/michigan.hdf'
+        - '/PATH-TO-ARTIFACTS/minnesota.hdf'
+        - '/PATH-TO-ARTIFACTS/mississippi.hdf'
+        - '/PATH-TO-ARTIFACTS/missouri.hdf'
+        - '/PATH-TO-ARTIFACTS/montana.hdf'
+        - '/PATH-TO-ARTIFACTS/nebraska.hdf'
+        - '/PATH-TO-ARTIFACTS/nevada.hdf'
+        - '/PATH-TO-ARTIFACTS/new_hampshire.hdf'
+        - '/PATH-TO-ARTIFACTS/new_jersey.hdf'
+        - '/PATH-TO-ARTIFACTS/new_mexico.hdf'
+        - '/PATH-TO-ARTIFACTS/new_york.hdf'
+        - '/PATH-TO-ARTIFACTS/north_carolina.hdf'
+        - '/PATH-TO-ARTIFACTS/north_dakota.hdf'
+        - '/PATH-TO-ARTIFACTS/ohio.hdf'
+        - '/PATH-TO-ARTIFACTS/oklahoma.hdf'
+        - '/PATH-TO-ARTIFACTS/oregon.hdf'
+        - '/PATH-TO-ARTIFACTS/pennsylvania.hdf'
+        - '/PATH-TO-ARTIFACTS/rhode_island.hdf'
+        - '/PATH-TO-ARTIFACTS/south_carolina.hdf'
+        - '/PATH-TO-ARTIFACTS/south_dakota.hdf'
+        - '/PATH-TO-ARTIFACTS/tennessee.hdf'
+        - '/PATH-TO-ARTIFACTS/texas.hdf'
+        - '/PATH-TO-ARTIFACTS/utah.hdf'
+        - '/PATH-TO-ARTIFACTS/vermont.hdf'
+        - '/PATH-TO-ARTIFACTS/virginia.hdf'
+        - '/PATH-TO-ARTIFACTS/washington.hdf'
+        - '/PATH-TO-ARTIFACTS/west_virginia.hdf'
+        - '/PATH-TO-ARTIFACTS/wisconsin.hdf'
+        - '/PATH-TO-ARTIFACTS/wyoming.hdf'
+
+
+  # - intervention:
+  #     scenario: "outreach_50"
+  #   outreach_scale_up:
+  #     value:
+  #       end: 0.5
+  #   polypill_scale_up:
+  #     value:
+  #       end: 0
+  #   lifestyle_scale_up:
+  #     value:
+  #       end: 0.0855
+  # - intervention:
+  #     scenario: "polypill_50"  # both adherence + medication level effects
+  #   outreach_scale_up:
+  #     value:
+  #       end: 0
+  #   polypill_scale_up:
+  #     value:
+  #       end: 0.5
+  #   lifestyle_scale_up:
+  #     value:
+  #       end: 0.0855
+  # - intervention:
+  #     scenario: "lifestyle_50"
+  #   outreach_scale_up:
+  #     value:
+  #       end: 0
+  #   polypill_scale_up:
+  #     value:
+  #       end: 0
+  #   lifestyle_scale_up:
+  #     value:
+  #       end: 0.5
