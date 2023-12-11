@@ -8,7 +8,9 @@ from loguru import logger
 from vivarium_nih_us_cvd.constants import data_values, results, scenarios
 
 SCENARIO_COLUMN = "scenario"
-GROUPBY_COLUMNS = [results.INPUT_DRAW_COLUMN, SCENARIO_COLUMN]
+ARTIFACT_COLUMN = "run_configuration.run_key.input_data.artifact_path"
+LOCATION_COLUMN = "location"
+GROUPBY_COLUMNS = [results.INPUT_DRAW_COLUMN, SCENARIO_COLUMN, LOCATION_COLUMN]
 OUTPUT_COLUMN_SORT_ORDER = [
     "age_group",
     "sex",
@@ -97,6 +99,8 @@ def read_data(path: Path, single_run: bool) -> (pd.DataFrame, List[str]):
         data[results.RANDOM_SEED_COLUMN] = data[results.RANDOM_SEED_COLUMN].astype(int)
         with (path.parent / "keyspace.yaml").open() as f:
             keyspace = yaml.full_load(f)
+    # Convert the artifacts to locations
+    data[LOCATION_COLUMN] = data[ARTIFACT_COLUMN].apply(lambda x: str(Path(x).name).split(".")[0])
     return data, keyspace
 
 
