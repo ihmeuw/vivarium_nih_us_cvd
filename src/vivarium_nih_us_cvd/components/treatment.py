@@ -374,7 +374,21 @@ class Treatment(Component):
             pop.index
         )
         pop = self.initialize_medication_coverage(pop)
-        pop = self.initialize_medication_discontinuation(pop)
+        ## NOTE: These two methods modify the pop dataframe
+        self.initialize_medication_discontinuation(
+            pop=pop,
+            medication_col=data_values.COLUMNS.SBP_MEDICATION,
+            start_date_col=data_values.COLUMNS.SBP_MEDICATION_START_DATE,
+            discontinued_col=data_values.COLUMNS.DISCONTINUED_SBP_MEDICATION,
+            no_treatment_description=data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION,
+        )
+        self.initialize_medication_discontinuation(
+            pop=pop,
+            medication_col=data_values.COLUMNS.LDLC_MEDICATION,
+            start_date_col=data_values.COLUMNS.LDLC_MEDICATION_START_DATE,
+            discontinued_col=data_values.COLUMNS.DISCONTINUED_LDLC_MEDICATION,
+            no_treatment_description=data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION,
+        )
 
         # Generate lifestyle adherence column
         lifestyle_propensity = self.randomness.get_draw(
@@ -720,69 +734,52 @@ class Treatment(Component):
 
         return df
 
-    def initialize_medication_discontinuation(self, pop: pd.DataFrame) -> pd.DataFrame:
+    def initialize_medication_discontinuation(
+        self,
+        pop: pd.DataFrame,
+        medication_col: str,
+        start_date_col: str,
+        discontinued_col: str,
+        no_treatment_description: str,
+    ) -> None:
         """Initializes medication discontinuation"""
 
-        pop[data_values.COLUMNS.SBP_MEDICATION_START_DATE] = pd.NaT
-        pop[data_values.COLUMNS.LDLC_MEDICATION_START_DATE] = pd.NaT
-        pop[data_values.COLUMNS.DISCONTINUED_SBP_MEDICATION] = False
-        pop[data_values.COLUMNS.DISCONTINUED_LDLC_MEDICATION] = False
+        pop[start_date_col] = pd.NaT
+        pop[discontinued_col] = False
 
         sim_start = self.clock() + self.step_size()
 
         # Uniformly distribute medication start dates between 0-3 years in the past
-        ## sbp medication
-        sbp_medicated_idx = pop[
-            pop[data_values.COLUMNS.SBP_MEDICATION]
-            != data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
-        ].index
+        medicated_idx = pop[pop[medication_col] != no_treatment_description].index
         pop.loc[
-            sbp_medicated_idx,
-            data_values.COLUMNS.SBP_MEDICATION_START_DATE,
+            medicated_idx,
+            start_date_col,
         ] = sim_start - self.randomness.get_draw(
-            index=sbp_medicated_idx,
-            additional_key="initialized_sbp_medication_start_date",
-        ) * pd.Timedelta(
-            days=365.25 * data_values.INITIALIZATION_MEDICATON_START_DATE_YEARS_IN_PAST
-        )
-
-        ## ldlc medication
-        ldlc_medicated_idx = pop[
-            pop[data_values.COLUMNS.LDLC_MEDICATION]
-            != data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
-        ].index
-        pop.loc[
-            ldlc_medicated_idx,
-            data_values.COLUMNS.LDLC_MEDICATION_START_DATE,
-        ] = sim_start - self.randomness.get_draw(
-            index=ldlc_medicated_idx,
-            additional_key="initialized_ldlc_medication_start_date",
+            index=medicated_idx,
+            additional_key=f"initialize_{start_date_col}",
         ) * pd.Timedelta(
             days=365.25 * data_values.INITIALIZATION_MEDICATON_START_DATE_YEARS_IN_PAST
         )
 
         # Initialize medication discontinuation
-        ## sbp medication
-        not_sbp_medicated_idx = pop.index.difference(sbp_medicated_idx)
-        discontinued_sbp_idx = self.randomness.filter_for_probability(
-            population=not_sbp_medicated_idx,
-            probability=data_values.MEDICATION_DISCONTINUATION_PROBABILITY,
-            additional_key="initialize_discontinued_sbp_medication",
+        not_medicated_idx = pop.index.difference(medicated_idx)
+        # NOTE: The raw discontinuation "relative risk" values were scaled by RT such 
+        # that the scaled probabilities that get calculated in the Treatment component
+        # are <= ~0.95. Ensure future data updates guarantee this as well or
+        # the issue is otherwise handled.
+        scaling_factor = self.medication_coverage_scaling_factors(not_medicated_idx)[
+            {
+                data_values.COLUMNS.SBP_MEDICATION: "sbp_rr",
+                data_values.COLUMNS.LDLC_MEDICATION: "ldl_rr",
+            }[medication_col]
+        ]
+        probs = (data_values.MEDICATION_DISCONTINUATION_PROBABILITY / scaling_factor)
+        discontinued_idx = self.randomness.filter_for_probability(
+            population=not_medicated_idx,
+            probability=probs,
+            additional_key=f"initialize_{discontinued_col}",
         )
-        pop.loc[discontinued_sbp_idx, data_values.COLUMNS.DISCONTINUED_SBP_MEDICATION] = True
-
-        ## ldlc medication
-        not_ldlc_medicated_idx = pop.index.difference(ldlc_medicated_idx)
-        discontinued_ldlc_idx = self.randomness.filter_for_probability(
-            population=not_ldlc_medicated_idx,
-            probability=data_values.MEDICATION_DISCONTINUATION_PROBABILITY,
-            additional_key="initialize_discontinued_ldlc_medication",
-        )
-        pop.loc[
-            discontinued_ldlc_idx, data_values.COLUMNS.DISCONTINUED_LDLC_MEDICATION
-        ] = True
-
-        return pop
+        pop.loc[discontinued_idx, discontinued_col] = True
 
     def discontinue_medication(
         self,
@@ -803,18 +800,24 @@ class Treatment(Component):
         maybe_discontinue_idx = treated_idx.intersection(started_recently_idx)
 
         # The probability of discontinuing is per year so we can convert that to a rate and scale
-        scaled_rate = (
-            probability_to_rate(data_values.MEDICATION_DISCONTINUATION_PROBABILITY)
-            * self.step_size().days
-            / 365.25
-        )
+        # NOTE: The raw discontinuation "relative risk" values were scaled by RT such 
+        # that the scaled probabilities that get calculated in the Treatment component
+        # are <= ~0.95. Ensure future data updates guarantee this as well or
+        # the issue is otherwise handled.
+        scaling_factor = self.medication_coverage_scaling_factors(maybe_discontinue_idx)[
+            {
+                data_values.COLUMNS.SBP_MEDICATION: "sbp_rr",
+                data_values.COLUMNS.LDLC_MEDICATION: "ldl_rr",
+            }[medication_col]
+        ]
+        probs = (data_values.MEDICATION_DISCONTINUATION_PROBABILITY / scaling_factor)
+        scaled_rates = probability_to_rate(probs) * self.step_size().days / 365.25
 
         discontinue_idx = self.randomness.filter_for_rate(
             population=maybe_discontinue_idx,
-            rate=scaled_rate,
+            rate=scaled_rates,
             additional_key=f"discontinue_{medication_col}",
         )
-
         pop.loc[discontinue_idx, discontinued_col] = True
         pop.loc[discontinue_idx, medication_col] = no_treatment_description
 
