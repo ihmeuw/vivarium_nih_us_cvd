@@ -741,7 +741,7 @@ class Treatment(Component):
         start_date_col: str,
         discontinued_col: str,
         no_treatment_description: str,
-    ) -> pd.DataFrame:
+    ) -> None:
         """Initializes medication discontinuation"""
 
         pop[start_date_col] = pd.NaT
@@ -773,12 +773,7 @@ class Treatment(Component):
                 data_values.COLUMNS.LDLC_MEDICATION: "ldl_rr",
             }[medication_col]
         ]
-        # NOTE: Unlike medication coverage, we divide the probability by the scaling
-        # factors for discontinuation. This can results in a probability > 1.0
-        # which we clip at 1.0.
-        probs = (data_values.MEDICATION_DISCONTINUATION_PROBABILITY / scaling_factor).clip(
-            upper=1.0
-        )
+        probs = (data_values.MEDICATION_DISCONTINUATION_PROBABILITY / scaling_factor)
         discontinued_idx = self.randomness.filter_for_probability(
             population=not_medicated_idx,
             probability=probs,
@@ -815,12 +810,7 @@ class Treatment(Component):
                 data_values.COLUMNS.LDLC_MEDICATION: "ldl_rr",
             }[medication_col]
         ]
-        # NOTE: Unlike medication coverage, we divide the probability by the scaling
-        # factors for discontinuation. This can results in a probability > 1.0
-        # which we clip at 1.0.
-        probs = (data_values.MEDICATION_DISCONTINUATION_PROBABILITY / scaling_factor).clip(
-            upper=1.0
-        )
+        probs = (data_values.MEDICATION_DISCONTINUATION_PROBABILITY / scaling_factor)
         scaled_rates = probability_to_rate(probs) * self.step_size().days / 365.25
 
         discontinue_idx = self.randomness.filter_for_rate(
