@@ -11,21 +11,22 @@ components:
     vivarium_nih_us_cvd:
         components:
         
-            - ResultsStratifier()
+            # - ResultsStratifier()
+            - SimpleResultsStratifier()
 
             - AdjustedRisk("risk_factor.high_ldl_cholesterol")
-            - ContinuousRiskObserver("risk_factor.high_ldl_cholesterol")
+            # - ContinuousRiskObserver("risk_factor.high_ldl_cholesterol")
             - BinnedRiskObserver("risk_factor.high_ldl_cholesterol")
 
             - AdjustedRisk("risk_factor.high_systolic_blood_pressure")
-            - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
+            # - ContinuousRiskObserver("risk_factor.high_systolic_blood_pressure")
             - BinnedRiskObserver("risk_factor.high_systolic_blood_pressure")
 
             - TruncatedRisk("risk_factor.high_body_mass_index_in_adults")
-            - ContinuousRiskObserver("risk_factor.high_body_mass_index_in_adults")
+            # - ContinuousRiskObserver("risk_factor.high_body_mass_index_in_adults")
 
             - TruncatedRisk('risk_factor.high_fasting_plasma_glucose')
-            - ContinuousRiskObserver("risk_factor.high_fasting_plasma_glucose")
+            # - ContinuousRiskObserver("risk_factor.high_fasting_plasma_glucose")
 
             - RiskCorrelation()
             - JointPAF()
@@ -56,18 +57,18 @@ components:
             - CategoricalSBPRisk()
 
             - HealthcareUtilization()  # NOTE: this uses Treatment() as a sub-component
-            - HealthcareVisitObserver()
+            # - HealthcareVisitObserver()
 
-            - CategoricalColumnObserver("sbp_medication")
-            - CategoricalColumnObserver("ldlc_medication")
+            # - CategoricalColumnObserver("sbp_medication")
+            # - CategoricalColumnObserver("ldlc_medication")
 
             - InterventionAdherenceEffect()
             - LinearScaleUp("risk_factor.outreach")
             - LinearScaleUp("risk_factor.polypill")
             - LinearScaleUp("risk_factor.lifestyle")
-            - CategoricalColumnObserver("outreach")
-            - CategoricalColumnObserver("polypill")
-            - LifestyleObserver()
+            # - CategoricalColumnObserver("outreach")
+            # - CategoricalColumnObserver("polypill")
+            # - LifestyleObserver()
 
     vivarium_public_health:
         population:
@@ -118,12 +119,12 @@ configuration:
             - 'age_group'
             - 'sex'
             - 'current_year'
-        sbp_medication:
-            include:
-                - 'sbp_medication_adherence'
-        ldlc_medication:
-            include:
-                - 'ldlc_medication_adherence'
+        # sbp_medication:
+        #     include:
+        #         - 'sbp_medication_adherence'
+        # ldlc_medication:
+        #     include:
+        #         - 'ldlc_medication_adherence'
     
     outreach:
         exposure: 0

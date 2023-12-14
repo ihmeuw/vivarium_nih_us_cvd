@@ -763,7 +763,7 @@ class Treatment(Component):
 
         # Initialize medication discontinuation
         not_medicated_idx = pop.index.difference(medicated_idx)
-        # NOTE: The raw discontinuation "relative risk" values were scaled by RT such 
+        # NOTE: The raw discontinuation "relative risk" values were scaled by RT such
         # that the scaled probabilities that get calculated in the Treatment component
         # are <= ~0.95. Ensure future data updates guarantee this as well or
         # the issue is otherwise handled.
@@ -773,7 +773,7 @@ class Treatment(Component):
                 data_values.COLUMNS.LDLC_MEDICATION: "ldl_rr",
             }[medication_col]
         ]
-        probs = (data_values.MEDICATION_DISCONTINUATION_PROBABILITY / scaling_factor)
+        probs = data_values.MEDICATION_DISCONTINUATION_PROBABILITY / scaling_factor
         discontinued_idx = self.randomness.filter_for_probability(
             population=not_medicated_idx,
             probability=probs,
@@ -800,7 +800,7 @@ class Treatment(Component):
         maybe_discontinue_idx = treated_idx.intersection(started_recently_idx)
 
         # The probability of discontinuing is per year so we can convert that to a rate and scale
-        # NOTE: The raw discontinuation "relative risk" values were scaled by RT such 
+        # NOTE: The raw discontinuation "relative risk" values were scaled by RT such
         # that the scaled probabilities that get calculated in the Treatment component
         # are <= ~0.95. Ensure future data updates guarantee this as well or
         # the issue is otherwise handled.
@@ -810,7 +810,7 @@ class Treatment(Component):
                 data_values.COLUMNS.LDLC_MEDICATION: "ldl_rr",
             }[medication_col]
         ]
-        probs = (data_values.MEDICATION_DISCONTINUATION_PROBABILITY / scaling_factor)
+        probs = data_values.MEDICATION_DISCONTINUATION_PROBABILITY / scaling_factor
         scaled_rates = probability_to_rate(probs) * self.step_size().days / 365.25
 
         discontinue_idx = self.randomness.filter_for_rate(

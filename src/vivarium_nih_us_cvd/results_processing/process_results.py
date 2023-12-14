@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, List, NamedTuple, Union
+from typing import Dict, List, NamedTuple, Optional, Union
 
 import pandas as pd
 import yaml
@@ -34,19 +34,19 @@ def make_measure_data(data):
         deaths=get_measure_data(data, "deaths"),
         state_person_time=get_measure_data(data, "state_person_time"),
         transition_count=get_transition_count_measure_data(data, "transition_count"),
-        risk_exposure_time=get_measure_data(data, "risk_exposure_time"),
+        # risk_exposure_time=get_measure_data(data, "risk_exposure_time"),
         binned_ldl_exposure_time=get_measure_data(data, "binned_ldl_exposure_time"),
         binned_sbp_exposure_time=get_measure_data(data, "binned_sbp_exposure_time"),
-        healthcare_visits=get_measure_data(data, "healthcare_visits"),
-        sbp_medication_person_time=get_medication_person_time_data(
-            data, "sbp_medication_person_time"
-        ),
-        ldlc_medication_person_time=get_medication_person_time_data(
-            data, "ldlc_medication_person_time"
-        ),
-        intervention_person_time=get_intervention_person_time_data(
-            data, "intervention_person_time"
-        ),
+        # healthcare_visits=get_measure_data(data, "healthcare_visits"),
+        # sbp_medication_person_time=get_medication_person_time_data(
+        #     data, "sbp_medication_person_time"
+        # ),
+        # ldlc_medication_person_time=get_medication_person_time_data(
+        #     data, "ldlc_medication_person_time"
+        # ),
+        # intervention_person_time=get_intervention_person_time_data(
+        #     data, "intervention_person_time"
+        # ),
     )
     return measure_data
 
@@ -57,17 +57,17 @@ class MeasureData(NamedTuple):
     deaths: pd.DataFrame
     state_person_time: pd.DataFrame
     transition_count: pd.DataFrame
-    risk_exposure_time: pd.DataFrame
+    # risk_exposure_time: pd.DataFrame
     binned_ldl_exposure_time: pd.DataFrame
     binned_sbp_exposure_time: pd.DataFrame
-    healthcare_visits: pd.DataFrame
-    sbp_medication_person_time: pd.DataFrame
-    ldlc_medication_person_time: pd.DataFrame
-    intervention_person_time: pd.DataFrame
+    # healthcare_visits: pd.DataFrame
+    # sbp_medication_person_time: pd.DataFrame
+    # ldlc_medication_person_time: pd.DataFrame
+    # intervention_person_time: pd.DataFrame
 
     def dump(self, output_dir: Path):
         for key, df in self._asdict().items():
-            df.to_hdf(output_dir / f"{key}.hdf", key=key)
+            # df.to_hdf(output_dir / f"{key}.hdf", key=key)
             df.to_csv(output_dir / f"{key}.csv")
 
 
@@ -94,15 +94,16 @@ def read_data(path: Path, single_run: bool) -> (pd.DataFrame, List[str]):
             results.RANDOM_SEED_COLUMN: [0],
             results.OUTPUT_SCENARIO_COLUMN: [scenarios.INTERVENTION_SCENARIOS.BASELINE.name],
         }
+        data[LOCATION_COLUMN] = path.parent.parent.name
     else:
         data[results.INPUT_DRAW_COLUMN] = data[results.INPUT_DRAW_COLUMN].astype(int)
         data[results.RANDOM_SEED_COLUMN] = data[results.RANDOM_SEED_COLUMN].astype(int)
         with (path.parent / "keyspace.yaml").open() as f:
             keyspace = yaml.full_load(f)
-    # Convert the artifacts to locations
-    data[LOCATION_COLUMN] = data[ARTIFACT_COLUMN].apply(
-        lambda x: str(Path(x).name).split(".")[0]
-    )
+        # Convert the artifacts to locations
+        data[LOCATION_COLUMN] = data[ARTIFACT_COLUMN].apply(
+            lambda x: str(Path(x).name).split(".")[0]
+        )
     return data, keyspace
 
 
