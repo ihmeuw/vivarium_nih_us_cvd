@@ -67,7 +67,7 @@ COLUMN_TEMPLATES = {
 NON_COUNT_TEMPLATES = []
 
 SEXES = ("Male", "Female")
-YEARS = tuple(range(2023, 2025))
+YEARS = tuple(range(2021, 2041))
 AGE_GROUPS = (
     "25_to_29",
     "30_to_34",

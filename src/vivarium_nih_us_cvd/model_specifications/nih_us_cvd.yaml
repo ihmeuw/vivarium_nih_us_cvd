@@ -101,16 +101,16 @@ configuration:
         random_seed: 0
     time:
         start:
-            year: 2023 # Includes two years for burn-in
+            year: 2021 # Includes two years for burn-in
             month: 1
             day: 1
         end:
-            year: 2024
+            year: 2040
             month: 12
             day: 31
         step_size: 28 # Days
     population:
-        population_size: 10_000
+        population_size: 50_000
         age_start: 5
         age_end: 125
         exit_age: 125
