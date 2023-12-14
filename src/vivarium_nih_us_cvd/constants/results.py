@@ -55,19 +55,19 @@ COLUMN_TEMPLATES = {
     "ylds": YLDS_COLUMN_TEMPLATE,
     "state_person_time": STATE_PERSON_TIME_COLUMN_TEMPLATE,
     "transition_count": TRANSITION_COUNT_COLUMN_TEMPLATE,
-    "risk_exposure_time": RISK_EXPOSURE_TIME_TEMPLATE,
+    # "risk_exposure_time": RISK_EXPOSURE_TIME_TEMPLATE,
     "binned_ldl_exposure_time": BINNED_LDL_EXPOSURE_TIME_TEMPLATE,
     "binned_sbp_exposure_time": BINNED_SBP_EXPOSURE_TIME_TEMPLATE,
-    "healthcare_visits": VISIT_COUNT_TEMPLATE,
-    "sbp_medication_person_time": SBP_MEDICATION_PERSON_TIME_TEMPLATE,
-    "ldlc_medication_person_time": LDLC_MEDICATION_PERSON_TIME_TEMPLATE,
-    "intervention_person_time": INTERVENTION_PERSON_TIME_TEMPLATE,
+    # "healthcare_visits": VISIT_COUNT_TEMPLATE,
+    # "sbp_medication_person_time": SBP_MEDICATION_PERSON_TIME_TEMPLATE,
+    # "ldlc_medication_person_time": LDLC_MEDICATION_PERSON_TIME_TEMPLATE,
+    # "intervention_person_time": INTERVENTION_PERSON_TIME_TEMPLATE,
 }
 
 NON_COUNT_TEMPLATES = []
 
 SEXES = ("Male", "Female")
-YEARS = tuple(range(2021, 2041))
+YEARS = tuple(range(2023, 2025))
 AGE_GROUPS = (
     "25_to_29",
     "30_to_34",
@@ -135,15 +135,15 @@ TEMPLATE_FIELD_MAP = {
         for model in STATE_MACHINE_MAP
         for transition in STATE_MACHINE_MAP[model]["transitions"]
     ],
-    "RISK": RISKS,
+    # "RISK": RISKS,
     "BINNED_LDL_LIMITS": BINNED_LDL_LIMITS,
     "BINNED_SBP_LIMITS": BINNED_SBP_LIMITS,
-    "VISIT_TYPE": data_values.VISIT_TYPE,
-    "MEDICATION_ADHERENCE": MEDICATION_ADHERENCES,
-    "SBP_MEDICATION": SBP_MEDICATIONS,
-    "LDLC_MEDICATION": LDLC_MEDICATIONS,
-    "INTERVENTION_TYPE": INTERVENTION_TYPES,
-    "INTERVENTION": INTERVENTIONS,
+    # "VISIT_TYPE": data_values.VISIT_TYPE,
+    # "MEDICATION_ADHERENCE": MEDICATION_ADHERENCES,
+    # "SBP_MEDICATION": SBP_MEDICATIONS,
+    # "LDLC_MEDICATION": LDLC_MEDICATIONS,
+    # "INTERVENTION_TYPE": INTERVENTION_TYPES,
+    # "INTERVENTION": INTERVENTIONS,
 }
 
 
