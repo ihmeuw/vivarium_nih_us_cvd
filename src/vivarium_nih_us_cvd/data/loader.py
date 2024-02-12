@@ -169,6 +169,15 @@ def get_data(
     source_key = _get_source_key(lookup_key)
     data = mapping[lookup_key](source_key, location)
     data = handle_special_cases(data, source_key, location)
+    data = subset_to_most_recent(data)
+    return data
+
+
+def subset_to_most_recent(data):
+    if isinstance(data, pd.DataFrame):
+        if "year_start" in data.index.names:
+            max_year = data.index.get_level_values("year_start").max()
+            data = data.query(f"year_start == {max_year}")
     return data
 
 

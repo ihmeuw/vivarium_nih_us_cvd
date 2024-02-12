@@ -751,10 +751,7 @@ class Treatment(Component):
 
         # Uniformly distribute medication start dates between 0-3 years in the past
         medicated_idx = pop[pop[medication_col] != no_treatment_description].index
-        pop.loc[
-            medicated_idx,
-            start_date_col,
-        ] = sim_start - self.randomness.get_draw(
+        pop.loc[medicated_idx, start_date_col,] = sim_start - self.randomness.get_draw(
             index=medicated_idx,
             additional_key=f"initialize_{start_date_col}",
         ) * pd.Timedelta(
