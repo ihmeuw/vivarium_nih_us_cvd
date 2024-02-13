@@ -103,22 +103,19 @@ You'll find six directories inside the main
 Running Simulations
 -------------------
 
-With your conda environment active, the first step to running simulations
-is making the model specification files.  A model specification is a
-complete description of a vivarium model. The command to generate model
-specifications is installed with this repository and it can be run
-from any directory.::
+First, you will need to update the model specifications file to be the location you wish to run. 
+There are options for all 50 states and Washington DC. The default location is Alabama. 
+To update the location, go to the cloned repository. Then open the src folder, then vivarium_nih_us_cvd, 
+model_specifications, and open the nih_us_cvd.yaml file. On line 94, change the file 
+path '../artifacts/alabama.hdf' to be your location of choice. For example, 
+'../artifacts/washington.hdf' or '../artifacts/california.hdf'. 
 
-  (vivarium_nih_us_cvd) :~$ make_specs -v
-  2020-06-18 18:18:28.311 | 0:00:00.679701 | build_model_specifications:48 - Writing model spec(s) to "/REPO_INSTALLATION_DIRECTORY/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/model_specifications"
+Once this is updated, you can run your simulation from the command line. 
+With your conda environment active, you can run with, e.g.::
 
-As the log message indicates, the model specifications will be written to
-the ``model_specifications`` subdirectory in this repository. You can then
-run simulations by, e.g.::
+   (vivarium_nih_us_cvd) :~$ simulate run -vvv /<REPO_INSTALLATION_DIRECTORY>/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/model_specifications/<MODEL_SPEC_FILE_NAME>.yaml -o /FILE/PATH/TO/SAVE/RESULTS 
 
-   (vivarium_nih_us_cvd) :~$ simulate run -v /<REPO_INSTALLATION_DIRECTORY>/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/model_specifications/china.yaml
-
-The ``-v`` flag will log verbosely, so you will get log messages every time
+The ``-vvv`` flag will log verbosely, so you will get log messages every time
 step. For more ways to run simulations, see the tutorials at
 https://vivarium.readthedocs.io/en/latest/tutorials/running_a_simulation/index.html
 and https://vivarium.readthedocs.io/en/latest/tutorials/exploration.html

@@ -89,9 +89,9 @@ components:
 
 
 configuration:
-    # input_data:
-    #     input_draw_number: 0
-    #     artifact_path: '/src/vivarium_nih_us_cvd/artifacts/alabama.hdf'
+     input_data:
+         input_draw_number: 0
+         artifact_path: '../artifacts/alabama.hdf'
     interpolation:
         order: 0
         extrapolate: True
