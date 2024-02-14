@@ -104,11 +104,14 @@ Running Simulations
 -------------------
 
 First, you will need to update the model specifications file to be the location you wish to run. 
-There are options for all 50 states and Washington DC. The default location is Alabama. 
+There are options for 3 example states: California, Illinois and Florida. The default location is California. 
 To update the location, go to the cloned repository. Then open the src folder, then vivarium_nih_us_cvd, 
 model_specifications, and open the nih_us_cvd.yaml file. On line 94, change the file 
-path '../artifacts/alabama.hdf' to be your location of choice. For example, 
-'../artifacts/washington.hdf' or '../artifacts/california.hdf'. 
+path '../artifacts/california.hdf' to be your location of choice. For example, 
+'../artifacts/illinois.hdf' or '../artifacts/florida.hdf'. 
+
+If you need other location data for a different state, please reach out to the 
+owner of this repository. 
 
 Once this is updated, you can run your simulation from the command line. 
 With your conda environment active, you can run with, e.g.::
