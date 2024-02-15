@@ -113,7 +113,7 @@ path '../artifacts/alabama.hdf' to be your location of choice. For example,
 Once this is updated, you can run your simulation from the command line. 
 With your conda environment active, you can run with, e.g.::
 
-   (vivarium_nih_us_cvd) :~$ simulate run -vvv /<REPO_INSTALLATION_DIRECTORY>/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/model_specifications/<MODEL_SPEC_FILE_NAME>.yaml -o /FILE/PATH/TO/SAVE/RESULTS 
+   (vivarium_nih_us_cvd) :~$ simulate run -vvv /<REPO_INSTALLATION_DIRECTORY>/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/model_specifications/nih_us_cvd.yaml -o /FILE/PATH/TO/SAVE/RESULTS 
 
 The ``-vvv`` flag will log verbosely, so you will get log messages every time
 step. For more ways to run simulations, see the tutorials at
