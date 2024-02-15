@@ -103,17 +103,14 @@ You'll find six directories inside the main
 Running Simulations
 -------------------
 
-First, you will need to update the model specifications file to be the location you wish to run. 
-There are options for all 50 states and Washington DC. The default location is Alabama. 
-To update the location, go to the cloned repository. Then open the src folder, then vivarium_nih_us_cvd, 
-model_specifications, and open the nih_us_cvd.yaml file. On line 94, change the file 
-path '../artifacts/alabama.hdf' to be your location of choice. For example, 
-'../artifacts/washington.hdf' or '../artifacts/california.hdf'. 
-
-Once this is updated, you can run your simulation from the command line. 
+You can run your simulation from the command line. 
 With your conda environment active, you can run with, e.g.::
 
-   (vivarium_nih_us_cvd) :~$ simulate run -vvv /<REPO_INSTALLATION_DIRECTORY>/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/model_specifications/nih_us_cvd.yaml -o /FILE/PATH/TO/SAVE/RESULTS 
+   (vivarium_nih_us_cvd) :~$ simulate run -vvv /<REPO_INSTALLATION_DIRECTORY>/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/model_specifications/nih_us_cvd.yaml -o /FILE/PATH/TO/SAVE/RESULTS -i src/vivarium_nih_us_cvd/artifacts/<STATE_NAME>.hdf
+
+The simulation will run in one location at a time, enter the state you wish to 
+run the simulation for in your call. The state name should be in lower case with 
+an underscore between words. For example 'alabama', 'new_jersey' and 'district_of_columbia'.  
 
 The ``-vvv`` flag will log verbosely, so you will get log messages every time
 step. For more ways to run simulations, see the tutorials at
