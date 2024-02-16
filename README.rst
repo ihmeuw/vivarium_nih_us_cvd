@@ -2,6 +2,12 @@
 vivarium_nih_us_cvd
 ===============================
 
+.. image:: https://zenodo.org/badge/508851666.svg
+  :target: https://zenodo.org/doi/10.5281/zenodo.10671674
+
+Cite as: 
+Rajan Mudambi, Steve Bachmeier, Hussain Jafari, Kjell Swedin, Matthew Kappel, Sylvia Lutze, Alison Bowman, Caroline Kinuthia, & Abraham Flaxman. (2024). ihmeuw/vivarium_nih_us_cvd: Archival release (v1.0). Zenodo. https://zenodo.org/doi/10.5281/zenodo.10671674
+
 Research repository for the vivarium_nih_us_cvd project.
 
 .. contents::
