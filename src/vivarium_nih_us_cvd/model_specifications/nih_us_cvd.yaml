@@ -114,9 +114,9 @@ configuration:
         step_size: 28 # Days
     population:
         population_size: 10_000
-        age_start: 5
-        age_end: 125
-        exit_age: 125
+        initialization_age_min: 5
+        initialization_age_max: 125
+        untracking_age: 125
     stratification:
         default:
             - 'age_group'
