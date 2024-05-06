@@ -2,8 +2,9 @@ from importlib import import_module
 from typing import Any, Callable, Dict, List, Union
 
 import pandas as pd
+from layered_config_tree import ConfigTree
 from pkg_resources import resource_filename
-from vivarium import Component, ConfigTree
+from vivarium import Component
 from vivarium.framework.components import ComponentConfigurationParser
 from vivarium.framework.engine import Builder
 from vivarium.framework.state_machine import Trigger
