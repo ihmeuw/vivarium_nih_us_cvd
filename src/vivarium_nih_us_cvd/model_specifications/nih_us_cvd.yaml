@@ -8,8 +8,8 @@ components:
         vivarium_nih_us_cvd:
             - "components/causes/causes.yaml"
 
-    vivarium_nih_us_cvd:
-        components:
+    # vivarium_nih_us_cvd:
+    #     components:
         
             # - ResultsStratifier()
             # - SimpleResultsStratifier()
