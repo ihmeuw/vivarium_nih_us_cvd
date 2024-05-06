@@ -4,12 +4,13 @@ plugins:
             controller: "vivarium_nih_us_cvd.plugins.CausesConfigurationParser"
 
 components:
-    external_configuration:
-        vivarium_nih_us_cvd:
-            - "components/causes/causes.yaml"
+    # external_configuration:
+    #     vivarium_nih_us_cvd:
+    #         - "components/causes/causes.yaml"
 
-    # vivarium_nih_us_cvd:
-    #     components:
+    vivarium_nih_us_cvd:
+        components:
+            - IschemicStroke()
         
             # - ResultsStratifier()
             # - SimpleResultsStratifier()
