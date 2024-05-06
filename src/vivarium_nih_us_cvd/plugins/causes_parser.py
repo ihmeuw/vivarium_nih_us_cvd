@@ -2,7 +2,7 @@ from importlib import import_module
 from typing import Any, Callable, Dict, List, Union
 
 import pandas as pd
-from layered_config_tree import ConfigTree
+from layered_config_tree import LayeredConfigTree
 from pkg_resources import resource_filename
 from vivarium import Component
 from vivarium.framework.components import ComponentConfigurationParser
