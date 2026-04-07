@@ -22,7 +22,9 @@ class CompositeRateTransition(RateTransition):
         output_state: BaseDiseaseState,
         triggered: Trigger = Trigger.NOT_TRIGGERED,
     ):
-        super().__init__(input_state, output_state, triggered=triggered)
+        super().__init__(
+            input_state, output_state, triggered=triggered, transition_rate=0.0
+        )
 
         # A dictionary with output state name as the key and the
         # get_data_functions for the transition to that state as its value
@@ -53,7 +55,8 @@ class CompositeRateTransition(RateTransition):
             ],
         )
 
-        self.population_view = builder.population.get_view(["alive"])
+        # population_view is now auto-configured via columns_required on Component
+        self.rate_conversion_type = "linear"
 
     ##################################
     # Pipeline sources and modifiers #

@@ -145,13 +145,44 @@ MEDIATOR_NAMES = {
 class MediatedRiskEffect(RiskEffect):
     """Applies mediation to risk effects"""
 
+    def build_all_lookup_tables(self, builder: Builder) -> None:
+        """Override to skip PAF loading - this model uses joint PAFs instead."""
+        try:
+            self._exposure_distribution_type = self.get_distribution_type(builder)
+        except ValueError:
+            # CategoricalSBPRisk is a custom Component, not a standard Risk,
+            # so get_distribution_type can't find it. Infer from the risk name.
+            if "categorical" in self.risk.name:
+                self._exposure_distribution_type = "ordered_polytomous"
+            else:
+                self._exposure_distribution_type = "normal"
+        rr_data = self.get_filtered_data(
+            builder, self.configuration.data_sources.relative_risk
+        )
+        if self.is_exposure_categorical:
+            rr_data, rr_value_cols = self.process_categorical_data(builder, rr_data)
+            self.lookup_tables["relative_risk"] = builder.lookup.build_table(
+                rr_data,
+                key_columns=["sex"],
+                parameter_columns=["age", "year"],
+                value_columns=rr_value_cols,
+            )
+        else:
+            if isinstance(rr_data, pd.DataFrame) and "parameter" in rr_data.columns:
+                rr_data = rr_data.drop(columns=["parameter"])
+            self.lookup_tables["relative_risk"] = builder.lookup.build_table(
+                rr_data,
+                key_columns=["sex"],
+                parameter_columns=["age", "year"],
+            )
+
     def setup(self, builder):
         super().setup(builder)
         # Register unadjusted RR pipelines by passing target=1s to the super's target_modifier
         self.is_target_hf = self.target.name.startswith("heart_failure")
         self.unadjusted_rr = builder.value.register_value_producer(
             f"unadjusted_rr_{self.risk.name}_on_{self.target.name}",
-            source=lambda idx: self.target_modifier(idx, pd.Series(1.0, index=idx)),
+            source=lambda idx: self.adjust_target(idx, pd.Series(1.0, index=idx)),
         )
         self.mediators = MEDIATOR_NAMES.get(self.risk.name, {}).get(self.target.name, [])
         self.unadjusted_mediator_rr = {

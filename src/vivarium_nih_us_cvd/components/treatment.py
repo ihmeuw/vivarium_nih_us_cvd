@@ -667,7 +667,7 @@ class Treatment(Component):
         medicated_states = self.randomness.choice(
             p_medication.index,
             choices=p_medication.columns,
-            p=np.array(p_medication),
+            p=np.array(p_medication, dtype=float),
             additional_key="initial_medication_coverage",
         )
         medicated_sbp = medicated_states[medicated_states.isin(["sbp", "both"])].index
@@ -1113,7 +1113,7 @@ class Treatment(Component):
         ] = self.randomness.choice(
             newly_prescribed,
             choices=df_newly_prescribed.columns,
-            p=np.array(df_newly_prescribed),
+            p=np.array(df_newly_prescribed, dtype=float),
             additional_key="high_ldlc_first_prescriptions",
         )
 

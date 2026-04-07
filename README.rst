@@ -122,3 +122,171 @@ The ``-vvv`` flag will log verbosely, so you will get log messages every time
 step. For more ways to run simulations, see the tutorials at
 https://vivarium.readthedocs.io/en/latest/tutorials/running_a_simulation/index.html
 and https://vivarium.readthedocs.io/en/latest/tutorials/exploration.html
+
+
+Vivarium 3.x Upgrade (April 2026)
+----------------------------------
+
+This project was originally built against vivarium 2.x and
+vivarium_public_health 2.2.0. In April 2026 the code was updated to run
+on vivarium >= 3.0.0 and vivarium_public_health >= 4.0.0. Below is a
+comprehensive summary of every change and why it was needed.
+
+Dependency changes (``setup.py``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- ``vivarium`` pinned from ``>=2.1.1`` to ``>=3.0.0``
+- ``vivarium_public_health`` pinned from ``==2.2.0`` to ``>=4.0.0``
+- ``gbd_mapping`` removed from install requirements (it is only needed
+  for artifact building on the IHME cluster, not for running simulations)
+- ``vivarium_inputs[data]`` pin relaxed from ``==4.1.0`` to ``>=4.1.0``
+- Python 3.12 added to ``python_versions.json``
+
+``ConfigTree`` renamed to ``LayeredConfigTree``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Vivarium 3.x extracted the configuration tree into a standalone package
+called ``layered_config_tree``. All imports of ``ConfigTree`` from
+``vivarium`` were replaced:
+
+- ``src/vivarium_nih_us_cvd/components/causes/causes.py`` — six
+  occurrences: class attribute type hints and method signatures
+- ``src/vivarium_nih_us_cvd/plugins/causes_parser.py`` — ten
+  occurrences: method signatures and docstrings
+
+``pkg_resources`` replaced with ``importlib.resources``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``pkg_resources`` (from ``setuptools``) was deprecated and removed in
+modern Python/setuptools versions. The single usage in
+``src/vivarium_nih_us_cvd/plugins/causes_parser.py`` was replaced:
+
+- ``from pkg_resources import resource_filename`` →
+  ``from importlib.resources import files``
+- ``resource_filename(package, config_file)`` →
+  ``str(files(package).joinpath(config_file))``
+
+``importlib.resources`` is part of the Python standard library (3.9+)
+and requires no additional dependencies.
+
+Population configuration keys renamed
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Vivarium 3.x renamed the population configuration keys. In both
+``nih_us_cvd.yaml`` and ``paf_calculation.yaml``:
+
+- ``age_start`` → ``initialization_age_min``
+- ``age_end`` → ``initialization_age_max``
+- ``exit_age`` → ``untracking_age``
+
+Results module path change
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``vivarium_public_health`` moved its results/stratification module:
+
+- ``vivarium_public_health.metrics.stratification`` →
+  ``vivarium_public_health.results.stratification``
+
+This affected the ``ResultsStratifier`` import in
+``src/vivarium_nih_us_cvd/components/observers.py``.
+
+``register_observation`` renamed
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Vivarium 3.x renamed the results registration method:
+
+- ``builder.results.register_observation(...)`` →
+  ``builder.results.register_adding_observation(...)``
+
+Nine call sites in ``observers.py`` were updated (``ContinuousRiskObserver``,
+``HealthcareVisitObserver``, ``CategoricalColumnObserver``,
+``LifestyleObserver``, ``BinnedRiskObserver``, ``JointPAFObserver``).
+
+Model spec YAML: ``metrics`` → ``results``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The component section key that registers metric observers changed from
+``metrics`` to ``results`` in the vivarium_public_health component list
+within ``nih_us_cvd.yaml``.
+
+Risk factor data sources in YAML
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Vivarium 3.x requires risk factors with constant exposure values
+(outreach, polypill, lifestyle) to declare their data sources and
+distribution type under ``configuration.risk_factor.<name>`` using the
+new ``data_sources`` format. The following was added to
+``nih_us_cvd.yaml``::
+
+    risk_factor.outreach:
+        data_sources:
+            exposure: 0
+    risk_factor.polypill:
+        data_sources:
+            exposure: 0
+    risk_factor.lifestyle:
+        distribution_type: "dichotomous"
+        data_sources:
+            exposure: .0855
+
+``RateTransition`` now requires ``transition_rate``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``RateTransition`` constructor in vivarium 3.x added a required
+``transition_rate`` parameter. ``CompositeRateTransition`` in
+``src/vivarium_nih_us_cvd/components/causes/transition.py`` was updated
+to pass ``transition_rate=0.0`` in the ``super().__init__()`` call (the
+actual rate is built later in ``setup``).
+
+The explicit ``self.population_view = builder.population.get_view(["alive"])``
+was also removed, since vivarium 3.x manages population views
+automatically via ``columns_required`` on the ``Component`` base class.
+
+``MediatedRiskEffect.build_all_lookup_tables`` override
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Vivarium 3.x's ``RiskEffect`` now builds PAF lookup tables by default
+during ``build_all_lookup_tables``. This project uses **joint PAFs** from
+a separate PAF calculation simulation, so the per-risk PAF data does not
+exist in the artifact.
+
+``MediatedRiskEffect`` in ``src/vivarium_nih_us_cvd/components/effects.py``
+was given a custom ``build_all_lookup_tables`` method that:
+
+- Loads only the relative risk data (skipping PAF loading entirely)
+- Handles the ``CategoricalSBPRisk`` edge case by inferring distribution
+  type from the risk name when standard lookup fails
+
+Additionally, the reference to ``self.target_modifier`` was updated to
+``self.adjust_target`` to match the vivarium 3.x API rename.
+
+NumPy dtype fix in ``Treatment``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``src/vivarium_nih_us_cvd/components/treatment.py`` had two calls to
+``np.array(p_medication)`` where the DataFrame contained mixed types.
+NumPy 2.x (required by the new dependency chain) raises an error when
+creating arrays with ambiguous dtypes. Both calls were changed to
+``np.array(p_medication, dtype=float)``.
+
+``.gitignore`` additions
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- ``*.hdf`` — artifact files are large and tracked via git-lfs, not
+  regular git
+- ``sim_output/`` — simulation output directories
+
+USA-Level Artifact
+~~~~~~~~~~~~~~~~~~
+
+A script ``build_usa_artifact.py`` was added to create a USA-level
+artifact by population-weighted aggregation of the 51 state artifacts.
+For each demographic cell (sex × age × year), state values are weighted
+by ``state_population / total_population``, and the population structure
+is summed. The resulting artifact lives at
+``src/vivarium_nih_us_cvd/artifacts/united_states_of_america.hdf``.
+
+See ``notebooks/01_explore_usa_artifact.ipynb`` for visual exploration
+of the USA artifact, and ``notebooks/02_build_gbd_usa_artifact_and_compare.ipynb``
+for documentation on building a USA artifact directly from GBD data and
+comparing the two approaches.

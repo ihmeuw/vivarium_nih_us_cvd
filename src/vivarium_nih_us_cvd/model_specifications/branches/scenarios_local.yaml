@@ -1,0 +1,68 @@
+input_draw_count: 10
+random_seed_count: 10
+
+branches:
+  - intervention:
+      scenario: "baseline"
+    outreach_scale_up:
+      value:
+        end: 0
+    polypill_scale_up:
+      value:
+        end: 0
+    lifestyle_scale_up:
+      value:
+        end: 0.0855
+    input_data:
+      artifact_path:
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/alabama.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/alaska.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/arizona.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/arkansas.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/california.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/colorado.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/connecticut.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/delaware.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/district_of_columbia.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/florida.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/georgia.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/hawaii.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/idaho.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/illinois.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/indiana.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/iowa.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/kansas.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/kentucky.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/louisiana.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/maine.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/maryland.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/massachusetts.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/michigan.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/minnesota.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/mississippi.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/missouri.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/montana.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/nebraska.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/nevada.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/new_hampshire.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/new_jersey.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/new_mexico.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/new_york.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/north_carolina.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/north_dakota.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/ohio.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/oklahoma.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/oregon.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/pennsylvania.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/rhode_island.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/south_carolina.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/south_dakota.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/tennessee.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/texas.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/utah.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/vermont.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/virginia.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/washington.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/west_virginia.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/wisconsin.hdf'
+        - '/home/abie/vivarium_nih_us_cvd/src/vivarium_nih_us_cvd/artifacts/wyoming.hdf'

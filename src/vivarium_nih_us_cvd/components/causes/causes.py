@@ -2,7 +2,8 @@ from importlib import import_module
 from typing import Any, Callable, Dict, List, Union
 
 import pandas as pd
-from vivarium import Component, ConfigTree
+from layered_config_tree import LayeredConfigTree
+from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.state_machine import Trigger
 from vivarium_public_health.disease import (
@@ -61,7 +62,7 @@ class Causes(Component):
         return disease_models
 
     def get_causes_configuration(self):
-        full_config = ConfigTree(layers=["default", "cause_model_spec"])
+        full_config = LayeredConfigTree(layers=["default", "cause_model_spec"])
         full_config.update(CAUSE_RISK_CONFIG, layer="cause_model_spec")
         self.mark_multi_transition_states(full_config)
         self.add_default_config_layer(full_config)
@@ -69,7 +70,7 @@ class Causes(Component):
         return full_config
 
     @staticmethod
-    def mark_multi_transition_states(full_config: ConfigTree) -> None:
+    def mark_multi_transition_states(full_config: LayeredConfigTree) -> None:
         transition_counts = {
             cause: {state: 0 for state in config.states}
             for cause, config in full_config.causes.items()
@@ -86,7 +87,7 @@ class Causes(Component):
                 )
 
     @staticmethod
-    def add_default_config_layer(config: ConfigTree) -> None:
+    def add_default_config_layer(config: LayeredConfigTree) -> None:
         default_config = {"causes": {}}
         for cause_name, cause_config in config.causes.items():
             default_states_config = {}
@@ -112,7 +113,7 @@ class Causes(Component):
         config.update(default_config, layer="default")
 
     def get_state(
-        self, state_name: str, state_config: ConfigTree, cause_name: str
+        self, state_name: str, state_config: LayeredConfigTree, cause_name: str
     ) -> BaseDiseaseState:
         state_id = cause_name if state_name in ["susceptible", "recovered"] else state_name
         state_kwargs = {
@@ -152,7 +153,7 @@ class Causes(Component):
         self,
         source_state: BaseDiseaseState,
         sink_state: BaseDiseaseState,
-        transition_config: ConfigTree,
+        transition_config: LayeredConfigTree,
     ) -> None:
         triggered = Trigger[transition_config.triggered]
         if "get_data_functions" in transition_config:

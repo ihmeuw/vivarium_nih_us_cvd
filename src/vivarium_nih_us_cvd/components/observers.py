@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional, Set
 import pandas as pd
 from vivarium import Component
 from vivarium.framework.engine import Builder
-from vivarium_public_health.metrics.stratification import (
+from vivarium_public_health.results.stratification import (
     ResultsStratifier as ResultsStratifier_,
 )
 from vivarium_public_health.utilities import EntityString, TargetString, to_years
@@ -108,7 +108,7 @@ class ContinuousRiskObserver(Component):
         self.step_size = builder.time.step_size()
         self.config = builder.configuration.stratification[self.risk]
 
-        builder.results.register_observation(
+        builder.results.register_adding_observation(
             name=f"total_exposure_time_risk_{self.risk.name}",
             pop_filter='alive=="alive" and tracked==True',
             aggregator=self.aggregate_state_person_time,
@@ -156,7 +156,7 @@ class HealthcareVisitObserver(Component):
         self.config = builder.configuration.stratification["visits"]
 
         for visit_type in data_values.VISIT_TYPE:
-            builder.results.register_observation(
+            builder.results.register_adding_observation(
                 name=f"healthcare_visits_{visit_type}",
                 pop_filter=f'alive=="alive" and tracked==True and visit_type=="{visit_type}"',
                 requires_columns=["alive", data_values.COLUMNS.VISIT_TYPE],
@@ -215,7 +215,7 @@ class CategoricalColumnObserver(Component):
 
     def register_observations(self, builder: Builder) -> None:
         for category in self.categories:
-            builder.results.register_observation(
+            builder.results.register_adding_observation(
                 name=f"{self.column}_{category}_person_time",
                 pop_filter=f'alive=="alive" and tracked==True and {self.column}=="{category}"',
                 aggregator=self.calculate_categorical_person_time,
@@ -259,7 +259,7 @@ class LifestyleObserver(CategoricalColumnObserver):
     #################
 
     def register_observations(self, builder: Builder) -> None:
-        builder.results.register_observation(
+        builder.results.register_adding_observation(
             name=f"lifestyle_cat1_person_time",
             pop_filter='alive=="alive" and tracked==True',
             aggregator=self.calculate_exposed_lifestyle_person_time,
@@ -268,7 +268,7 @@ class LifestyleObserver(CategoricalColumnObserver):
             excluded_stratifications=self.config.exclude,
             when="time_step__prepare",
         )
-        builder.results.register_observation(
+        builder.results.register_adding_observation(
             name=f"lifestyle_cat2_person_time",
             pop_filter='alive=="alive" and tracked==True',
             aggregator=self.calculate_unexposed_lifestyle_person_time,
@@ -340,7 +340,7 @@ class BinnedRiskObserver(Component):
                 f"You provided {self.risk}."
             )
 
-        builder.results.register_observation(
+        builder.results.register_adding_observation(
             name=f"total_exposure_time_risk_{self.risk.name}_below_{thresholds[0]}",
             pop_filter=(
                 'alive=="alive" and tracked==True and '
@@ -355,7 +355,7 @@ class BinnedRiskObserver(Component):
         )
 
         for left_threshold_idx in range(0, len(thresholds) - 1):
-            builder.results.register_observation(
+            builder.results.register_adding_observation(
                 name=(
                     f"total_exposure_time_risk_{self.risk.name}"
                     f"_between_{thresholds[left_threshold_idx]}_and_{thresholds[left_threshold_idx+1]}"
@@ -373,7 +373,7 @@ class BinnedRiskObserver(Component):
                 when="collect_metrics",
             )
 
-        builder.results.register_observation(
+        builder.results.register_adding_observation(
             name=f"total_exposure_time_risk_{self.risk.name}_above_{thresholds[len(thresholds)-1]}",
             pop_filter=(
                 'alive=="alive" and tracked==True and '
@@ -443,7 +443,7 @@ class JointPAFObserver(Component):
             for risk in self.risks_and_mediators
         }
         config = builder.configuration.stratification[f"joint_paf_on_{self.target.name}"]
-        builder.results.register_observation(
+        builder.results.register_adding_observation(
             name=f"joint_paf_on_{self.target}",
             pop_filter='alive=="alive" and tracked==True',
             aggregator=self.calculate_paf,
