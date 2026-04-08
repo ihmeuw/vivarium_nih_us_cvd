@@ -25,8 +25,7 @@ from gbd_mapping.base_template import Tmred
 from gbd_mapping.id import scalar
 from vivarium.framework.artifact import EntityKey
 from vivarium_gbd_access import gbd
-from vivarium_gbd_access.constants import SEX, SOURCES
-from vivarium_gbd_access.utilities import get_draws
+from vivarium_gbd_access.constants import SEX
 from vivarium_inputs import extract
 from vivarium_inputs import globals as vi_globals
 from vivarium_inputs import interface
@@ -732,17 +731,10 @@ def load_healthcare_system_utilization_rate(key: str, location: str) -> pd.DataF
     entity = get_entity(key)
     # GBD 2023: use the round 9 estimation window directly. We no longer need
     # the manual 2017 -> 2018/2019 fill that was required when this loader
-    # was pinned to GBD 2017.
-    data = get_draws(
-        gbd_id_type="modelable_entity_id",
-        gbd_id=entity.gbd_id,
-        source=SOURCES.EPI,
-        location_id=location_id,
-        sex_id=SEX.MALE + SEX.FEMALE,
-        age_group_id=gbd.get_age_group_id(),
-        gbd_round_id=GBD_2023_ROUND_ID,
-        status="best",
-    )
+    # was pinned to GBD 2017. ``gbd.get_modelable_entity_draws`` is the
+    # vivarium_gbd_access wrapper that picks up the currently-configured
+    # round / best model / all-sexes / all-ages defaults.
+    data = gbd.get_modelable_entity_draws(entity.gbd_id, location_id)
 
     # Cleanup
     data = vi_utils.normalize(data, fill_value=0)
@@ -863,16 +855,9 @@ def get_re_mean_exposure_data_from_me_id(key: str, location: str, me_id: int) ->
     location_id = utility_data.get_location_id(location)
 
     # GBD 2023: round 9 no longer accepts ``decomp_step``; we just request the
-    # most recent best models for the requested ME id.
-    data = get_draws(
-        gbd_id_type="modelable_entity_id",
-        gbd_id=me_id,
-        source=SOURCES.EPI,
-        location_id=location_id,
-        sex_id=SEX.MALE + SEX.FEMALE,
-        gbd_round_id=GBD_2023_ROUND_ID,
-        status="best",
-    )
+    # best model for the requested ME id via the vivarium_gbd_access wrapper,
+    # which picks up the current-round default internally.
+    data = gbd.get_modelable_entity_draws(me_id, location_id)
 
     # core.get_data processing
     data = data[data.measure_id == MEASURES["Continuous"]]
@@ -895,16 +880,10 @@ def get_re_sd_data_from_me_id(key: str, location: str, me_id: int) -> pd.DataFra
     entity = get_entity(key)
     location_id = utility_data.get_location_id(location)
 
-    # GBD 2023: round 9 no longer accepts ``decomp_step``.
-    data = get_draws(
-        gbd_id_type="modelable_entity_id",
-        gbd_id=me_id,
-        source=SOURCES.EPI,
-        location_id=location_id,
-        sex_id=SEX.MALE + SEX.FEMALE,
-        gbd_round_id=GBD_2023_ROUND_ID,
-        status="best",
-    )
+    # GBD 2023: round 9 no longer accepts ``decomp_step``. Use the
+    # vivarium_gbd_access wrapper, which picks up the current-round default
+    # internally.
+    data = gbd.get_modelable_entity_draws(me_id, location_id)
 
     # vivarium_inputs 7.x: extract_data now requires explicit ``years`` and
     # ``data_type`` arguments. We pull all years of exposure data so that the
