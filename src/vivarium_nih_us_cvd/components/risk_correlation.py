@@ -31,8 +31,8 @@ class RiskCorrelation(Component):
         return ["age"]
 
     @property
-    def initialization_requirements(self) -> Dict[str, List[str]]:
-        return {"requires_columns": ["age"]}
+    def initialization_requirements(self) -> List[str]:
+        return ["age"]
 
     #####################
     # Lifecycle methods #
@@ -148,8 +148,8 @@ class JointPAF(Component):
     def register_paf_modifiers(self, builder: Builder) -> None:
         for target, pafs in self.population_attributable_fractions.items():
             target_paf_pipeline_name = f"{target.name}.{target.measure}.paf"
-            builder.value.register_value_modifier(
+            builder.value.register_attribute_modifier(
                 target_paf_pipeline_name,
                 modifier=pafs,
-                requires_columns=["age", "sex"],
+                required_resources=["age", "sex"],
             )

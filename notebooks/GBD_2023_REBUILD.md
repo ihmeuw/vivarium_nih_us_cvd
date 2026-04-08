@@ -1,0 +1,315 @@
+# Rebuilding the artifact on GBD 2023 + vivarium 4
+
+This document mirrors the style of `notebooks/02_build_gbd_usa_artifact_and_compare.ipynb`
+but targets the **GBD 2023 / vivarium 4 / vivarium_public_health 5 / vivarium_inputs 7**
+upgrade. Run all of the cluster steps from an IHME cluster login node — none of the
+data-pulling code works locally.
+
+The simulation code in `src/` is being migrated in parallel; this doc only covers
+the **artifact build**.
+
+---
+
+## What changed at the data layer
+
+| layer | before | after |
+| --- | --- | --- |
+| GBD round | round_id 7 (GBD 2020) | round_id 9 (GBD 2023) |
+| `vivarium` | 3.x | 4.x |
+| `vivarium_public_health` | 4.x | 5.x |
+| `vivarium_inputs` | 4.1.x | 7.x |
+| `gbd_mapping` | 4.x | 5.x |
+| `interface.get_measure(...)` | `(entity, measure, location)` | `(entity, measure, location, years=None, data_type="draws")` |
+| relative-risk format for continuous risks | `parameter='per unit'` (one row per cell, log-linear interpolation in the sim) | numeric `parameter` column with one row **per exposure threshold** (piecewise-linear interpolation in the sim) |
+| risk effect class | `RiskEffect` | `NonLogLinearRiskEffect` |
+| heart-failure RR (categorical SBP, BMI) | unchanged | unchanged — still hand-built from project distributions |
+
+The single biggest behavioural change is the RR format for the four continuous
+risks (`high_systolic_blood_pressure`, `high_ldl_cholesterol`,
+`high_body_mass_index_in_adults`, `high_fasting_plasma_glucose`). GBD 2023 publishes
+these as exposure-parameterised RR curves; vivarium will linearly interpolate
+between thresholds rather than computing `RR ** ((exposure - tmrel) / scale)`.
+
+---
+
+## Step 1: Cluster environments
+
+You need two conda environments on the cluster, both Python 3.11+:
+
+### env A: artifact build (data layer)
+
+```bash
+conda create -n vnc_artifact_2023 python=3.11
+conda activate vnc_artifact_2023
+
+cd /path/to/vivarium_nih_us_cvd
+git checkout <branch-with-the-v4-upgrade>
+
+pip install -e .[data]
+```
+
+This installs the new pins from `setup.py`:
+- `vivarium >= 4.0.0, < 5.0.0`
+- `vivarium_public_health >= 5.0.0, < 6.0.0`
+- `vivarium_inputs[data] >= 7.0.0`
+- `gbd_mapping >= 5.0.0`
+
+Sanity-check the versions:
+
+```bash
+python -c "
+import vivarium, vivarium_public_health, vivarium_inputs, gbd_mapping
+print('vivarium', vivarium.__version__)
+print('vph', vivarium_public_health.__version__)
+print('vivarium_inputs', vivarium_inputs.__version__)
+print('gbd_mapping', gbd_mapping.__version__)
+"
+```
+
+### env B: PAF simulation (sim layer)
+
+```bash
+conda create -n vnc_sim_2023 python=3.11
+conda activate vnc_sim_2023
+
+cd /path/to/vivarium_nih_us_cvd
+pip install -e .[dev]
+```
+
+This is the env you'll use for `simulate run` / `psimulate run` in step 4.
+
+---
+
+## Step 2: Pre-build sanity checks
+
+Before running `make_artifacts`, verify the GBD 2023 data is reachable for one
+risk and one cause. From a cluster login node, in env A:
+
+```python
+from gbd_mapping import causes, risk_factors
+from vivarium_inputs import interface
+
+# Should not raise
+location = "United States of America"
+
+# A continuous risk (new non-log-linear RR format expected)
+sbp = risk_factors.high_systolic_blood_pressure
+exposure = interface.get_measure(sbp, "exposure", location, years="recent")
+print("SBP exposure shape:", exposure.shape)
+print(exposure.head())
+
+rr = interface.get_measure(sbp, "relative_risk", location, years="recent")
+print("\nSBP RR columns:", list(rr.columns))
+print("SBP RR parameter column dtype:", rr.reset_index()["parameter"].dtype)
+print(rr.head())
+```
+
+The expected behavior in GBD 2023:
+
+- The `parameter` column on the RR data should be **numeric** (float) — these are
+  exposure thresholds, not the literal string `"per unit"`.
+- There should be **multiple rows per (sex, age, year)** demographic cell — one row
+  per exposure knot.
+- `interface.get_measure` accepts a `years=` keyword. Pass `years="recent"` for the
+  most recent estimation year, or an integer year, or a `[start, end]` list. Passing
+  `years=None` (the default) returns *all* years and is much slower.
+
+Repeat the check for `high_ldl_cholesterol`, `high_body_mass_index_in_adults`, and
+`high_fasting_plasma_glucose`. If any of those return the old `parameter='per unit'`
+format, the rest of the pipeline will fail validation in vivarium 5 — talk to the
+research team before continuing.
+
+---
+
+## Step 3: Update the loader for the new `interface` signature
+
+This is a code change, not a cluster step, but it has to land before the build
+will succeed. The diffs needed in `src/vivarium_nih_us_cvd/data/loader.py`:
+
+1. **`_get_measure_wrapped`** — the helper used by every standard loader. Add the
+   `years=` kwarg and pass it through:
+
+   ```python
+   def _get_measure_wrapped(entity, measure, location, years="recent"):
+       return interface.get_measure(
+           entity, measure, location, years=years
+       ).droplevel("location")
+   ```
+
+2. **`load_healthcare_system_utilization_rate`** — currently calls `get_draws` with
+   `gbd_round_id=ROUND_IDS.GBD_2017`. Update to `ROUND_IDS.GBD_2023` (or remove
+   the override and let `vivarium_inputs` handle the call). Also drop the manual
+   year-fill loop if `vivarium_inputs 7` already returns the full estimation window.
+
+3. **`get_re_mean_exposure_data_from_me_id` / `get_re_sd_data_from_me_id`** — the
+   two helpers used by the LDL/SBP/BMI exposure loaders. Replace
+   `gbd_round_id=GBD_2020_ROUND_ID` with `GBD_2023_ROUND_ID` (already updated in
+   `constants/metadata.py`) and remove the `decomp_step="usa_re"` argument
+   (`decomp_step` is no longer accepted in round 9).
+
+4. **`load_relative_risk_categorical_sbp` / `load_relative_risk_bmi`** — these are
+   the two project-specific RR loaders for heart failure (categorical SBP cat1–cat4
+   and BMI dose-response). They are **not** affected by the GBD 2023 RR-format
+   change because they synthesise data from project-specific distributions rather
+   than pulling from GBD. They should keep working as-is.
+
+5. **`get_entity`** — the high_fasting_plasma_glucose hard-coded TMRED block uses
+   `gbd_mapping.base_template.Tmred` and `gbd_mapping.id.scalar`. Verify those
+   imports still exist in `gbd_mapping 5`. If they moved, the import path
+   may change to `gbd_mapping.base_template.Tmred` (no change expected) but
+   `scalar` may need to come from `gbd_mapping.types`.
+
+Once those edits are in, run the sanity check from step 2 again, but this
+time call `loader.load_standard_data` for one of the risks to verify the
+end-to-end transform path.
+
+---
+
+## Step 4: Build the artifact (without PAFs)
+
+Same as before, but with the new env:
+
+```bash
+conda activate vnc_artifact_2023
+cd /path/to/vivarium_nih_us_cvd
+
+make_artifacts -vvv --pdb \
+    -l "United States of America" \
+    --ignore-pafs \
+    -o src/vivarium_nih_us_cvd/artifacts/
+```
+
+Expected runtime is similar to GBD 2020 (~30 min for one location). On
+failure, the most likely culprits are:
+
+- **`TypeError: get_measure() got an unexpected keyword argument 'years'`** —
+  `vivarium_inputs` is still on the 4.x line. Re-check `pip show vivarium_inputs`.
+- **`ValidationError: parameter column must be numeric`** — the artifact loader
+  is still pivoting RR data through the old `parameter='per unit'` path. Find the
+  loader function for that risk and remove the manual `parameter='per unit'`
+  assignment.
+- **`KeyError: 'decomp_step'`** — see step 3, point 3 above.
+- **An empty `relative_risk` DataFrame** — the GBD 2023 RR for that risk × cause
+  pair may not yet be available. Confirm with the research team.
+
+State-level builds (the 51-location population-weighted aggregation in
+`build_usa_artifact.py`) work the same way; just replace `"United States of America"`
+with the relevant state name. The aggregation script does **not** need to change.
+
+---
+
+## Step 5: Calculate joint PAFs (in env B)
+
+The PAF model spec at
+`src/vivarium_nih_us_cvd/model_specifications/paf_calculation.yaml` references the
+`PAFCalculationRiskEffect` class. After the v4 migration, that class is still in
+`src/vivarium_nih_us_cvd/components/effects.py` but is now a subclass of
+`NonLogLinearMediatedRiskEffect` (which itself subclasses
+`vivarium_public_health.risks.effect.NonLogLinearRiskEffect`). The model spec wires
+should not need to change other than updating the class name.
+
+```bash
+conda activate vnc_sim_2023
+cd /path/to/vivarium_nih_us_cvd
+
+mkdir -p src/vivarium_nih_us_cvd/artifacts/paf_calculation
+
+# Single-machine smoke test:
+simulate run \
+    src/vivarium_nih_us_cvd/model_specifications/paf_calculation.yaml \
+    --artifact-path src/vivarium_nih_us_cvd/artifacts/united_states_of_america.hdf
+```
+
+Or in parallel on the cluster (recommended for the real run):
+
+```bash
+psimulate run \
+    src/vivarium_nih_us_cvd/model_specifications/paf_calculation.yaml \
+    src/vivarium_nih_us_cvd/model_specifications/branches/paf_scenarios.yaml \
+    -o src/vivarium_nih_us_cvd/artifacts/ \
+    --max-workers 5000 -vvv --pdb \
+    -m 20 -r 1:00:00 -P proj_simscience_prod
+```
+
+If the PAF sim crashes inside `NonLogLinearMediatedRiskEffect.adjust_target` with
+`KeyError: '<risk>_exposure_for_non_loglinear_riskeffect'`, the cause is that one
+of the risks doesn't have a corresponding `Risk` component in the model spec, or
+the model spec is wiring an old `risk_effect.X_on_Y` configuration name where
+`non_log_linear_risk_effect.X_on_Y` is now expected. Search the yaml for the
+component name with `grep`.
+
+---
+
+## Step 6: Append PAFs to the artifact
+
+Same as before:
+
+```bash
+conda activate vnc_artifact_2023
+
+make_artifacts --pdb -vvv \
+    -a -l "United States of America" \
+    -o src/vivarium_nih_us_cvd/artifacts/
+```
+
+---
+
+## Step 7: Verify the artifact
+
+In env A, drop into Python and spot-check:
+
+```python
+import pandas as pd
+from pathlib import Path
+
+artifact = Path("src/vivarium_nih_us_cvd/artifacts/united_states_of_america.hdf")
+
+# Did we get a valid HDF?
+with pd.HDFStore(str(artifact), "r") as s:
+    keys = sorted(s.keys())
+print(f"{len(keys)} keys")
+
+# Spot-check one continuous risk RR
+rr = pd.read_hdf(artifact, "/risk_factor/high_systolic_blood_pressure/relative_risk")
+print(rr.reset_index()["parameter"].dtype)  # should be float
+print(rr.reset_index()["parameter"].nunique())  # should be > 5 (multiple thresholds)
+print(rr.head())
+
+# Spot-check the joint PAFs
+pafs = pd.read_hdf(artifact, "/risk_factor/joint_mediated_risks/population_attributable_fraction")
+print(pafs.shape)
+print(pafs.head())
+```
+
+If `parameter` is `object`/`string` rather than `float`, the artifact still has
+the old log-linear RR format and the sim will silently use the wrong relative
+risks. Re-run step 4 after fixing the loader.
+
+---
+
+## Step 8: Compare to the GBD 2020 artifact
+
+The comparison code in `notebooks/02_build_gbd_usa_artifact_and_compare.ipynb`
+already has cells for this — point them at the new artifact path and the old one
+side-by-side. Expect:
+
+- **Population structure** to be largely unchanged (US census-driven).
+- **CSMR / incidence / prevalence** to differ modestly (GBD 2020 → GBD 2023 is
+  about three years of new data and methodological updates).
+- **Relative risks** for the four continuous risks to look *very* different
+  visually because the format has changed from one RR-per-cell to a curve.
+
+---
+
+## Open questions for the research team
+
+1. Is GBD 2023 actually released for all four continuous risks (SBP, LDL-C, BMI,
+   FPG) in the database we'll be querying, or is some of it still on hold? If
+   any of the four are missing, we have to either fall back to GBD 2020 for that
+   risk or wait.
+2. Is the `mediation_factors` table from GBD 2023 going to be drop-in
+   compatible with the existing `load_mediation_factors` loader, or has the
+   `cause_id` / `rei_id` schema changed? The current loader hard-codes
+   `rei_id=370,105` and `cause_id=493,495`.
+3. Are the heart-failure mediation deltas (`HEART_FAILURE_MEDIATION_DELTAS`) still
+   valid under GBD 2023, or do they need to be re-derived?

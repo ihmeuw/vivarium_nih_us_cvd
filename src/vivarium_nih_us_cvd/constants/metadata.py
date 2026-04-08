@@ -86,7 +86,7 @@ PROPORTION_DATA_INDEX_COLUMNS = [
 DRAW_COUNT = 1000
 ARTIFACT_COLUMNS = pd.Index([f"draw_{i}" for i in range(DRAW_COUNT)])
 
-GBD_2020_ROUND_ID = 7
+GBD_2023_ROUND_ID = 9
 
 
 class __Scenarios(NamedTuple):

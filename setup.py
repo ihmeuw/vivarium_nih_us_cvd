@@ -43,8 +43,8 @@ if __name__ == "__main__":
         long_description = f.read()
 
     install_requirements = [
-        "vivarium>=3.0.0,<4.0.0",
-        "vivarium_public_health>=4.0.0,<5.0.0",
+        "vivarium>=4.0.0,<5.0.0",
+        "vivarium_public_health>=5.0.0,<6.0.0",
         "click",
         "jinja2",
         "loguru",
@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
     setup_requires = ["setuptools_scm"]
 
-    data_requirements = ["vivarium_inputs[data]>=4.1.0"]
+    data_requirements = ["vivarium_inputs[data]>=7.0.0", "gbd_mapping>=5.0.0"]
     cluster_requirements = ["vivarium_cluster_tools>=1.4.1"]
     test_requirements = ["pytest"]
 
