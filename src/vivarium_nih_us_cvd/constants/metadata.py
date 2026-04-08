@@ -17,6 +17,7 @@ MAKE_ARTIFACT_RUNTIME = "00:30:00"
 MAKE_ARTIFACT_SLEEP = 10
 
 LOCATIONS = [
+    "United States of America",
     "Alabama",
     "Alaska",
     "Arizona",

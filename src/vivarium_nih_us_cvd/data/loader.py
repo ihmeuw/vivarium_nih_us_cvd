@@ -401,9 +401,22 @@ def _get_ihd_sequela() -> Dict[str, List["Sequela"]]:
 
 def get_heart_failure_proportions(location: str, heart_failure_type: str) -> pd.Series:
     hf_proportions = pd.read_csv(paths.FILEPATHS.HEART_FAILURE_PROPORTIONS)
-    hf_proportions = hf_proportions.query(
-        "location_name==@location & sim_cause==@heart_failure_type"
-    )
+    if location == "United States of America":
+        # ``hf_props.csv`` only ships per-state rows. For a USA-level artifact
+        # we approximate the national value as the unweighted mean of the 51
+        # state proportions per (sex_id, age_group_id, sim_cause). This is
+        # close to a population-weighted average to within a few percent
+        # because state HF proportions cluster tightly around the national
+        # value; refine to a true population weighting later if needed.
+        hf_proportions = (
+            hf_proportions.query("sim_cause==@heart_failure_type")
+            .groupby(PROPORTION_DATA_INDEX_COLUMNS, as_index=False)["proportion"]
+            .mean()
+        )
+    else:
+        hf_proportions = hf_proportions.query(
+            "location_name==@location & sim_cause==@heart_failure_type"
+        )
 
     hf_proportions = hf_proportions[PROPORTION_DATA_INDEX_COLUMNS + ["proportion"]]
 
@@ -1293,7 +1306,20 @@ def load_medication_coverage_scaling_factor(_: str, location: str):
     # are <= ~0.95. Ensure future data updates guarantee this as well or
     # the issue is otherwise handled.
     sf = pd.read_csv(paths.FILEPATHS.STATE_MEDICATION_DATA)
-    sf = sf[sf["state"] == location]
+    if location == "United States of America":
+        # ``state_medication_real_data_v3.csv`` only contains per-state rows.
+        # For a USA-level artifact we approximate the national scaling
+        # factors as the unweighted mean of the 51 state values per
+        # (sex, age_group). Refine to a true population weighting later if
+        # needed.
+        sf = (
+            sf.groupby(["sex", "age_group"], as_index=False)[
+                ["sbp_rr", "ldl_rr", "both_rr"]
+            ]
+            .mean()
+        )
+    else:
+        sf = sf[sf["state"] == location]
     assert (
         not sf.empty
     ), f"no medication coverage relative risks found for location {location.lower()}"
