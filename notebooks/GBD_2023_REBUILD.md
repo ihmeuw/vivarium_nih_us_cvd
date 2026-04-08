@@ -143,13 +143,26 @@ will succeed. The following edits have already been applied to
        ).droplevel("location")
    ```
 
-2. **`load_healthcare_system_utilization_rate`** — previously called `get_draws`
-   with `gbd_round_id=ROUND_IDS.GBD_2017` and then manually back-filled
-   2018/2019 from the 2017 row. Now calls `get_draws` with
-   `gbd_round_id=GBD_2023_ROUND_ID` (the literal `9`, defined in
-   `constants/metadata.py`). The manual year-fill loop and the
-   `vi_utils.interpolate_year` call have been removed since round 9 returns
-   the full estimation window directly.
+2. **`load_healthcare_system_utilization_rate`** — previously called
+   `vivarium_gbd_access.utilities.get_draws` with
+   `gbd_round_id=ROUND_IDS.GBD_2017` and then manually back-filled 2018/2019
+   from the 2017 row. The `get_draws` helper has been removed from
+   `vivarium_gbd_access.utilities` in the GBD 2023 version, and the
+   natural replacement `gbd.get_modelable_entity_draws(...)` pins to
+   release_id 16. Testing (via `get_draws.api.get_draws` directly)
+   confirmed that the old outpatient-visits ME 19797 has **no best model
+   in any viewable release**, and that `get_best_model_versions(...)`
+   returns an empty frame for the other candidate MEs we could find
+   ("outpatient healthcare utilization" 25226, "Outpatient Hospital
+   Envelope" 18750). The inpatient counterpart (ME 18749) *does* resolve
+   fine at release_id 16 via the standard `source="epi"` / `status="best"`
+   path, but we don't currently use it. **The loader has been replaced
+   with a stub** that returns a flat `3.5 visits/person/year` rate (NAMCS
+   US average) across all demographic cells, pulled from
+   `load_population_structure`. The stub keeps the artifact build and
+   the sim's `HealthcareUtilization` component runnable end-to-end; the
+   real fix is to identify the correct round-9 outpatient ME and wire it
+   up. See the open-questions list.
 
 3. **`get_re_mean_exposure_data_from_me_id` / `get_re_sd_data_from_me_id`** —
    the two helpers used by the LDL/SBP/BMI exposure loaders. Both now pass
@@ -338,3 +351,26 @@ side-by-side. Expect:
    `rei_id=370,105` and `cause_id=493,495`.
 3. Are the heart-failure mediation deltas (`HEART_FAILURE_MEDIATION_DELTAS`) still
    valid under GBD 2023, or do they need to be re-derived?
+4. **`load_healthcare_system_utilization_rate` is currently a stub.** ME 19797
+   (previous outpatient-visits model) has no best model under any viewable
+   release. Two conceptually adjacent MEs were found via metadata search —
+   "outpatient healthcare utilization" (25226) and "Outpatient Hospital
+   Envelope" (18750) — but neither has a release_id 16 best model either
+   (`get_best_model_versions` returns empty). The inpatient counterpart
+   (ME 18749 via `source="epi"`, `status="best"`) *does* resolve under round
+   9 and was confirmed to return a proper demographic-indexed frame. Until
+   a round-9 outpatient model is identified and marked best, the loader
+   returns a flat `3.5 visits/person/year` (NAMCS US average) across all
+   demographic cells. **What's the right round-9 outpatient ME / source /
+   status tuple?** Candidate next steps: (a) try ME 18750 with different
+   sources (`stgpr`, `como`) or broader release sweep, (b) contact the
+   IHME clinical team who own the inpatient envelope to ask about the
+   outpatient counterpart, (c) accept the stub long-term and replace with
+   an age-varying literature table.
+5. Are the GBD 2020-era MEIDs hard-coded in `constants/data_values.py`
+   (`ACUTE_MI_ME_ID=24694`, `POST_MI_ME_ID=15755`, `HEART_FAILURE_ME_ID=2412`,
+   `BMI_MEAN_ME_ID=23873`, `BMI_SD_ME_ID=27050`, `LDL_MEAN_ME_ID=26955`,
+   `LDL_SD_ME_ID=27057`, `SBP_MEAN_ME_ID=23871`, `SBP_SD_ME_ID=27049`)
+   still valid as round 9 best models? Any one of them that's missing a
+   GBD 2023 best model will trigger the same `NoBestVersionsException` and
+   need either an updated ID or a similar older-release fallback.

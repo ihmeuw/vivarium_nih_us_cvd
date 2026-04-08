@@ -270,7 +270,9 @@ def load_categorical_paf(key: str, location: str) -> pd.DataFrame:
 
 def _load_em_from_meid(location, meid, measure):
     location_id = utility_data.get_location_id(location)
-    data = gbd.get_modelable_entity_draws(meid, location_id)
+    # vivarium_gbd_access (GBD 2023) now requires explicit ``year_id`` and
+    # ``data_type`` arguments. We pull all estimation years as draws.
+    data = gbd.get_modelable_entity_draws(meid, location_id, year_id="all", data_type="draws")
     data = data[data.measure_id == vi_globals.MEASURES[measure]]
     data = vi_utils.normalize(data, fill_value=0)
     data = data.filter(vi_globals.DEMOGRAPHIC_COLUMNS + vi_globals.DRAW_COLUMNS)
@@ -428,7 +430,10 @@ def get_proportion_adjusted_heart_failure_data(
     # pull measure data
     location_id = utility_data.get_location_id(location)
     heart_failure_data = gbd.get_modelable_entity_draws(
-        data_values.HEART_FAILURE_ME_ID, location_id
+        data_values.HEART_FAILURE_ME_ID,
+        location_id,
+        year_id="all",
+        data_type="draws",
     )
     measure_data = heart_failure_data[
         heart_failure_data.measure_id == vi_globals.MEASURES[measure]
@@ -726,24 +731,27 @@ def match_rr_to_cause_name(data: Union[str, pd.DataFrame], source_key: EntityKey
 
 
 def load_healthcare_system_utilization_rate(key: str, location: str) -> pd.DataFrame:
-    location_id = utility_data.get_location_id(location)
-    key = EntityKey(key)
-    entity = get_entity(key)
-    # GBD 2023: use the round 9 estimation window directly. We no longer need
-    # the manual 2017 -> 2018/2019 fill that was required when this loader
-    # was pinned to GBD 2017. ``gbd.get_modelable_entity_draws`` is the
-    # vivarium_gbd_access wrapper that picks up the currently-configured
-    # round / best model / all-sexes / all-ages defaults.
-    data = gbd.get_modelable_entity_draws(entity.gbd_id, location_id)
-
-    # Cleanup
-    data = vi_utils.normalize(data, fill_value=0)
-    data = data.filter(vi_globals.DEMOGRAPHIC_COLUMNS + vi_globals.DRAW_COLUMNS)
-    data = vi_utils.reshape(data)
-    data = vi_utils.scrub_gbd_conventions(data, location)
-    data = vi_utils.split_interval(data, interval_column="age", split_column_prefix="age")
-    data = vi_utils.split_interval(data, interval_column="year", split_column_prefix="year")
-    return vi_utils.sort_hierarchical_data(data).droplevel("location")
+    # TODO(research): the outpatient-visits ME used previously (19797) has
+    # no best model in any viewable release; a search of the round-9
+    # metadata turned up only non-best candidates ("outpatient healthcare
+    # utilization" 25226, "Outpatient Hospital Envelope" 18750) that also
+    # lack a release_id=16 best model. Until we identify a proper round-9
+    # outpatient-utilization source, stub the loader with a flat
+    # demographic-indexed rate pulled from NAMCS/CDC US averages
+    # (~3.5 outpatient visits per person per year). The sim's
+    # HealthcareUtilization component uses this as a background visit
+    # rate; a constant is imperfect but keeps the artifact build and sim
+    # end-to-end runnable. See GBD_2023_REBUILD.md open questions for
+    # the long-term fix.
+    pop_structure = load_population_structure(
+        data_keys.POPULATION.STRUCTURE, location
+    ).droplevel("location")
+    background_outpatient_visits_per_person_year = 3.5
+    return pd.DataFrame(
+        background_outpatient_visits_per_person_year,
+        index=pop_structure.index,
+        columns=ARTIFACT_COLUMNS,
+    )
 
 
 def load_ldlc_medication_effect(key: str, location: str) -> pd.DataFrame:
@@ -854,10 +862,11 @@ def get_re_mean_exposure_data_from_me_id(key: str, location: str, me_id: int) ->
     entity = get_entity(key)
     location_id = utility_data.get_location_id(location)
 
-    # GBD 2023: round 9 no longer accepts ``decomp_step``; we just request the
-    # best model for the requested ME id via the vivarium_gbd_access wrapper,
-    # which picks up the current-round default internally.
-    data = gbd.get_modelable_entity_draws(me_id, location_id)
+    # GBD 2023: round 9 no longer accepts ``decomp_step``; vivarium_gbd_access
+    # now requires explicit ``year_id`` and ``data_type`` arguments.
+    data = gbd.get_modelable_entity_draws(
+        me_id, location_id, year_id="all", data_type="draws"
+    )
 
     # core.get_data processing
     data = data[data.measure_id == MEASURES["Continuous"]]
@@ -880,10 +889,11 @@ def get_re_sd_data_from_me_id(key: str, location: str, me_id: int) -> pd.DataFra
     entity = get_entity(key)
     location_id = utility_data.get_location_id(location)
 
-    # GBD 2023: round 9 no longer accepts ``decomp_step``. Use the
-    # vivarium_gbd_access wrapper, which picks up the current-round default
-    # internally.
-    data = gbd.get_modelable_entity_draws(me_id, location_id)
+    # GBD 2023: round 9 no longer accepts ``decomp_step``. vivarium_gbd_access
+    # now requires explicit ``year_id`` and ``data_type`` arguments.
+    data = gbd.get_modelable_entity_draws(
+        me_id, location_id, year_id="all", data_type="draws"
+    )
 
     # vivarium_inputs 7.x: extract_data now requires explicit ``years`` and
     # ``data_type`` arguments. We pull all years of exposure data so that the
