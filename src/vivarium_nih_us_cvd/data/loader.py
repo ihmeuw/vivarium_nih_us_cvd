@@ -25,7 +25,7 @@ from gbd_mapping.base_template import Tmred
 from gbd_mapping.id import scalar
 from vivarium.framework.artifact import EntityKey
 from vivarium_gbd_access import gbd
-from vivarium_gbd_access.constants import ROUND_IDS, SEX, SOURCES
+from vivarium_gbd_access.constants import SEX, SOURCES
 from vivarium_gbd_access.utilities import get_draws
 from vivarium_inputs import extract
 from vivarium_inputs import globals as vi_globals
@@ -42,12 +42,13 @@ from vivarium_inputs.mapping_extension import (
     alternative_risk_factors,
     healthcare_entities,
 )
+from vivarium_inputs.utilities import DataType
 
 from vivarium_nih_us_cvd.constants import data_keys, data_values, paths
 from vivarium_nih_us_cvd.constants.metadata import (
     ARTIFACT_COLUMNS,
     DRAW_COUNT,
-    GBD_2020_ROUND_ID,
+    GBD_2023_ROUND_ID,
     PROPORTION_DATA_INDEX_COLUMNS,
 )
 from vivarium_nih_us_cvd.utilities import get_random_variable_draws, sanitize_location
@@ -196,13 +197,21 @@ def load_theoretical_minimum_risk_life_expectancy(key: str, location: str) -> pd
 
 
 def _get_measure_wrapped(
-    entity: ModelableEntity, measure: Union[str, data_keys.TargetString], location: str
+    entity: ModelableEntity,
+    measure: Union[str, data_keys.TargetString],
+    location: str,
+    years: Union[int, str, List[int], None] = "all",
 ) -> pd.DataFrame:
     """
     All calls to get_measure() need to have the location dropped. For the time being,
     simply use this function.
+
+    The default ``years='all'`` pulls every available estimation year from
+    GBD 2023 (this is the new keyword introduced in ``vivarium_inputs`` 7.x).
     """
-    return interface.get_measure(entity, measure, location).droplevel("location")
+    return interface.get_measure(
+        entity, measure, location, years=years
+    ).droplevel("location")
 
 
 def load_standard_data(key: str, location: str) -> pd.DataFrame:
@@ -708,9 +717,9 @@ def load_healthcare_system_utilization_rate(key: str, location: str) -> pd.DataF
     location_id = utility_data.get_location_id(location)
     key = EntityKey(key)
     entity = get_entity(key)
-    # vivarium_inputs.core.get_utilization_rate() breaks with the hard-coded
-    # gbd_round_id=6; use gbd_round_id=5.
-    # TODO: SDB fix in vivarium_gbd_access.gbd.get_modelable_entity_draws()?
+    # GBD 2023: use the round 9 estimation window directly. We no longer need
+    # the manual 2017 -> 2018/2019 fill that was required when this loader
+    # was pinned to GBD 2017.
     data = get_draws(
         gbd_id_type="modelable_entity_id",
         gbd_id=entity.gbd_id,
@@ -718,17 +727,9 @@ def load_healthcare_system_utilization_rate(key: str, location: str) -> pd.DataF
         location_id=location_id,
         sex_id=SEX.MALE + SEX.FEMALE,
         age_group_id=gbd.get_age_group_id(),
-        gbd_round_id=ROUND_IDS.GBD_2017,
+        gbd_round_id=GBD_2023_ROUND_ID,
         status="best",
     )
-    # Fill in year gaps manually. vi_utils.normalize does not quite work because
-    # the data is missing required age_bin edges 2015 and 2019. Instead, let's
-    # assume 2018 and 2019 is the same as 2017 and interpolate everything else
-    tmp = data[data["year_id"] == 2017]
-    for year in [2018, 2019]:
-        tmp["year_id"] = year
-        data = pd.concat([data, tmp], axis=0)
-    data = vi_utils.interpolate_year(data)
 
     # Cleanup
     data = vi_utils.normalize(data, fill_value=0)
@@ -848,14 +849,15 @@ def get_re_mean_exposure_data_from_me_id(key: str, location: str, me_id: int) ->
     entity = get_entity(key)
     location_id = utility_data.get_location_id(location)
 
+    # GBD 2023: round 9 no longer accepts ``decomp_step``; we just request the
+    # most recent best models for the requested ME id.
     data = get_draws(
         gbd_id_type="modelable_entity_id",
         gbd_id=me_id,
         source=SOURCES.EPI,
         location_id=location_id,
         sex_id=SEX.MALE + SEX.FEMALE,
-        gbd_round_id=GBD_2020_ROUND_ID,
-        decomp_step="usa_re",
+        gbd_round_id=GBD_2023_ROUND_ID,
         status="best",
     )
 
@@ -880,18 +882,27 @@ def get_re_sd_data_from_me_id(key: str, location: str, me_id: int) -> pd.DataFra
     entity = get_entity(key)
     location_id = utility_data.get_location_id(location)
 
+    # GBD 2023: round 9 no longer accepts ``decomp_step``.
     data = get_draws(
         gbd_id_type="modelable_entity_id",
         gbd_id=me_id,
         source=SOURCES.EPI,
         location_id=location_id,
         sex_id=SEX.MALE + SEX.FEMALE,
-        gbd_round_id=GBD_2020_ROUND_ID,
-        decomp_step="usa_re",
+        gbd_round_id=GBD_2023_ROUND_ID,
         status="best",
     )
 
-    exposure = extract.extract_data(entity, "exposure", location_id)
+    # vivarium_inputs 7.x: extract_data now requires explicit ``years`` and
+    # ``data_type`` arguments. We pull all years of exposure data so that the
+    # set of valid age groups reflects the full estimation window.
+    exposure = extract.extract_data(
+        entity,
+        "exposure",
+        location_id,
+        years="all",
+        data_type=DataType("exposure", "draws"),
+    )
     valid_age_groups = vi_utils.get_exposure_and_restriction_ages(exposure, entity)
 
     data = data.drop(labels=["modelable_entity_id"], axis="columns")
@@ -919,7 +930,15 @@ def get_re_weights_data_from_file(key: str, location: str, file_path: str) -> pd
     data["age_group_id"] = 22  # all ages
     data["measure"] = "ensemble_distribution_weight"
 
-    exposure = extract.extract_data(entity, "exposure", location_id)
+    # vivarium_inputs 7.x: extract_data now requires explicit ``years`` and
+    # ``data_type`` arguments.
+    exposure = extract.extract_data(
+        entity,
+        "exposure",
+        location_id,
+        years="all",
+        data_type=DataType("exposure", "draws"),
+    )
     valid_ages = vi_utils.get_exposure_and_restriction_ages(exposure, entity)
 
     data.drop("age_group_id", axis=1, inplace=True)
@@ -958,7 +977,17 @@ def transform_core_get_data_for_vivarium(
     entity = get_entity(key)
 
     data = vi_utils.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(data, entity, key.measure, location)
+    # vivarium_inputs 7.x: validate_for_simulation now takes explicit ``years``
+    # and ``value_columns`` arguments. We pull all years here and validate
+    # against the standard draw columns.
+    validation.validate_for_simulation(
+        data,
+        entity,
+        key.measure,
+        location,
+        years="all",
+        value_columns=DataType(key.measure, "draws").value_columns,
+    )
     data = vi_utils.split_interval(data, interval_column="age", split_column_prefix="age")
     data = vi_utils.split_interval(data, interval_column="year", split_column_prefix="year")
     data = vi_utils.sort_hierarchical_data(data).droplevel("location")

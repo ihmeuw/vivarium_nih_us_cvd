@@ -94,11 +94,11 @@ location = "United States of America"
 
 # A continuous risk (new non-log-linear RR format expected)
 sbp = risk_factors.high_systolic_blood_pressure
-exposure = interface.get_measure(sbp, "exposure", location, years="recent")
+exposure = interface.get_measure(sbp, "exposure", location, years=2023)
 print("SBP exposure shape:", exposure.shape)
 print(exposure.head())
 
-rr = interface.get_measure(sbp, "relative_risk", location, years="recent")
+rr = interface.get_measure(sbp, "relative_risk", location, years=2023)
 print("\nSBP RR columns:", list(rr.columns))
 print("SBP RR parameter column dtype:", rr.reset_index()["parameter"].dtype)
 print(rr.head())
@@ -110,9 +110,14 @@ The expected behavior in GBD 2023:
   exposure thresholds, not the literal string `"per unit"`.
 - There should be **multiple rows per (sex, age, year)** demographic cell — one row
   per exposure knot.
-- `interface.get_measure` accepts a `years=` keyword. Pass `years="recent"` for the
-  most recent estimation year, or an integer year, or a `[start, end]` list. Passing
-  `years=None` (the default) returns *all* years and is much slower.
+- `interface.get_measure` accepts a `years=` keyword. Pass an integer year (e.g.
+  `years=2023`), a list of years (e.g. `years=[2020, 2021, 2022, 2023]`), or the
+  string `"all"` to pull every available estimation year. The default
+  (`years=None`) returns only the most recent year. The string `"recent"` is
+  **not** valid in `vivarium_inputs 7`. The artifact loader in this repo passes
+  `years='all'` everywhere so the artifact gets the full GBD 2023 estimation
+  window — slower than a single year, but it matches the simulation's
+  expectation that input data spans every year of the run.
 
 Repeat the check for `high_ldl_cholesterol`, `high_body_mass_index_in_adults`, and
 `high_fasting_plasma_glucose`. If any of those return the old `parameter='per unit'`
@@ -124,44 +129,64 @@ research team before continuing.
 ## Step 3: Update the loader for the new `interface` signature
 
 This is a code change, not a cluster step, but it has to land before the build
-will succeed. The diffs needed in `src/vivarium_nih_us_cvd/data/loader.py`:
+will succeed. The following edits have already been applied to
+`src/vivarium_nih_us_cvd/data/loader.py`:
 
-1. **`_get_measure_wrapped`** — the helper used by every standard loader. Add the
-   `years=` kwarg and pass it through:
+1. **`_get_measure_wrapped`** — the helper used by every standard loader now
+   has a `years='all'` kwarg that is passed through to `interface.get_measure`,
+   so every standard loader pulls the full GBD 2023 estimation window:
 
    ```python
-   def _get_measure_wrapped(entity, measure, location, years="recent"):
+   def _get_measure_wrapped(entity, measure, location, years="all"):
        return interface.get_measure(
            entity, measure, location, years=years
        ).droplevel("location")
    ```
 
-2. **`load_healthcare_system_utilization_rate`** — currently calls `get_draws` with
-   `gbd_round_id=ROUND_IDS.GBD_2017`. Update to `ROUND_IDS.GBD_2023` (or remove
-   the override and let `vivarium_inputs` handle the call). Also drop the manual
-   year-fill loop if `vivarium_inputs 7` already returns the full estimation window.
+2. **`load_healthcare_system_utilization_rate`** — previously called `get_draws`
+   with `gbd_round_id=ROUND_IDS.GBD_2017` and then manually back-filled
+   2018/2019 from the 2017 row. Now calls `get_draws` with
+   `gbd_round_id=GBD_2023_ROUND_ID` (the literal `9`, defined in
+   `constants/metadata.py`). The manual year-fill loop and the
+   `vi_utils.interpolate_year` call have been removed since round 9 returns
+   the full estimation window directly.
 
-3. **`get_re_mean_exposure_data_from_me_id` / `get_re_sd_data_from_me_id`** — the
-   two helpers used by the LDL/SBP/BMI exposure loaders. Replace
-   `gbd_round_id=GBD_2020_ROUND_ID` with `GBD_2023_ROUND_ID` (already updated in
-   `constants/metadata.py`) and remove the `decomp_step="usa_re"` argument
-   (`decomp_step` is no longer accepted in round 9).
+3. **`get_re_mean_exposure_data_from_me_id` / `get_re_sd_data_from_me_id`** —
+   the two helpers used by the LDL/SBP/BMI exposure loaders. Both now pass
+   `gbd_round_id=GBD_2023_ROUND_ID` and the `decomp_step="usa_re"` argument
+   has been removed (round 9 no longer accepts `decomp_step`).
+   Additionally, both `extract.extract_data(...)` calls inside these helpers
+   were updated for the `vivarium_inputs 7.x` signature: they now pass
+   `years='all'` and an explicit
+   `data_type=DataType("exposure", "draws")`.
 
-4. **`load_relative_risk_categorical_sbp` / `load_relative_risk_bmi`** — these are
-   the two project-specific RR loaders for heart failure (categorical SBP cat1–cat4
-   and BMI dose-response). They are **not** affected by the GBD 2023 RR-format
-   change because they synthesise data from project-specific distributions rather
-   than pulling from GBD. They should keep working as-is.
+4. **`get_re_weights_data_from_file`** — the same `extract.extract_data` call
+   was updated to pass `years='all'` and `data_type=DataType("exposure", "draws")`.
 
-5. **`get_entity`** — the high_fasting_plasma_glucose hard-coded TMRED block uses
-   `gbd_mapping.base_template.Tmred` and `gbd_mapping.id.scalar`. Verify those
-   imports still exist in `gbd_mapping 5`. If they moved, the import path
-   may change to `gbd_mapping.base_template.Tmred` (no change expected) but
-   `scalar` may need to come from `gbd_mapping.types`.
+5. **`transform_core_get_data_for_vivarium`** — the
+   `validation.validate_for_simulation(...)` call was updated for the
+   `vivarium_inputs 7.x` signature, which now requires explicit `years` and
+   `value_columns` keyword arguments. We pass `years='all'` and the
+   draw value columns from `DataType(measure, "draws").value_columns`.
 
-Once those edits are in, run the sanity check from step 2 again, but this
-time call `loader.load_standard_data` for one of the risks to verify the
-end-to-end transform path.
+6. **`load_relative_risk_categorical_sbp` / `load_relative_risk_bmi`** — these
+   are the two project-specific RR loaders for heart failure (categorical SBP
+   cat1–cat4 and BMI dose-response). They are **not** affected by the GBD
+   2023 RR-format change because they synthesise data from project-specific
+   distributions rather than pulling from GBD. They are unchanged.
+
+7. **`get_entity`** — the `high_fasting_plasma_glucose` hard-coded TMRED block
+   imports `gbd_mapping.base_template.Tmred` and `gbd_mapping.id.scalar`.
+   These import paths are unchanged in `gbd_mapping 5`; if the build raises
+   `ImportError` here, `scalar` may have moved to `gbd_mapping.types`.
+
+8. **Imports** — the loader no longer imports `GBD_2020_ROUND_ID` or
+   `ROUND_IDS`. It imports `GBD_2023_ROUND_ID` from `constants.metadata` and
+   `DataType` from `vivarium_inputs.utilities`.
+
+Once the build env is set up (Step 1), run the sanity check from Step 2 again,
+but this time call `loader.load_standard_data` for one of the risks to verify
+the end-to-end transform path.
 
 ---
 
