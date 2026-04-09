@@ -445,7 +445,7 @@ def _load_em_from_meid(location, meid, measure):
     data = data[data.measure_id == vi_globals.MEASURES[measure]]
     data = vi_utils.normalize(data, fill_value=0, cols_to_fill=vi_globals.DRAW_COLUMNS)
     data = data.filter(vi_globals.DEMOGRAPHIC_COLUMNS + vi_globals.DRAW_COLUMNS)
-    data = vi_utils.reshape(data)
+    data = vi_utils.reshape(data, value_cols=vi_globals.DRAW_COLUMNS)
     data = vi_utils.scrub_gbd_conventions(data, location)
     data = vi_utils.split_interval(data, interval_column="age", split_column_prefix="age")
     data = vi_utils.split_interval(data, interval_column="year", split_column_prefix="year")
@@ -641,7 +641,9 @@ def get_proportion_adjusted_heart_failure_data(
     prop_adjusted_data = measure_data.filter(
         vi_globals.DEMOGRAPHIC_COLUMNS + vi_globals.DRAW_COLUMNS
     )
-    prop_adjusted_data = vi_utils.reshape(prop_adjusted_data)
+    prop_adjusted_data = vi_utils.reshape(
+        prop_adjusted_data, value_cols=vi_globals.DRAW_COLUMNS
+    )
     prop_adjusted_data = vi_utils.scrub_gbd_conventions(prop_adjusted_data, location)
     prop_adjusted_data = vi_utils.split_interval(
         prop_adjusted_data, interval_column="age", split_column_prefix="age"
