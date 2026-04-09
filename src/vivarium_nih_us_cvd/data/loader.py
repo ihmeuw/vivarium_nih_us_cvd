@@ -132,7 +132,11 @@ STAND_IN_MEASURE_VALUES: Dict[str, float] = {
     "prevalence": 0.001,
     "incidence_rate": 0.0001,
     "excess_mortality_rate": 0.01,
+    "exposure": 1.0,
+    "exposure_standard_deviation": 1.0,
+    "disability_weight": 0.1,
 }
+_STAND_IN_DEFAULT = 0.001
 
 
 def _measure_to_key(measure: str) -> str:
@@ -155,7 +159,7 @@ def _stand_in_me_draws(location: str, measure: str) -> pd.DataFrame:
     ``_get_measure_wrapped``.
     """
     dims = interface.get_demographic_dimensions(location).droplevel("location")
-    value = STAND_IN_MEASURE_VALUES[_measure_to_key(measure)]
+    value = STAND_IN_MEASURE_VALUES.get(_measure_to_key(measure), _STAND_IN_DEFAULT)
     out = pd.DataFrame(
         value,
         index=dims.index,
@@ -278,7 +282,19 @@ def get_data(
         data_keys.MEDICATION_COVERAGE.SCALING_FACTOR: load_medication_coverage_scaling_factor,
     }
     source_key = _get_source_key(lookup_key)
-    data = mapping[lookup_key](source_key, location)
+    try:
+        data = mapping[lookup_key](source_key, location)
+    except (
+        EmptyDataFrameException,
+        NoBestVersionsException,
+        DataDoesNotExistError,
+    ):
+        # GBD 2023 stand-in: the loader for this key tried to pull ME or
+        # sequela data that has no round-9 best model. Return a
+        # correctly-shaped placeholder so the artifact build can
+        # proceed. See the module-level stand-in comment for caveats.
+        measure = EntityKey(source_key).measure if "." in str(source_key) else "prevalence"
+        return _stand_in_me_draws(location, measure)
     data = handle_special_cases(data, source_key, location)
     return data
 
