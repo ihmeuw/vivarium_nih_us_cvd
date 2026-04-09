@@ -36,6 +36,7 @@ from vivarium_inputs.globals import (
     DISTRIBUTION_COLUMNS,
     DRAW_COLUMNS,
     MEASURES,
+    DataDoesNotExistError,
 )
 from vivarium_inputs.mapping_extension import (
     alternative_risk_factors,
@@ -135,17 +136,25 @@ def _measure_to_key(measure: str) -> str:
 
 def _stand_in_me_draws(location: str, measure: str) -> pd.DataFrame:
     """Return a correctly-shaped constant DataFrame in place of missing
-    modelable-entity draws.
+    modelable-entity / sequela draws.
 
-    Shape is borrowed from the cause-level IHD prevalence pull (which
-    does work under release_id 16 via ``_get_unvalidated_measure``), so
-    the index and draw columns match what the rest of the loader
-    expects from ``_load_em_from_meid`` / ``get_proportion_adjusted_heart_failure_data``.
+    Shape is built from ``interface.get_demographic_dimensions(location)``
+    (the same helper that underlies ``load_demographic_dimensions``), so
+    this works even when every cause/sequela pull is raising
+    ``DataDoesNotExistError`` under release_id 16. The returned frame
+    has the (sex, age_start, age_end, year_start, year_end) hierarchical
+    index and ``draw_0..draw_999`` columns that the rest of the loader
+    expects from ``_load_em_from_meid`` /
+    ``get_proportion_adjusted_heart_failure_data`` /
+    ``_get_measure_wrapped``.
     """
-    template = _get_unvalidated_measure(causes.ischemic_heart_disease, "prevalence", location)
+    dims = interface.get_demographic_dimensions(location).droplevel("location")
     value = STAND_IN_MEASURE_VALUES[_measure_to_key(measure)]
-    out = template.copy()
-    out[:] = value
+    out = pd.DataFrame(
+        value,
+        index=dims.index,
+        columns=list(ARTIFACT_COLUMNS),
+    )
     return out
 
 
@@ -303,8 +312,19 @@ def _get_measure_wrapped(
 
     The default ``years='all'`` pulls every available estimation year from
     GBD 2023 (this is the new keyword introduced in ``vivarium_inputs`` 7.x).
+
+    GBD 2023 stand-in: if the raw-data validator in
+    ``vivarium_inputs.extract.extract_data`` rejects the pull as
+    ``DataDoesNotExistError`` ("Data contains no non-missing, non-zero
+    values"), fall back to ``_stand_in_me_draws`` so the artifact build
+    can proceed. See the module-level stand-in comment for caveats.
     """
-    return interface.get_measure(entity, measure, location, years=years).droplevel("location")
+    try:
+        return interface.get_measure(entity, measure, location, years=years).droplevel(
+            "location"
+        )
+    except DataDoesNotExistError:
+        return _stand_in_me_draws(location, str(measure))
 
 
 def load_standard_data(key: str, location: str) -> pd.DataFrame:
@@ -370,7 +390,7 @@ def _load_em_from_meid(location, meid, measure):
         data = gbd.get_modelable_entity_draws(
             meid, location_id, year_id="all", data_type="draws"
         )
-    except EmptyDataFrameException:
+    except (EmptyDataFrameException, DataDoesNotExistError):
         # GBD 2023 stand-in: see _stand_in_me_draws() docstring.
         return _stand_in_me_draws(location, measure)
     data = data[data.measure_id == vi_globals.MEASURES[measure]]
@@ -543,7 +563,7 @@ def get_proportion_adjusted_heart_failure_data(
             year_id="all",
             data_type="draws",
         )
-    except EmptyDataFrameException:
+    except (EmptyDataFrameException, DataDoesNotExistError):
         # GBD 2023 stand-in: ME 2412 (HF impairment envelope) has no
         # round-9 best model. Substitute a correctly-shaped constant
         # and skip the proportion-split step, since the proportions CSV
