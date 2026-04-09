@@ -58,6 +58,14 @@ except ImportError:  # pragma: no cover - only installed in cluster env
         pass
 
 
+try:
+    from stgpr_client.lib.exceptions import StgprServerError
+except ImportError:  # pragma: no cover - only installed in cluster env
+
+    class StgprServerError(Exception):
+        pass
+
+
 from vivarium_nih_us_cvd.constants import data_keys, data_values, paths
 from vivarium_nih_us_cvd.constants.metadata import (
     ARTIFACT_COLUMNS,
@@ -288,6 +296,7 @@ def get_data(
         EmptyDataFrameException,
         NoBestVersionsException,
         DataDoesNotExistError,
+        StgprServerError,
     ):
         # GBD 2023 stand-in: the loader for this key tried to pull ME or
         # sequela data that has no round-9 best model. Return a

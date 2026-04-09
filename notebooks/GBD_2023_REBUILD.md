@@ -428,3 +428,96 @@ side-by-side. Expect:
    still valid as round 9 best models? Any one of them that's missing a
    GBD 2023 best model will trigger the same `NoBestVersionsException` and
    need either an updated ID or a similar older-release fallback.
+
+---
+
+## Data keys using stand-in placeholder values (2026-04-09)
+
+The following data keys **failed to load from GBD 2023** (release_id 16)
+during the artifact build and were replaced with constant-valued
+placeholder DataFrames. The placeholders are small nonzero constants
+that let the build and simulation run end-to-end, but **the values are
+not epidemiologically meaningful**. Each must be replaced with real data
+before results can be trusted.
+
+The stand-in logic lives in `loader.py` (`_stand_in_me_draws`,
+`STAND_IN_MEASURE_VALUES`, and the four `except` clauses in `get_data`,
+`_load_em_from_meid`, `get_proportion_adjusted_heart_failure_data`, and
+`_get_measure_wrapped`).
+
+### Modelable-entity draws (via `gbd.get_modelable_entity_draws`)
+
+All of these raise `EmptyDataFrameException`, `NoBestVersionsException`,
+or `StgprServerError` under release_id 16. The MEIDs are inherited
+from GBD 2020 and appear in the metadata table but have no round-9
+best model in the `epi` or `stgpr` source.
+
+| Constant | ME ID | Used for | Exception seen |
+|---|---|---|---|
+| `ACUTE_MI_ME_ID` | 24694 | MI incidence, prevalence, EMR | `EmptyDataFrameException` |
+| `POST_MI_ME_ID` | 15755 | Post-MI EMR | `NoBestVersionsException` |
+| `HEART_FAILURE_ME_ID` | 2412 | HF envelope prevalence, incidence, EMR, CSMR | `EmptyDataFrameException` |
+| `LDL_MEAN_ME_ID` | 26955 | LDL-C mean exposure | `NoBestVersionsException` (ST-GPR) |
+| `LDL_SD_ME_ID` | 27057 | LDL-C SD | expected same |
+| `SBP_MEAN_ME_ID` | 23871 | SBP mean exposure | expected same |
+| `SBP_SD_ME_ID` | 27049 | SBP SD | expected same |
+| `BMI_MEAN_ME_ID` | 23873 | BMI mean exposure | expected same |
+| `BMI_SD_ME_ID` | 27050 | BMI SD | expected same |
+
+### Sequela / cause-level draws (via `interface.get_measure`)
+
+Raw-data validation (`vivarium_inputs.validation.raw.check_data_exist`)
+rejects IHD sequela draws as all-zero under release_id 16.
+
+| Entity | Measure | Loader |
+|---|---|---|
+| IHD sequelae: `acute_myocardial_infarction_*` (×2) | prevalence | `_load_and_sum_prevalence_from_sequelae` |
+| IHD sequelae: `asymptomatic_ischemic_heart_disease_following_myocardial_infarction` | prevalence | `_load_and_sum_prevalence_from_sequelae` |
+| IHD sequelae: `*_heart_failure_due_to_ischemic_heart_disease` (×4) | prevalence | `_load_and_sum_prevalence_from_sequelae` |
+| IHD sequelae: `*_angina_due_to_ischemic_heart_disease` (×4) | prevalence, disability_weight | `_get_measure_wrapped` |
+| HF-residual sequelae (multiple parent causes) | prevalence, disability_weight | `_get_measure_wrapped` |
+
+### Risk-factor exposure draws (via `extract.extract_data` / ST-GPR)
+
+The `get_re_*` functions and `load_*_weights` helpers also call
+`extract.extract_data` for exposure age-restriction validation; those
+calls chain to the same ST-GPR / epi draw services and fail with
+`NoBestVersionsException` or `StgprServerError`.
+
+| Data key | Loader | Failing path |
+|---|---|---|
+| `risk_factor.high_ldl_cholesterol.exposure` | `load_ldl_exposure` | `get_re_mean_exposure_data_from_me_id` |
+| `risk_factor.high_ldl_cholesterol.exposure_standard_deviation` | `load_ldl_standard_deviation` | `get_re_sd_data_from_me_id` |
+| `risk_factor.high_ldl_cholesterol.exposure_distribution_weights` | `load_ldl_weights` | `get_re_weights_data_from_file` → `extract.extract_data` |
+| `risk_factor.high_systolic_blood_pressure.exposure` | `load_sbp_exposure` | same pattern |
+| `risk_factor.high_systolic_blood_pressure.exposure_standard_deviation` | `load_sbp_standard_deviation` | same pattern |
+| `risk_factor.high_systolic_blood_pressure.exposure_distribution_weights` | `load_sbp_weights` | same pattern |
+| `risk_factor.high_body_mass_index_in_adults.exposure` | `load_bmi_exposure` | same pattern |
+| `risk_factor.high_body_mass_index_in_adults.exposure_standard_deviation` | `load_bmi_standard_deviation` | same pattern |
+| `risk_factor.high_body_mass_index_in_adults.exposure_distribution_weights` | `load_bmi_weights` | same pattern |
+
+### Placeholder values used
+
+| Measure key | Constant value |
+|---|---|
+| `prevalence` | 0.001 |
+| `incidence_rate` | 0.0001 |
+| `excess_mortality_rate` | 0.01 |
+| `exposure` | 1.0 |
+| `exposure_standard_deviation` | 1.0 |
+| `disability_weight` | 0.1 |
+| *(any other)* | 0.001 |
+
+### Recommended next steps
+
+1. **Identify round-9 MEIDs.** For each ME in the table above, query
+   `db_queries.get_best_model_versions("modelable_entity", me_id, release_id=16)`
+   or search the `epi` / `stgpr` model-version tables for the round-9
+   replacement. Some may have been renumbered or merged.
+2. **Try older artifacts.** The GBD 2020 artifacts built with the
+   previous codebase have real data for all of these keys. Copying
+   values from an old artifact into the new one (matching on the
+   demographic index) is a viable interim path.
+3. **Contact research team / Central Computation.** The ST-GPR server
+   returned HTTP 500 for the LDL-C weights pull, suggesting the service
+   may have been down or the risk not yet published under release 16.
