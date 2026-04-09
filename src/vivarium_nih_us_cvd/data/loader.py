@@ -632,7 +632,7 @@ def get_proportion_adjusted_heart_failure_data(
     hf_proportions = get_heart_failure_proportions(location, heart_failure_type)
 
     # apply proportion data
-    draw_cols = [f"draw_{i}" for i in range(1000)]
+    draw_cols = [f"draw_{i}" for i in range(DRAW_COUNT)]
 
     measure_data = measure_data.merge(hf_proportions, on=PROPORTION_DATA_INDEX_COLUMNS)
     measure_data[draw_cols] = measure_data[draw_cols].mul(measure_data["proportion"], axis=0)
@@ -940,7 +940,7 @@ def load_healthcare_system_utilization_rate(key: str, location: str) -> pd.DataF
 
 
 def load_ldlc_medication_effect(key: str, location: str) -> pd.DataFrame:
-    draws = [f"draw_{i}" for i in range(1000)]
+    draws = [f"draw_{i}" for i in range(DRAW_COUNT)]
     index = pd.Index(
         [l.DESCRIPTION for l in data_values.LDLC_MEDICATION_EFFICACY],
         name=data_values.COLUMNS.LDLC_MEDICATION,
@@ -1396,7 +1396,7 @@ def load_medication_adherence_exposure(key: str, location: str) -> pd.DataFrame:
     df = pd.concat([df_pop_index] * 3)
     df["parameter"] = np.repeat(["cat1", "cat2", "cat3"], len(df_pop_index))
     # Merge on the categorical thresholds
-    draws = [f"draw_{i}" for i in range(1000)]
+    draws = [f"draw_{i}" for i in range(DRAW_COUNT)]
     df = pd.concat([df, pd.DataFrame(columns=draws, dtype=float)])
     # cat1 is most severe -> catN is least severe (tmrel)
     df.loc[

@@ -84,7 +84,7 @@ PROPORTION_DATA_INDEX_COLUMNS = [
     "age_group_id",
 ]
 
-DRAW_COUNT = 1000
+DRAW_COUNT = 250  # GBD 2023 ships 250 draws (was 1000 in GBD 2020)
 ARTIFACT_COLUMNS = pd.Index([f"draw_{i}" for i in range(DRAW_COUNT)])
 
 GBD_2023_ROUND_ID = 9
