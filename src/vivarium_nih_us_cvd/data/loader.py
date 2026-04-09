@@ -75,6 +75,17 @@ from vivarium_nih_us_cvd.constants.metadata import (
     GBD_2023_ROUND_ID,
     PROPORTION_DATA_INDEX_COLUMNS,
 )
+
+# ---------------------------------------------------------------------------
+# Year filter for GBD 2023 artifact builds
+# ---------------------------------------------------------------------------
+# ``years='all'`` now returns annual estimates (1990-2022, 33 years) in
+# vivarium_inputs 7.x, and GBD 2023 curve-format RR data is large enough
+# to OOM at ~50 GB when pulled for all years × ages × sexes × 1000 draws.
+# Restrict to a single recent estimation year for the prototype build.
+# Replace with the full estimation-year list once memory is not a concern
+# or once the data is available from a cached / pre-aggregated source.
+GBD_2023_YEARS = [2022]
 from vivarium_nih_us_cvd.utilities import get_random_variable_draws, sanitize_location
 
 # ---------------------------------------------------------------------------
@@ -113,7 +124,7 @@ def _get_unvalidated_measure(
     rest of the loader expects.
     """
     data_type = vi_utils.DataType(measure, "draws")
-    data = core.get_data(entity, measure, location, "all", data_type)
+    data = core.get_data(entity, measure, location, GBD_2023_YEARS, data_type)
     data = vi_utils.scrub_gbd_conventions(data, location)
     data = vi_utils.split_interval(data, interval_column="age", split_column_prefix="age")
     data = vi_utils.split_interval(data, interval_column="year", split_column_prefix="year")
@@ -339,14 +350,15 @@ def _get_measure_wrapped(
     entity: ModelableEntity,
     measure: Union[str, data_keys.TargetString],
     location: str,
-    years: Union[int, str, List[int], None] = "all",
+    years: Union[int, str, List[int], None] = None,
 ) -> pd.DataFrame:
     """
     All calls to get_measure() need to have the location dropped. For the time being,
     simply use this function.
 
-    The default ``years='all'`` pulls every available estimation year from
-    GBD 2023 (this is the new keyword introduced in ``vivarium_inputs`` 7.x).
+    Defaults to ``GBD_2023_YEARS`` (a single recent year) to keep memory
+    usage manageable — GBD 2023 curve-format RR draws OOM at ~50 GB when
+    pulled for all annual years.
 
     GBD 2023 stand-in: if the raw-data validator in
     ``vivarium_inputs.extract.extract_data`` rejects the pull as
@@ -354,6 +366,8 @@ def _get_measure_wrapped(
     values"), fall back to ``_stand_in_me_draws`` so the artifact build
     can proceed. See the module-level stand-in comment for caveats.
     """
+    if years is None:
+        years = GBD_2023_YEARS
     try:
         return interface.get_measure(entity, measure, location, years=years).droplevel(
             "location"
@@ -423,7 +437,7 @@ def _load_em_from_meid(location, meid, measure):
     # ``data_type`` arguments. We pull all estimation years as draws.
     try:
         data = gbd.get_modelable_entity_draws(
-            meid, location_id, year_id="all", data_type="draws"
+            meid, location_id, year_id=GBD_2023_YEARS, data_type="draws"
         )
     except (EmptyDataFrameException, NoBestVersionsException, DataDoesNotExistError):
         # GBD 2023 stand-in: see _stand_in_me_draws() docstring.
@@ -595,7 +609,7 @@ def get_proportion_adjusted_heart_failure_data(
         heart_failure_data = gbd.get_modelable_entity_draws(
             data_values.HEART_FAILURE_ME_ID,
             location_id,
-            year_id="all",
+            year_id=GBD_2023_YEARS,
             data_type="draws",
         )
     except (EmptyDataFrameException, NoBestVersionsException, DataDoesNotExistError):
@@ -1034,7 +1048,7 @@ def get_re_mean_exposure_data_from_me_id(key: str, location: str, me_id: int) ->
     # GBD 2023: round 9 no longer accepts ``decomp_step``; vivarium_gbd_access
     # now requires explicit ``year_id`` and ``data_type`` arguments.
     data = gbd.get_modelable_entity_draws(
-        me_id, location_id, year_id="all", data_type="draws"
+        me_id, location_id, year_id=GBD_2023_YEARS, data_type="draws"
     )
 
     # core.get_data processing
@@ -1061,7 +1075,7 @@ def get_re_sd_data_from_me_id(key: str, location: str, me_id: int) -> pd.DataFra
     # GBD 2023: round 9 no longer accepts ``decomp_step``. vivarium_gbd_access
     # now requires explicit ``year_id`` and ``data_type`` arguments.
     data = gbd.get_modelable_entity_draws(
-        me_id, location_id, year_id="all", data_type="draws"
+        me_id, location_id, year_id=GBD_2023_YEARS, data_type="draws"
     )
 
     # vivarium_inputs 7.x: extract_data now requires explicit ``years`` and
@@ -1071,7 +1085,7 @@ def get_re_sd_data_from_me_id(key: str, location: str, me_id: int) -> pd.DataFra
         entity,
         "exposure",
         location_id,
-        years="all",
+        years=GBD_2023_YEARS,
         data_type=DataType("exposure", "draws"),
     )
     valid_age_groups = vi_utils.get_exposure_and_restriction_ages(exposure, entity)
@@ -1107,7 +1121,7 @@ def get_re_weights_data_from_file(key: str, location: str, file_path: str) -> pd
         entity,
         "exposure",
         location_id,
-        years="all",
+        years=GBD_2023_YEARS,
         data_type=DataType("exposure", "draws"),
     )
     valid_ages = vi_utils.get_exposure_and_restriction_ages(exposure, entity)
@@ -1156,7 +1170,7 @@ def transform_core_get_data_for_vivarium(
         entity,
         key.measure,
         location,
-        years="all",
+        years=GBD_2023_YEARS,
         value_columns=DataType(key.measure, "draws").value_columns,
     )
     data = vi_utils.split_interval(data, interval_column="age", split_column_prefix="age")

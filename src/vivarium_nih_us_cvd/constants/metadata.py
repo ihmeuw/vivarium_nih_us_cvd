@@ -11,7 +11,7 @@ PROJECT_NAME = "vivarium_nih_us_cvd"
 CLUSTER_PROJECT = "proj_simscience_prod"
 
 CLUSTER_QUEUE = "all.q"
-MAKE_ARTIFACT_MEM = 15  # GB
+MAKE_ARTIFACT_MEM = 50  # GB (GBD 2023 curve-format RR draws are much larger)
 MAKE_ARTIFACT_CPU = 1
 MAKE_ARTIFACT_RUNTIME = "00:30:00"
 MAKE_ARTIFACT_SLEEP = 10
