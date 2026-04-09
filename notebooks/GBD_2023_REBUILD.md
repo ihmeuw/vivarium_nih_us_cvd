@@ -229,6 +229,28 @@ will succeed. The following edits have already been applied to
    `vivarium_inputs.validation.sim.validate_excess_mortality_rate` so
    `BOUNDARY_SPECIAL_CASES` can actually be used.
 
+10. **`gbd.get_modelable_entity_draws` is broken for every ME we need.**
+    Verified at a pdb prompt under release_id=16: both ME 2412
+    (`Heart failure impairment envelope`) and ME 24694 (`Acute MI`)
+    raise `EmptyDataFrameException` — they are present in the
+    modelable-entity metadata table but have no round-9 best model in
+    the `epi` source. Every other MEID hard-coded in
+    `constants/data_values.py` (2412, 24694, 15755) should be assumed
+    broken until someone on the research team identifies the correct
+    round-9 entities (or `model_version_id`s) to use. Until then,
+    `_load_em_from_meid` and `get_proportion_adjusted_heart_failure_data`
+    catch `EmptyDataFrameException` and substitute a correctly-shaped
+    **stand-in** DataFrame of small nonzero constants
+    (`STAND_IN_MEASURE_VALUES` at the top of `loader.py`). The shape
+    is borrowed from the cause-level IHD prevalence pull (which does
+    work via `_get_unvalidated_measure`), so the sort/index/draw
+    columns match what the rest of the loader expects. **These
+    numbers are placeholders, not epidemiologically meaningful** —
+    the artifact will build end-to-end but the IHD/HF prevalence,
+    incidence, and EMR values will be obviously wrong. Notebook 04
+    should flag them. Replace once the research team identifies the
+    round-9 path.
+
 Once the build env is set up (Step 1), run the sanity check from Step 2 again,
 but this time call `loader.load_standard_data` for one of the risks to verify
 the end-to-end transform path.

@@ -43,6 +43,14 @@ from vivarium_inputs.mapping_extension import (
 )
 from vivarium_inputs.utilities import DataType
 
+try:
+    from get_draws.base.exceptions import EmptyDataFrameException
+except ImportError:  # pragma: no cover - only installed in cluster env
+
+    class EmptyDataFrameException(Exception):
+        pass
+
+
 from vivarium_nih_us_cvd.constants import data_keys, data_values, paths
 from vivarium_nih_us_cvd.constants.metadata import (
     ARTIFACT_COLUMNS,
@@ -93,6 +101,52 @@ def _get_unvalidated_measure(
     data = vi_utils.split_interval(data, interval_column="age", split_column_prefix="age")
     data = vi_utils.split_interval(data, interval_column="year", split_column_prefix="year")
     return vi_utils.sort_hierarchical_data(data).droplevel("location")
+
+
+# ---------------------------------------------------------------------------
+# GBD 2023 stand-in for missing modelable-entity draws
+# ---------------------------------------------------------------------------
+# Under release_id 16, ``gbd.get_modelable_entity_draws`` returns an empty
+# DataFrame for every ME we need here (verified at a pdb prompt for
+# 2412 ``Heart failure impairment envelope`` and 24694 ``Acute MI``).
+# These MEs are in the metadata table but have no round-9 best model
+# stored in the ``epi`` source. Until the research team identifies the
+# correct round-9 entities (or model_version_ids) for MI / post-MI / HF
+# prevalence, incidence, and EMR, substitute a small-but-nonzero
+# constant DataFrame with the right shape so the artifact build runs
+# end-to-end. The numbers are placeholders, not epidemiologically
+# meaningful; downstream validation in notebook 04 will flag them.
+
+# Small nonzero placeholders per measure. Chosen to be plausible
+# (order-of-magnitude) rather than accurate and to avoid divide-by-zero
+# downstream (e.g. ``1 - (ami_seq_prev + hf_resid_prev)`` denominators
+# in the incidence loaders).
+STAND_IN_MEASURE_VALUES: Dict[str, float] = {
+    "prevalence": 0.001,
+    "incidence_rate": 0.0001,
+    "excess_mortality_rate": 0.01,
+}
+
+
+def _measure_to_key(measure: str) -> str:
+    """Normalise a measure name to the STAND_IN_MEASURE_VALUES key."""
+    return measure.strip().lower().replace(" ", "_")
+
+
+def _stand_in_me_draws(location: str, measure: str) -> pd.DataFrame:
+    """Return a correctly-shaped constant DataFrame in place of missing
+    modelable-entity draws.
+
+    Shape is borrowed from the cause-level IHD prevalence pull (which
+    does work under release_id 16 via ``_get_unvalidated_measure``), so
+    the index and draw columns match what the rest of the loader
+    expects from ``_load_em_from_meid`` / ``get_proportion_adjusted_heart_failure_data``.
+    """
+    template = _get_unvalidated_measure(causes.ischemic_heart_disease, "prevalence", location)
+    value = STAND_IN_MEASURE_VALUES[_measure_to_key(measure)]
+    out = template.copy()
+    out[:] = value
+    return out
 
 
 def _get_source_key(val: Union[str, data_keys.SourceTarget]) -> str:
@@ -312,7 +366,13 @@ def _load_em_from_meid(location, meid, measure):
     location_id = utility_data.get_location_id(location)
     # vivarium_gbd_access (GBD 2023) now requires explicit ``year_id`` and
     # ``data_type`` arguments. We pull all estimation years as draws.
-    data = gbd.get_modelable_entity_draws(meid, location_id, year_id="all", data_type="draws")
+    try:
+        data = gbd.get_modelable_entity_draws(
+            meid, location_id, year_id="all", data_type="draws"
+        )
+    except EmptyDataFrameException:
+        # GBD 2023 stand-in: see _stand_in_me_draws() docstring.
+        return _stand_in_me_draws(location, measure)
     data = data[data.measure_id == vi_globals.MEASURES[measure]]
     data = vi_utils.normalize(data, fill_value=0)
     data = data.filter(vi_globals.DEMOGRAPHIC_COLUMNS + vi_globals.DRAW_COLUMNS)
@@ -476,12 +536,19 @@ def get_proportion_adjusted_heart_failure_data(
 ) -> pd.DataFrame:
     # pull measure data
     location_id = utility_data.get_location_id(location)
-    heart_failure_data = gbd.get_modelable_entity_draws(
-        data_values.HEART_FAILURE_ME_ID,
-        location_id,
-        year_id="all",
-        data_type="draws",
-    )
+    try:
+        heart_failure_data = gbd.get_modelable_entity_draws(
+            data_values.HEART_FAILURE_ME_ID,
+            location_id,
+            year_id="all",
+            data_type="draws",
+        )
+    except EmptyDataFrameException:
+        # GBD 2023 stand-in: ME 2412 (HF impairment envelope) has no
+        # round-9 best model. Substitute a correctly-shaped constant
+        # and skip the proportion-split step, since the proportions CSV
+        # multiplies a placeholder by a placeholder.
+        return _stand_in_me_draws(location, measure)
     measure_data = heart_failure_data[
         heart_failure_data.measure_id == vi_globals.MEASURES[measure]
     ]
