@@ -38,6 +38,7 @@ from vivarium_inputs.globals import (
     MEASURES,
     DataAbnormalError,
     DataDoesNotExistError,
+    DataTransformationError,
 )
 from vivarium_inputs.mapping_extension import (
     alternative_risk_factors,
@@ -298,6 +299,7 @@ def get_data(
         NoBestVersionsException,
         DataDoesNotExistError,
         DataAbnormalError,
+        DataTransformationError,
         StgprServerError,
     ):
         # GBD 2023 stand-in: the loader for this key tried to pull ME or
