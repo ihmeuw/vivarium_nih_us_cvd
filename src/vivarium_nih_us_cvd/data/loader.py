@@ -26,6 +26,7 @@ from gbd_mapping.id import scalar
 from vivarium.framework.artifact import EntityKey
 from vivarium_gbd_access import gbd
 from vivarium_gbd_access.constants import SEX
+from vivarium_inputs import core
 from vivarium_inputs import extract
 from vivarium_inputs import globals as vi_globals
 from vivarium_inputs import interface
@@ -48,7 +49,6 @@ from vivarium_nih_us_cvd.constants.metadata import (
     ARTIFACT_COLUMNS,
     DRAW_COUNT,
     GBD_2023_ROUND_ID,
-    LOCATIONS,
     PROPORTION_DATA_INDEX_COLUMNS,
 )
 from vivarium_nih_us_cvd.utilities import get_random_variable_draws, sanitize_location
@@ -60,19 +60,41 @@ from vivarium_nih_us_cvd.utilities import get_random_variable_draws, sanitize_lo
 # ``vivarium_inputs.validation.sim`` caps EMR at 300.0 by default
 # (``VALID_EXCESS_MORT_RANGE = (0.0, 300.0)``), and under round-9 data the
 # cause-level ischemic-stroke EMR for the US (and states) exceeds that cap,
-# raising ``DataTransformationError``. The library ships a built-in
-# override mechanism — ``vivarium_inputs.globals.BOUNDARY_SPECIAL_CASES`` —
-# which ``validate_excess_mortality_rate`` consults before applying the
-# default cap. Monkey-patch it at import time so that
-# ``interface.get_measure(causes.ischemic_stroke, "excess_mortality_rate",
-# location)`` passes validation for every US location we build artifacts
-# for. TODO(research): confirm whether the high values are a real
-# signal or a data bug, and remove / tighten this override.
-for _loc in LOCATIONS:
-    vi_globals.BOUNDARY_SPECIAL_CASES.setdefault(
-        "excess_mortality_rate", {}
-    ).setdefault(_loc, {})["ischemic_stroke"] = 100_000.0
-del _loc
+# raising ``DataTransformationError``. The library ships an override
+# mechanism (``BOUNDARY_SPECIAL_CASES``), but in vivarium_inputs 7.x the
+# ``validate_excess_mortality_rate`` implementation has a latent bug:
+# after looping over ``context["location"]`` with a shadowed ``location``
+# variable, it uses ``context["location"]`` (a list, unhashable) as a
+# dict key, so any successful override lookup raises ``TypeError:
+# unhashable type: 'list'``. Until the upstream bug is fixed, bypass
+# ``interface.get_measure`` entirely for EMR and call the underlying
+# extract / transform steps ourselves — the ``_get_unvalidated_measure``
+# helper below replicates ``interface.get_measure`` minus the
+# validation step. TODO(research): open a bug report against
+# vivarium_inputs for the `context["location"]` indexing bug, and
+# confirm whether the round-9 stroke EMR values are a real signal or a
+# data bug that should be clipped.
+
+
+def _get_unvalidated_measure(
+    entity: ModelableEntity, measure: str, location: str
+) -> pd.DataFrame:
+    """Replicate ``interface.get_measure`` minus the validation step.
+
+    Used to bypass the ``BOUNDARY_SPECIAL_CASES`` / ``context["location"]``
+    bug in ``vivarium_inputs.validation.sim.validate_excess_mortality_rate``
+    when pulling GBD 2023 excess-mortality data that exceeds the default
+    300.0 cap. The rest of the pipeline (core.get_data, scrub_gbd_conventions,
+    split_interval, sort_hierarchical_data) is identical to what
+    ``interface.get_measure`` does, so the return shape matches what the
+    rest of the loader expects.
+    """
+    data_type = vi_utils.DataType(measure, "draws")
+    data = core.get_data(entity, measure, location, "all", data_type)
+    data = vi_utils.scrub_gbd_conventions(data, location)
+    data = vi_utils.split_interval(data, interval_column="age", split_column_prefix="age")
+    data = vi_utils.split_interval(data, interval_column="year", split_column_prefix="year")
+    return vi_utils.sort_hierarchical_data(data).droplevel("location")
 
 
 def _get_source_key(val: Union[str, data_keys.SourceTarget]) -> str:
@@ -370,14 +392,16 @@ def load_emr_ischemic_stroke(key: str, location: str) -> pd.DataFrame:
     # (24714 acute, 10837 chronic) both return
     # ``EmptyDataFrameException`` from ``gbd.get_modelable_entity_draws``
     # under release_id 16 — they exist in the metadata but have no
-    # usable round-9 data. Fall back to cause-level EMR from
-    # ``interface.get_measure``. The cap on EMR validation has been
-    # raised at module import time (see ``BOUNDARY_SPECIAL_CASES`` patch
-    # above) because the round-9 cause-level ischemic-stroke EMR values
-    # exceed the default 300 ceiling. Acute and chronic states will
-    # receive the same (cause-level) EMR until the research team
-    # identifies a round-9 path that recovers the acute/chronic split.
-    return _get_measure_wrapped(causes.ischemic_stroke, "excess_mortality_rate", location)
+    # usable round-9 data. Fall back to cause-level EMR via the
+    # ``_get_unvalidated_measure`` helper, which bypasses both the
+    # default 300 EMR cap and the latent ``BOUNDARY_SPECIAL_CASES``
+    # bug in ``vivarium_inputs.validation.sim``. Acute and chronic
+    # states will receive the same (cause-level) EMR until the
+    # research team identifies a round-9 path that recovers the
+    # acute/chronic split.
+    return _get_unvalidated_measure(
+        causes.ischemic_stroke, "excess_mortality_rate", location
+    )
 
 
 def _get_prevalence_weighted_disability_weight(

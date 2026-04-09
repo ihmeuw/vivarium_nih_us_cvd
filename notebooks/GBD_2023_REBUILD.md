@@ -200,19 +200,34 @@ will succeed. The following edits have already been applied to
 9. **`load_emr_ischemic_stroke`** — previously pulled sequela-split EMR via
    `_load_em_from_meid(location, {24714 | 10837}, "Excess mortality rate")`.
    Both MEs return `EmptyDataFrameException` under release_id 16, so the
-   loader now falls back to cause-level EMR via
-   `_get_measure_wrapped(causes.ischemic_stroke, "excess_mortality_rate",
-   location)`. Acute and chronic stroke states will receive the same
-   cause-level EMR; until the research team identifies a round-9 path
-   that recovers the acute/chronic split, this is a simplification.
-   **Side effect**: the round-9 cause-level EMR for ischemic stroke
-   exceeds the default `VALID_EXCESS_MORT_RANGE[1] = 300.0` validation
-   cap in `vivarium_inputs.validation.sim`, so a module-level
-   monkey-patch at the top of `loader.py` populates
-   `vi_globals.BOUNDARY_SPECIAL_CASES["excess_mortality_rate"]` with
-   `{location: {"ischemic_stroke": 100_000.0}}` for every entry in
-   `metadata.LOCATIONS`. Extend this patch (add more cause names) if
-   other EMR loaders hit the same 300-cap failure.
+   loader now falls back to cause-level EMR. Acute and chronic stroke
+   states will receive the same cause-level value; until the research team
+   identifies a round-9 path that recovers the acute/chronic split, this
+   is a simplification.
+   **Two complications** had to be worked around:
+   1. The round-9 cause-level EMR for ischemic stroke **exceeds** the
+      default `VALID_EXCESS_MORT_RANGE[1] = 300.0` validation cap in
+      `vivarium_inputs.validation.sim`, raising
+      `DataTransformationError`.
+   2. The built-in override mechanism
+      (`vivarium_inputs.globals.BOUNDARY_SPECIAL_CASES`) has a latent
+      upstream bug in `validate_excess_mortality_rate`: the function
+      loops over `context["location"]` with a shadowed `location`
+      variable, then uses `context["location"]` (a list, unhashable)
+      as a dict key — so any successful override lookup raises
+      `TypeError: unhashable type: 'list'`.
+   The fix at the top of `loader.py` is a small helper
+   `_get_unvalidated_measure(entity, measure, location)` that
+   replicates `interface.get_measure` minus the validation step
+   (core.get_data → scrub_gbd_conventions → split_interval ×2 →
+   sort_hierarchical_data → droplevel("location")).
+   `load_emr_ischemic_stroke` calls this helper directly. If other EMR
+   loaders (`load_emr_ihd_and_hf`, `load_csmr_ihd_and_hf`) hit the same
+   300-cap failure, route them through `_get_unvalidated_measure` as
+   well. **Open bug to file upstream**: fix the
+   `context["location"]` indexing bug in
+   `vivarium_inputs.validation.sim.validate_excess_mortality_rate` so
+   `BOUNDARY_SPECIAL_CASES` can actually be used.
 
 Once the build env is set up (Step 1), run the sanity check from Step 2 again,
 but this time call `loader.load_standard_data` for one of the risks to verify
