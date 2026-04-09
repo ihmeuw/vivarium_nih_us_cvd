@@ -197,6 +197,23 @@ will succeed. The following edits have already been applied to
    `ROUND_IDS`. It imports `GBD_2023_ROUND_ID` from `constants.metadata` and
    `DataType` from `vivarium_inputs.utilities`.
 
+9. **`load_emr_ischemic_stroke`** — previously pulled sequela-split EMR via
+   `_load_em_from_meid(location, {24714 | 10837}, "Excess mortality rate")`.
+   Both MEs return `EmptyDataFrameException` under release_id 16, so the
+   loader now falls back to cause-level EMR via
+   `_get_measure_wrapped(causes.ischemic_stroke, "excess_mortality_rate",
+   location)`. Acute and chronic stroke states will receive the same
+   cause-level EMR; until the research team identifies a round-9 path
+   that recovers the acute/chronic split, this is a simplification.
+   **Side effect**: the round-9 cause-level EMR for ischemic stroke
+   exceeds the default `VALID_EXCESS_MORT_RANGE[1] = 300.0` validation
+   cap in `vivarium_inputs.validation.sim`, so a module-level
+   monkey-patch at the top of `loader.py` populates
+   `vi_globals.BOUNDARY_SPECIAL_CASES["excess_mortality_rate"]` with
+   `{location: {"ischemic_stroke": 100_000.0}}` for every entry in
+   `metadata.LOCATIONS`. Extend this patch (add more cause names) if
+   other EMR loaders hit the same 300-cap failure.
+
 Once the build env is set up (Step 1), run the sanity check from Step 2 again,
 but this time call `loader.load_standard_data` for one of the risks to verify
 the end-to-end transform path.
