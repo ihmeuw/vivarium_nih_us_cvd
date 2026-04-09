@@ -45,10 +45,16 @@ from vivarium_inputs.mapping_extension import (
 from vivarium_inputs.utilities import DataType
 
 try:
-    from get_draws.base.exceptions import EmptyDataFrameException
+    from get_draws.base.exceptions import (
+        EmptyDataFrameException,
+        NoBestVersionsException,
+    )
 except ImportError:  # pragma: no cover - only installed in cluster env
 
     class EmptyDataFrameException(Exception):
+        pass
+
+    class NoBestVersionsException(Exception):
         pass
 
 
@@ -390,7 +396,7 @@ def _load_em_from_meid(location, meid, measure):
         data = gbd.get_modelable_entity_draws(
             meid, location_id, year_id="all", data_type="draws"
         )
-    except (EmptyDataFrameException, DataDoesNotExistError):
+    except (EmptyDataFrameException, NoBestVersionsException, DataDoesNotExistError):
         # GBD 2023 stand-in: see _stand_in_me_draws() docstring.
         return _stand_in_me_draws(location, measure)
     data = data[data.measure_id == vi_globals.MEASURES[measure]]
@@ -563,7 +569,7 @@ def get_proportion_adjusted_heart_failure_data(
             year_id="all",
             data_type="draws",
         )
-    except (EmptyDataFrameException, DataDoesNotExistError):
+    except (EmptyDataFrameException, NoBestVersionsException, DataDoesNotExistError):
         # GBD 2023 stand-in: ME 2412 (HF impairment envelope) has no
         # round-9 best model. Substitute a correctly-shaped constant
         # and skip the proportion-split step, since the proportions CSV
