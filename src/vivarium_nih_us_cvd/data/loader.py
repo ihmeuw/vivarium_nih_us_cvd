@@ -36,6 +36,7 @@ from vivarium_inputs.globals import (
     DISTRIBUTION_COLUMNS,
     DRAW_COLUMNS,
     MEASURES,
+    DataAbnormalError,
     DataDoesNotExistError,
 )
 from vivarium_inputs.mapping_extension import (
@@ -296,6 +297,7 @@ def get_data(
         EmptyDataFrameException,
         NoBestVersionsException,
         DataDoesNotExistError,
+        DataAbnormalError,
         StgprServerError,
     ):
         # GBD 2023 stand-in: the loader for this key tried to pull ME or
