@@ -85,7 +85,7 @@ from vivarium_nih_us_cvd.constants.metadata import (
 # Restrict to a single recent estimation year for the prototype build.
 # Replace with the full estimation-year list once memory is not a concern
 # or once the data is available from a cached / pre-aggregated source.
-GBD_2023_YEARS = [2022]
+GBD_2023_YEARS = [2023]
 from vivarium_nih_us_cvd.utilities import get_random_variable_draws, sanitize_location
 
 # ---------------------------------------------------------------------------
@@ -443,7 +443,7 @@ def _load_em_from_meid(location, meid, measure):
         # GBD 2023 stand-in: see _stand_in_me_draws() docstring.
         return _stand_in_me_draws(location, measure)
     data = data[data.measure_id == vi_globals.MEASURES[measure]]
-    data = vi_utils.normalize(data, fill_value=0)
+    data = vi_utils.normalize(data, fill_value=0, cols_to_fill=vi_globals.DRAW_COLUMNS)
     data = data.filter(vi_globals.DEMOGRAPHIC_COLUMNS + vi_globals.DRAW_COLUMNS)
     data = vi_utils.reshape(data)
     data = vi_utils.scrub_gbd_conventions(data, location)
@@ -621,7 +621,9 @@ def get_proportion_adjusted_heart_failure_data(
     measure_data = heart_failure_data[
         heart_failure_data.measure_id == vi_globals.MEASURES[measure]
     ]
-    measure_data = vi_utils.normalize(measure_data, fill_value=0)
+    measure_data = vi_utils.normalize(
+        measure_data, fill_value=0, cols_to_fill=vi_globals.DRAW_COLUMNS
+    )
     measure_data = measure_data.filter(
         vi_globals.DEMOGRAPHIC_COLUMNS + vi_globals.DRAW_COLUMNS
     )
@@ -1057,7 +1059,7 @@ def get_re_mean_exposure_data_from_me_id(key: str, location: str, me_id: int) ->
     data = vi_utils.filter_data_by_restrictions(
         data, entity, "outer", utility_data.get_age_group_ids()
     )
-    data = vi_utils.normalize(data, fill_value=0)
+    data = vi_utils.normalize(data, fill_value=0, cols_to_fill=DRAW_COLUMNS)
     data["parameter"] = "continuous"
     data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS + ["parameter"])
     data = vi_utils.reshape(data, value_cols=DRAW_COLUMNS)
@@ -1092,7 +1094,7 @@ def get_re_sd_data_from_me_id(key: str, location: str, me_id: int) -> pd.DataFra
 
     data = data.drop(labels=["modelable_entity_id"], axis="columns")
     data = data[data.age_group_id.isin(valid_age_groups)]
-    data = vi_utils.normalize(data, fill_value=0)
+    data = vi_utils.normalize(data, fill_value=0, cols_to_fill=DRAW_COLUMNS)
     data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
     data = vi_utils.reshape(data, value_cols=DRAW_COLUMNS)
 
