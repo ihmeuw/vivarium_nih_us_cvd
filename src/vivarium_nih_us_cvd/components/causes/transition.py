@@ -22,9 +22,7 @@ class CompositeRateTransition(RateTransition):
         output_state: BaseDiseaseState,
         triggered: Trigger = Trigger.NOT_TRIGGERED,
     ):
-        super().__init__(
-            input_state, output_state, triggered=triggered, transition_rate=0.0
-        )
+        super().__init__(input_state, output_state, triggered=triggered, transition_rate=0.0)
 
         # A dictionary with output state name as the key and the
         # get_data_functions for the transition to that state as its value

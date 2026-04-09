@@ -26,8 +26,7 @@ from gbd_mapping.id import scalar
 from vivarium.framework.artifact import EntityKey
 from vivarium_gbd_access import gbd
 from vivarium_gbd_access.constants import SEX
-from vivarium_inputs import core
-from vivarium_inputs import extract
+from vivarium_inputs import core, extract
 from vivarium_inputs import globals as vi_globals
 from vivarium_inputs import interface
 from vivarium_inputs import utilities as vi_utils
@@ -52,7 +51,6 @@ from vivarium_nih_us_cvd.constants.metadata import (
     PROPORTION_DATA_INDEX_COLUMNS,
 )
 from vivarium_nih_us_cvd.utilities import get_random_variable_draws, sanitize_location
-
 
 # ---------------------------------------------------------------------------
 # GBD 2023 excess-mortality validation workaround
@@ -252,9 +250,7 @@ def _get_measure_wrapped(
     The default ``years='all'`` pulls every available estimation year from
     GBD 2023 (this is the new keyword introduced in ``vivarium_inputs`` 7.x).
     """
-    return interface.get_measure(
-        entity, measure, location, years=years
-    ).droplevel("location")
+    return interface.get_measure(entity, measure, location, years=years).droplevel("location")
 
 
 def load_standard_data(key: str, location: str) -> pd.DataFrame:
@@ -399,9 +395,7 @@ def load_emr_ischemic_stroke(key: str, location: str) -> pd.DataFrame:
     # states will receive the same (cause-level) EMR until the
     # research team identifies a round-9 path that recovers the
     # acute/chronic split.
-    return _get_unvalidated_measure(
-        causes.ischemic_stroke, "excess_mortality_rate", location
-    )
+    return _get_unvalidated_measure(causes.ischemic_stroke, "excess_mortality_rate", location)
 
 
 def _get_prevalence_weighted_disability_weight(
@@ -1354,12 +1348,9 @@ def load_medication_coverage_scaling_factor(_: str, location: str):
         # factors as the unweighted mean of the 51 state values per
         # (sex, age_group). Refine to a true population weighting later if
         # needed.
-        sf = (
-            sf.groupby(["sex", "age_group"], as_index=False)[
-                ["sbp_rr", "ldl_rr", "both_rr"]
-            ]
-            .mean()
-        )
+        sf = sf.groupby(["sex", "age_group"], as_index=False)[
+            ["sbp_rr", "ldl_rr", "both_rr"]
+        ].mean()
     else:
         sf = sf[sf["state"] == location]
     assert (

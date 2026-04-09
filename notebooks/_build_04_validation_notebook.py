@@ -27,7 +27,9 @@ def code(src: str) -> dict:
 
 cells = []
 
-cells.append(md("""\
+cells.append(
+    md(
+        """\
 # Model Validation: 10-Year Trajectory
 
 This notebook validates the NIH US CVD simulation against the values
@@ -56,9 +58,13 @@ the end so one outlier doesn't halt the notebook.
 expect roughly 30-60 minutes on a modern laptop. Scale
 `POPULATION_SIZE` down for quick iteration, or up for more decisive
 checks.
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -74,18 +80,26 @@ plt.rcParams['figure.figsize'] = (12, 5)
 plt.rcParams['figure.dpi'] = 100
 pd.set_option('display.max_columns', 20)
 pd.set_option('display.width', 200)
-"""))
+"""
+    )
+)
 
-cells.append(md("""\
+cells.append(
+    md(
+        """\
 ## 1. Configuration
 
 `POPULATION_SIZE` drives how decisive the fuzzy-checker assertions can
 be — very small populations will return "inconclusive" results for
 rare events. The model's default initialization age range (25-125) is
 kept so all simulants are adults with non-zero disease rates.
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 POPULATION_SIZE = 3_000
 YEARS = 10
 STEPS_PER_YEAR = 13  # the model spec uses 28-day steps
@@ -106,16 +120,24 @@ ADULT_BIN_LABELS = [f'{a}-{b}' for a, b in zip(ADULT_EDGES[:-1], ADULT_EDGES[1:]
 def age_bin(ages: pd.Series) -> pd.Series:
     '''Bin continuous ages into the 5-year labels above.'''
     return pd.cut(ages, bins=AGE_EDGES, right=False, labels=AGE_BIN_LABELS)
-"""))
+"""
+    )
+)
 
-cells.append(md("""\
+cells.append(
+    md(
+        """\
 ## 2. Load Artifact Tables
 
 Pull every artifact table we'll compare against up-front so the rest
 of the notebook can look values up cheaply.
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 def load_draws(key: str) -> pd.DataFrame:
     '''Load an artifact table and return it with a MultiIndex on
     demographics and draw columns as the values.'''
@@ -180,17 +202,25 @@ exposure_tables = {rf: load_draws(key) for rf, key in EXPOSURE_KEYS.items()}
 print(f'Loaded {len(prevalence_tables)} prevalence tables, '
       f'{len(incidence_tables)} incidence tables, '
       f'{len(exposure_tables)} exposure tables.')
-"""))
+"""
+    )
+)
 
-cells.append(md("""\
+cells.append(
+    md(
+        """\
 ## 3. Set Up the Simulation
 
 We use `InteractiveContext` so we can step year by year and inspect
 the population table. Using the USA-level artifact means every
 simulant is drawn from the US population structure.
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 sim = InteractiveContext(
     MODEL_SPEC,
     configuration={
@@ -205,9 +235,13 @@ print(f'Start time:       {sim.current_time}')
 print(f'Population size:  {len(pop0):,}')
 print(f'Age range:        {pop0.age.min():.1f} - {pop0.age.max():.1f}')
 print(f'Sex split:        {pop0.sex.value_counts().to_dict()}')
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 fuzzy = FuzzyChecker()
 EPS = 1e-9  # FuzzyChecker requires strictly positive lower bound
 
@@ -245,18 +279,26 @@ def safe_check(name: str, numerator: int, denominator: int,
     )
     fuzzy.proportion_test_diagnostics.append(result)
     return result
-"""))
+"""
+    )
+)
 
-cells.append(md("""\
+cells.append(
+    md(
+        """\
 ## 4. Baseline (t=0) Prevalence
 
 Fuzzy-check the share of simulants in each disease state against the
 artifact prevalence, stratified by sex and 5-year age bin. This
 validates that `DiseaseModel` initialization used the artifact
 prevalences correctly.
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 pop0 = sim.get_population().copy()
 pop0['age_bin'] = age_bin(pop0['age'])
 
@@ -299,17 +341,25 @@ prev_df = pd.DataFrame(records)
 print(f'Ran {len(prev_df)} baseline prevalence checks.')
 print(f'Diagnostics so far: {len(fuzzy.proportion_test_diagnostics)}')
 prev_df.head(10)
-"""))
+"""
+    )
+)
 
-cells.append(md("""\
+cells.append(
+    md(
+        """\
 ### 4.1 Visualize baseline prevalence
 
 Observed (dots) vs. artifact 95% interval (bars) by age bin. Points
 outside the bar are flagged by the fuzzy checker; points inside are
 consistent with the artifact.
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 states_to_plot = [
     'acute_ischemic_stroke', 'chronic_ischemic_stroke',
     'acute_myocardial_infarction', 'post_myocardial_infarction',
@@ -342,9 +392,13 @@ for ax, state in zip(axes.flat, states_to_plot):
 plt.suptitle('Baseline prevalence: observed vs artifact 95% CI', fontsize=12)
 plt.tight_layout()
 plt.show()
-"""))
+"""
+    )
+)
 
-cells.append(md("""\
+cells.append(
+    md(
+        """\
 ## 5. Baseline Risk Factor Exposures
 
 For continuous risk factors, compare the mean simulant exposure
@@ -352,9 +406,13 @@ For continuous risk factors, compare the mean simulant exposure
 value before medication effects) against the artifact's mean exposure
 (mean across draws) by sex/age bin. We use a bootstrap 95% CI of the
 sample mean and verify the artifact mean falls inside.
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 def bootstrap_mean_ci(values: np.ndarray, n_boot: int = 1000,
                      alpha: float = 0.05, rng=None) -> tuple[float, float]:
     if len(values) < 2:
@@ -405,9 +463,13 @@ rf_df = pd.DataFrame(rf_records)
 pct_inside = rf_df['inside'].mean() * 100
 print(f'Baseline RF exposure: {pct_inside:.1f}% of cells have artifact mean inside bootstrap CI '
       f'(expected ~95% if nothing is biased).')
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 for ax, rf in zip(axes.flat, rf_pipelines.keys()):
     sub = rf_df[rf_df['risk'] == rf]
@@ -431,17 +493,25 @@ for ax, rf in zip(axes.flat, rf_pipelines.keys()):
 plt.suptitle('Baseline risk factor exposures: observed vs artifact', fontsize=12)
 plt.tight_layout()
 plt.show()
-"""))
+"""
+    )
+)
 
-cells.append(md("""\
+cells.append(
+    md(
+        """\
 ## 6. Run the Simulation for 10 Years
 
 Take yearly snapshots so we can plot trajectories and also compute
 person-time at risk for incidence checks. Also stash the baseline
 (sex, age_bin, LDL-C) for the risk-factor effect validation later.
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 import time
 
 # Baseline RF stratification for later effect check. Children (age < 25)
@@ -489,13 +559,21 @@ for y in range(1, YEARS + 1):
 
 snap_df = pd.DataFrame(snapshots)
 snap_df
-"""))
+"""
+    )
+)
 
-cells.append(md("""\
+cells.append(
+    md(
+        """\
 ### 6.1 Trajectory visualization
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 ax = axes[0, 0]
 ax.plot(snap_df['time'], snap_df['n_alive'], 'o-', color='seagreen')
@@ -526,9 +604,13 @@ for ax in axes.flat:
 plt.suptitle(f'{YEARS}-year trajectory (n={POPULATION_SIZE:,})', fontsize=13)
 plt.tight_layout()
 plt.show()
-"""))
+"""
+    )
+)
 
-cells.append(md("""\
+cells.append(
+    md(
+        """\
 ## 7. Incidence Validation
 
 For each (sex, age bin) cell at baseline, we know the artifact
@@ -540,9 +622,13 @@ year as the numerator. This is a conservative check because simulants
 who die mid-year contribute fewer person-years than one — we pass
 the expected value through the exponential form, so a slight negative
 bias is expected.
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 # Incidence target intervals per cell
 def incidence_target(cause: str, sex: str, age_start: float, age_end: float,
                     duration_years: float = 1.0) -> tuple[float, float]:
@@ -613,17 +699,25 @@ for cause, observed in [('acute_myocardial_infarction', delta_ami),
         target=target,
         name_additional='aggregate',
     )
-"""))
+"""
+    )
+)
 
-cells.append(md("""\
+cells.append(
+    md(
+        """\
 ### 7.1 Age/sex-stratified incidence
 
 For each baseline cell, compute the observed year-1 events / baseline
 population and overlay the artifact 95% CI. This is the most direct
 check that each pipeline is pulling the right rate for each simulant.
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 pop_final = sim.get_population()
 # join baseline age_bin back to the final pop (same index)
 pop_final = pop_final.copy()
@@ -664,9 +758,13 @@ for cause, event_col in [('acute_myocardial_infarction',
 
 inc_df = pd.DataFrame(records)
 print(f'Ran {len(inc_df)} stratified incidence checks across {YEARS} years.')
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 fig, axes = plt.subplots(1, 2, figsize=(16, 5))
 for ax, cause in zip(axes, ['acute_myocardial_infarction', 'acute_ischemic_stroke']):
     sub = inc_df[inc_df['cause'] == cause]
@@ -692,17 +790,25 @@ for ax, cause in zip(axes, ['acute_myocardial_infarction', 'acute_ischemic_strok
 plt.suptitle(f'{YEARS}-year cumulative incidence: observed vs artifact (baseline age bin)', fontsize=12)
 plt.tight_layout()
 plt.show()
-"""))
+"""
+    )
+)
 
-cells.append(md("""\
+cells.append(
+    md(
+        """\
 ## 8. Mortality Validation
 
 Check that the number of deaths across the run is consistent with
 the all-cause mortality rate from the artifact, applied to each
 simulant's baseline age and sex over the full YEARS years.
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 # Total deaths
 total_dead = int((pop_final['alive'] == 'dead').sum())
 total_n = int(len(pop_final))
@@ -750,9 +856,13 @@ safe_check(
     target=(mort_lo_sum / total_n, mort_hi_sum / total_n),
     name_additional='all_cause',
 )
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 fig, ax = plt.subplots(figsize=(12, 5))
 x = np.arange(len(AGE_BIN_LABELS))
 for sex, color, offset in [('Female', 'coral', -0.15), ('Male', 'steelblue', 0.15)]:
@@ -776,9 +886,13 @@ plt.show()
 # Cause-of-death breakdown
 print('\\nCause of death among simulants who died:')
 print(pop_final.loc[pop_final['alive'] == 'dead', 'cause_of_death'].value_counts().to_string())
-"""))
+"""
+    )
+)
 
-cells.append(md("""\
+cells.append(
+    md(
+        """\
 ## 9. Risk Factor Effect Validation
 
 Now the real test: do simulants with higher LDL-C actually have more
@@ -789,9 +903,13 @@ For a correctly wired `MediatedRiskEffect`, the incidence rate ratio
 between the top and bottom LDL-C quintile should be elevated and
 roughly consistent with the relative risk implied by the artifact
 (after accounting for mediation).
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 # Merge baseline LDL-C quintile with final event counts. Restrict to
 # adults so quintiles are well-defined.
 effect_df = baseline[baseline['ldlc_quintile'].notna()].copy()
@@ -815,9 +933,13 @@ by_q['is_rate'] = by_q['is_events'] / by_q['n']
 by_q['death_rate'] = by_q['deaths'] / by_q['n']
 print('10-year cumulative incidence by baseline LDL-C quintile:')
 print(by_q.round(4))
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 fig, axes = plt.subplots(1, 3, figsize=(16, 5))
 for ax, col, title, color in [
     (axes[0], 'ami_rate', 'Acute MI', 'coral'),
@@ -834,9 +956,13 @@ for ax, col, title, color in [
 plt.suptitle('Outcomes by baseline LDL-C quintile', fontsize=12)
 plt.tight_layout()
 plt.show()
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 # LDL-C quintile is strongly confounded with age: older people have
 # higher LDL-C AND higher incidence. Recompute the effect within a
 # single age stratum (50-70) to break that confounding.
@@ -869,9 +995,13 @@ if age_adj['n'].min() >= 50:
     if q1_events > 0:
         ratio = (q5_events / q5_n) / (q1_events / q1_n)
         print(f'Observed Q5/Q1 rate ratio (ages 50-70): {ratio:.2f}')
-"""))
+"""
+    )
+)
 
-cells.append(md("""\
+cells.append(
+    md(
+        """\
 ## 10. Summary of Validation Failures
 
 Aggregate the diagnostics gathered by `safe_check` (which calls
@@ -882,9 +1012,13 @@ sex/age cell of one validation family. With per-cell sample sizes
 this small, most checks are *inconclusive*; the most informative
 column is `rejected` (Bayes factor > 100 against the no-bug
 hypothesis), where any non-trivial value warrants investigation.
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 diag = pd.DataFrame([t.to_dict() for t in fuzzy.proportion_test_diagnostics])
 n_total = len(diag)
 n_rejected = int(diag['reject_null'].sum())
@@ -918,9 +1052,13 @@ if not fails.empty:
     print(fails[cols].head(20).to_string(index=False))
 else:
     print('No decisive failures - simulation agrees with artifact across all checked cells.')
-"""))
+"""
+    )
+)
 
-cells.append(md("""\
+cells.append(
+    md(
+        """\
 ## 11. Trajectory of Risk Factor Means
 
 As a final sanity check, plot the mean risk factor exposures of the
@@ -928,9 +1066,13 @@ surviving cohort across the 10-year run. These should gently shift
 as the cohort ages (LDL-C typically peaks in middle age then
 plateaus; SBP rises with age; etc.) and should not show abrupt
 discontinuities.
-"""))
+"""
+    )
+)
 
-cells.append(code("""\
+cells.append(
+    code(
+        """\
 # We only recorded minimal state at each snapshot. Re-computing the
 # mean exposure trajectory requires running through snapshots — but
 # since we have the final state only, we'll plot expected mean
@@ -968,7 +1110,9 @@ for ax, (rf, pipe) in zip(axes.flat, rf_pipelines.items()):
 plt.suptitle(f'Final-state RF exposures vs artifact (after {YEARS} years)', fontsize=12)
 plt.tight_layout()
 plt.show()
-"""))
+"""
+    )
+)
 
 nb = {
     "cells": cells,
@@ -992,6 +1136,6 @@ nb = {
     "nbformat_minor": 5,
 }
 
-out = Path(__file__).parent / '04_model_validation.ipynb'
+out = Path(__file__).parent / "04_model_validation.ipynb"
 out.write_text(json.dumps(nb, indent=1))
-print(f'wrote {out} ({len(cells)} cells)')
+print(f"wrote {out} ({len(cells)} cells)")

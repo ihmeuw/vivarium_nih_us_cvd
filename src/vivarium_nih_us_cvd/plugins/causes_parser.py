@@ -1,8 +1,8 @@
 from importlib import import_module
+from importlib.resources import files
 from typing import Any, Callable, Dict, List, Union
 
 import pandas as pd
-from importlib.resources import files
 from layered_config_tree import LayeredConfigTree
 from vivarium import Component
 from vivarium.framework.components import ComponentConfigurationParser

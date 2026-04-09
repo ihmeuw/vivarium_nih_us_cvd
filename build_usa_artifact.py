@@ -21,17 +21,58 @@ import numpy as np
 import pandas as pd
 import tables
 
-
 LOCATIONS = [
-    "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
-    "Connecticut", "Delaware", "District of Columbia", "Florida", "Georgia",
-    "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky",
-    "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota",
-    "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire",
-    "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota",
-    "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island",
-    "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont",
-    "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming",
+    "Alabama",
+    "Alaska",
+    "Arizona",
+    "Arkansas",
+    "California",
+    "Colorado",
+    "Connecticut",
+    "Delaware",
+    "District of Columbia",
+    "Florida",
+    "Georgia",
+    "Hawaii",
+    "Idaho",
+    "Illinois",
+    "Indiana",
+    "Iowa",
+    "Kansas",
+    "Kentucky",
+    "Louisiana",
+    "Maine",
+    "Maryland",
+    "Massachusetts",
+    "Michigan",
+    "Minnesota",
+    "Mississippi",
+    "Missouri",
+    "Montana",
+    "Nebraska",
+    "Nevada",
+    "New Hampshire",
+    "New Jersey",
+    "New Mexico",
+    "New York",
+    "North Carolina",
+    "North Dakota",
+    "Ohio",
+    "Oklahoma",
+    "Oregon",
+    "Pennsylvania",
+    "Rhode Island",
+    "South Carolina",
+    "South Dakota",
+    "Tennessee",
+    "Texas",
+    "Utah",
+    "Vermont",
+    "Virginia",
+    "Washington",
+    "West Virginia",
+    "Wisconsin",
+    "Wyoming",
 ]
 
 # Keys that are identical across all states -- copy directly from template
@@ -152,14 +193,15 @@ def write_df(output_path: str, key: str, df: pd.DataFrame) -> None:
     format. DataFrames without draw/value columns need to have their
     non-numeric columns set as index to match the "is_empty" convention.
     """
-    from vivarium.framework.artifact.hdf import _write_pandas_data, EntityKey
+    from vivarium.framework.artifact.hdf import EntityKey, _write_pandas_data
 
     # vivarium's convention: DataFrames that don't contain draw_*/value columns
     # are written with all columns set as index, making data.empty=True, which
     # triggers is_empty=True metadata and data_columns=True storage.
     write_df = df.copy()
-    draw_or_value_cols = [c for c in write_df.columns
-                          if c.startswith("draw_") or c == "value"]
+    draw_or_value_cols = [
+        c for c in write_df.columns if c.startswith("draw_") or c == "value"
+    ]
     if not draw_or_value_cols:
         # No data columns — set all columns as index (matching vivarium convention)
         all_cols = list(write_df.columns)
@@ -173,6 +215,7 @@ def write_df(output_path: str, key: str, df: pd.DataFrame) -> None:
 def write_json_node(h5file, group_path: str, name: str, data) -> None:
     """Write a JSON blob as a filenode (matching vivarium artifact convention)."""
     from tables.nodes import filenode
+
     # Ensure parent group exists
     parts = group_path.strip("/").split("/")
     current = "/"
@@ -188,6 +231,7 @@ def write_json_node(h5file, group_path: str, name: str, data) -> None:
 def copy_json_node(src_h5, dst_h5, path: str) -> None:
     """Copy a filenode (JSON blob) from source to destination HDF5 file."""
     from tables.nodes import filenode
+
     node = src_h5.get_node(path)
     raw = bytes(node.read())
     data = json.loads(raw)
@@ -285,8 +329,11 @@ def build_usa_artifact(artifact_dir: Path, output_path: Path) -> None:
 
             w = weights[loc]
             df_reset = df.reset_index()
-            demo_cols = [c for c in ["sex", "age_start", "age_end", "year_start", "year_end"]
-                         if c in df_reset.columns]
+            demo_cols = [
+                c
+                for c in ["sex", "age_start", "age_end", "year_start", "year_end"]
+                if c in df_reset.columns
+            ]
             if demo_cols:
                 w_reset = w.reset_index()
                 w_reset.columns = list(w_reset.columns[:-1]) + ["_weight"]
@@ -380,7 +427,9 @@ def build_usa_artifact(artifact_dir: Path, output_path: Path) -> None:
             w_reset = w.reset_index()
             w_reset.columns = list(w_reset.columns[:-1]) + ["_weight"]
             merged = df_reset.merge(
-                w_reset, on=["sex", "age_start", "age_end", "year_start", "year_end"], how="left"
+                w_reset,
+                on=["sex", "age_start", "age_end", "year_start", "year_end"],
+                how="left",
             )
             weight_arr = merged["_weight"].values.astype(np.float64)
             result_values += data * weight_arr[:, np.newaxis]
@@ -425,16 +474,20 @@ def build_usa_artifact(artifact_dir: Path, output_path: Path) -> None:
     all_keys = sorted(
         list(LOCATION_INDEPENDENT_KEYS)
         + POP_WEIGHTED_AVERAGE_KEYS
-        + ["/risk_factor/joint_mediated_risks/population_attributable_fraction",
-           "/population/structure",
-           "/population/demographic_dimensions",
-           "/risk_factor/ldlc_medication_adherence/exposure",
-           "/risk_factor/sbp_medication_adherence/exposure",
-           "/risk_factor/medication_coverage/scaling_factor"]
+        + [
+            "/risk_factor/joint_mediated_risks/population_attributable_fraction",
+            "/population/structure",
+            "/population/demographic_dimensions",
+            "/risk_factor/ldlc_medication_adherence/exposure",
+            "/risk_factor/sbp_medication_adherence/exposure",
+            "/risk_factor/medication_coverage/scaling_factor",
+        ]
     )
     # Also include the Array-based keys
     array_keys = [
-        "metadata.keyspace", "metadata.locations", "population.location",
+        "metadata.keyspace",
+        "metadata.locations",
+        "population.location",
         "risk_factor.categorical_high_systolic_blood_pressure.distribution",
         "risk_factor.high_body_mass_index_in_adults.distribution",
         "risk_factor.high_body_mass_index_in_adults.relative_risk_scalar",
@@ -475,12 +528,15 @@ def build_usa_artifact(artifact_dir: Path, output_path: Path) -> None:
 def main():
     parser = argparse.ArgumentParser(description="Build USA-level artifact")
     parser.add_argument(
-        "--artifact-dir", type=Path,
+        "--artifact-dir",
+        type=Path,
         default=Path(__file__).parent / "src/vivarium_nih_us_cvd/artifacts",
     )
     parser.add_argument(
-        "--output", type=Path,
-        default=Path(__file__).parent / "src/vivarium_nih_us_cvd/artifacts/united_states_of_america.hdf",
+        "--output",
+        type=Path,
+        default=Path(__file__).parent
+        / "src/vivarium_nih_us_cvd/artifacts/united_states_of_america.hdf",
     )
     args = parser.parse_args()
 
