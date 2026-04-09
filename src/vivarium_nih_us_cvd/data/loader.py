@@ -312,10 +312,12 @@ def get_data(
         DataAbnormalError,
         DataTransformationError,
         StgprServerError,
+        ValueError,
     ):
         # GBD 2023 stand-in: the loader for this key tried to pull ME or
-        # sequela data that has no round-9 best model. Return a
-        # correctly-shaped placeholder so the artifact build can
+        # sequela data that has no round-9 best model, or the returned
+        # data has incompatible dimensions (e.g. "Product space too large").
+        # Return a correctly-shaped placeholder so the artifact build can
         # proceed. See the module-level stand-in comment for caveats.
         measure = EntityKey(source_key).measure if "." in str(source_key) else "prevalence"
         return _stand_in_me_draws(location, measure)
@@ -372,7 +374,7 @@ def _get_measure_wrapped(
         return interface.get_measure(entity, measure, location, years=years).droplevel(
             "location"
         )
-    except DataDoesNotExistError:
+    except (DataDoesNotExistError, ValueError):
         return _stand_in_me_draws(location, str(measure))
 
 
@@ -439,17 +441,24 @@ def _load_em_from_meid(location, meid, measure):
         data = gbd.get_modelable_entity_draws(
             meid, location_id, year_id=GBD_2023_YEARS, data_type="draws"
         )
-    except (EmptyDataFrameException, NoBestVersionsException, DataDoesNotExistError):
+        data = data[data.measure_id == vi_globals.MEASURES[measure]]
+        data = vi_utils.normalize(data, fill_value=0, cols_to_fill=vi_globals.DRAW_COLUMNS)
+        data = data.filter(vi_globals.DEMOGRAPHIC_COLUMNS + vi_globals.DRAW_COLUMNS)
+        data = vi_utils.reshape(data, value_cols=vi_globals.DRAW_COLUMNS)
+        data = vi_utils.scrub_gbd_conventions(data, location)
+        data = vi_utils.split_interval(data, interval_column="age", split_column_prefix="age")
+        data = vi_utils.split_interval(data, interval_column="year", split_column_prefix="year")
+        return vi_utils.sort_hierarchical_data(data).droplevel("location")
+    except (
+        EmptyDataFrameException,
+        NoBestVersionsException,
+        DataDoesNotExistError,
+        ValueError,
+    ):
         # GBD 2023 stand-in: see _stand_in_me_draws() docstring.
+        # ValueError covers the case where ME data IS returned but
+        # normalize_age produces "Product space too large to allocate arrays!"
         return _stand_in_me_draws(location, measure)
-    data = data[data.measure_id == vi_globals.MEASURES[measure]]
-    data = vi_utils.normalize(data, fill_value=0, cols_to_fill=vi_globals.DRAW_COLUMNS)
-    data = data.filter(vi_globals.DEMOGRAPHIC_COLUMNS + vi_globals.DRAW_COLUMNS)
-    data = vi_utils.reshape(data, value_cols=vi_globals.DRAW_COLUMNS)
-    data = vi_utils.scrub_gbd_conventions(data, location)
-    data = vi_utils.split_interval(data, interval_column="age", split_column_prefix="age")
-    data = vi_utils.split_interval(data, interval_column="year", split_column_prefix="year")
-    return vi_utils.sort_hierarchical_data(data).droplevel("location")
 
 
 def handle_special_cases(
@@ -612,21 +621,26 @@ def get_proportion_adjusted_heart_failure_data(
             year_id=GBD_2023_YEARS,
             data_type="draws",
         )
-    except (EmptyDataFrameException, NoBestVersionsException, DataDoesNotExistError):
+        measure_data = heart_failure_data[
+            heart_failure_data.measure_id == vi_globals.MEASURES[measure]
+        ]
+        measure_data = vi_utils.normalize(
+            measure_data, fill_value=0, cols_to_fill=vi_globals.DRAW_COLUMNS
+        )
+        measure_data = measure_data.filter(
+            vi_globals.DEMOGRAPHIC_COLUMNS + vi_globals.DRAW_COLUMNS
+        )
+    except (
+        EmptyDataFrameException,
+        NoBestVersionsException,
+        DataDoesNotExistError,
+        ValueError,
+    ):
         # GBD 2023 stand-in: ME 2412 (HF impairment envelope) has no
-        # round-9 best model. Substitute a correctly-shaped constant
-        # and skip the proportion-split step, since the proportions CSV
-        # multiplies a placeholder by a placeholder.
+        # round-9 best model, or returned data has incompatible dimensions.
+        # Substitute a correctly-shaped constant and skip the
+        # proportion-split step.
         return _stand_in_me_draws(location, measure)
-    measure_data = heart_failure_data[
-        heart_failure_data.measure_id == vi_globals.MEASURES[measure]
-    ]
-    measure_data = vi_utils.normalize(
-        measure_data, fill_value=0, cols_to_fill=vi_globals.DRAW_COLUMNS
-    )
-    measure_data = measure_data.filter(
-        vi_globals.DEMOGRAPHIC_COLUMNS + vi_globals.DRAW_COLUMNS
-    )
 
     # pull proportions data
     hf_proportions = get_heart_failure_proportions(location, heart_failure_type)
@@ -1051,20 +1065,28 @@ def get_re_mean_exposure_data_from_me_id(key: str, location: str, me_id: int) ->
 
     # GBD 2023: round 9 no longer accepts ``decomp_step``; vivarium_gbd_access
     # now requires explicit ``year_id`` and ``data_type`` arguments.
-    data = gbd.get_modelable_entity_draws(
-        me_id, location_id, year_id=GBD_2023_YEARS, data_type="draws"
-    )
+    try:
+        data = gbd.get_modelable_entity_draws(
+            me_id, location_id, year_id=GBD_2023_YEARS, data_type="draws"
+        )
 
-    # core.get_data processing
-    data = data[data.measure_id == MEASURES["Continuous"]]
-    data = data.drop(labels=["modelable_entity_id"], axis="columns")
-    data = vi_utils.filter_data_by_restrictions(
-        data, entity, "outer", utility_data.get_age_group_ids()
-    )
-    data = vi_utils.normalize(data, fill_value=0, cols_to_fill=DRAW_COLUMNS)
-    data["parameter"] = "continuous"
-    data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS + ["parameter"])
-    data = vi_utils.reshape(data, value_cols=DRAW_COLUMNS)
+        # core.get_data processing
+        data = data[data.measure_id == MEASURES["Continuous"]]
+        data = data.drop(labels=["modelable_entity_id"], axis="columns")
+        data = vi_utils.filter_data_by_restrictions(
+            data, entity, "outer", utility_data.get_age_group_ids()
+        )
+        data = vi_utils.normalize(data, fill_value=0, cols_to_fill=DRAW_COLUMNS)
+        data["parameter"] = "continuous"
+        data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS + ["parameter"])
+        data = vi_utils.reshape(data, value_cols=DRAW_COLUMNS)
+    except (
+        EmptyDataFrameException,
+        NoBestVersionsException,
+        DataDoesNotExistError,
+        ValueError,
+    ):
+        return _stand_in_me_draws(location, "exposure")
 
     return data
 
@@ -1076,29 +1098,38 @@ def get_re_sd_data_from_me_id(key: str, location: str, me_id: int) -> pd.DataFra
     entity = get_entity(key)
     location_id = utility_data.get_location_id(location)
 
-    # GBD 2023: round 9 no longer accepts ``decomp_step``. vivarium_gbd_access
-    # now requires explicit ``year_id`` and ``data_type`` arguments.
-    data = gbd.get_modelable_entity_draws(
-        me_id, location_id, year_id=GBD_2023_YEARS, data_type="draws"
-    )
+    try:
+        # GBD 2023: round 9 no longer accepts ``decomp_step``. vivarium_gbd_access
+        # now requires explicit ``year_id`` and ``data_type`` arguments.
+        data = gbd.get_modelable_entity_draws(
+            me_id, location_id, year_id=GBD_2023_YEARS, data_type="draws"
+        )
 
-    # vivarium_inputs 7.x: extract_data now requires explicit ``years`` and
-    # ``data_type`` arguments. We pull all years of exposure data so that the
-    # set of valid age groups reflects the full estimation window.
-    exposure = extract.extract_data(
-        entity,
-        "exposure",
-        location_id,
-        years=GBD_2023_YEARS,
-        data_type=DataType("exposure", "draws"),
-    )
-    valid_age_groups = vi_utils.get_exposure_and_restriction_ages(exposure, entity)
+        # vivarium_inputs 7.x: extract_data now requires explicit ``years`` and
+        # ``data_type`` arguments. We pull all years of exposure data so that the
+        # set of valid age groups reflects the full estimation window.
+        exposure = extract.extract_data(
+            entity,
+            "exposure",
+            location_id,
+            years=GBD_2023_YEARS,
+            data_type=DataType("exposure", "draws"),
+        )
+        valid_age_groups = vi_utils.get_exposure_and_restriction_ages(exposure, entity)
 
-    data = data.drop(labels=["modelable_entity_id"], axis="columns")
-    data = data[data.age_group_id.isin(valid_age_groups)]
-    data = vi_utils.normalize(data, fill_value=0, cols_to_fill=DRAW_COLUMNS)
-    data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
-    data = vi_utils.reshape(data, value_cols=DRAW_COLUMNS)
+        data = data.drop(labels=["modelable_entity_id"], axis="columns")
+        data = data[data.age_group_id.isin(valid_age_groups)]
+        data = vi_utils.normalize(data, fill_value=0, cols_to_fill=DRAW_COLUMNS)
+        data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
+        data = vi_utils.reshape(data, value_cols=DRAW_COLUMNS)
+    except (
+        EmptyDataFrameException,
+        NoBestVersionsException,
+        DataDoesNotExistError,
+        StgprServerError,
+        ValueError,
+    ):
+        return _stand_in_me_draws(location, "exposure_standard_deviation")
 
     return data
 
