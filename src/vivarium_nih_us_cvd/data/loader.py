@@ -303,8 +303,9 @@ def get_data(
         data_keys.MEDICATION_COVERAGE.SCALING_FACTOR: load_medication_coverage_scaling_factor,
     }
     source_key = _get_source_key(lookup_key)
+    loader_func = mapping[lookup_key]  # KeyError here = genuinely missing key
     try:
-        data = mapping[lookup_key](source_key, location)
+        data = loader_func(source_key, location)
     except (
         EmptyDataFrameException,
         NoBestVersionsException,
@@ -314,10 +315,12 @@ def get_data(
         StgprServerError,
         ValueError,
         IndexError,
+        KeyError,
     ):
         # GBD 2023 stand-in: the loader for this key tried to pull ME or
         # sequela data that has no round-9 best model, or the returned
-        # data has incompatible dimensions / is empty after filtering.
+        # data has incompatible dimensions / is empty after filtering,
+        # or stand-in data is missing expected index levels (KeyError).
         # Return a correctly-shaped placeholder so the artifact build can
         # proceed. See the module-level stand-in comment for caveats.
         measure = EntityKey(source_key).measure if "." in str(source_key) else "prevalence"
