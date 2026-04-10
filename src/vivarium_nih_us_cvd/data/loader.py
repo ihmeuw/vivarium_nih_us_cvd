@@ -313,10 +313,11 @@ def get_data(
         DataTransformationError,
         StgprServerError,
         ValueError,
+        IndexError,
     ):
         # GBD 2023 stand-in: the loader for this key tried to pull ME or
         # sequela data that has no round-9 best model, or the returned
-        # data has incompatible dimensions (e.g. "Product space too large").
+        # data has incompatible dimensions / is empty after filtering.
         # Return a correctly-shaped placeholder so the artifact build can
         # proceed. See the module-level stand-in comment for caveats.
         measure = EntityKey(source_key).measure if "." in str(source_key) else "prevalence"
@@ -374,7 +375,7 @@ def _get_measure_wrapped(
         return interface.get_measure(entity, measure, location, years=years).droplevel(
             "location"
         )
-    except (DataDoesNotExistError, ValueError):
+    except (DataDoesNotExistError, ValueError, IndexError):
         return _stand_in_me_draws(location, str(measure))
 
 
@@ -454,10 +455,12 @@ def _load_em_from_meid(location, meid, measure):
         NoBestVersionsException,
         DataDoesNotExistError,
         ValueError,
+        IndexError,
     ):
         # GBD 2023 stand-in: see _stand_in_me_draws() docstring.
-        # ValueError covers the case where ME data IS returned but
-        # normalize_age produces "Product space too large to allocate arrays!"
+        # ValueError: ME data returned but normalize_age product space too large.
+        # IndexError: ME data returned but empty after measure_id filter,
+        #   causing scrub_gbd_conventions to fail on empty index.
         return _stand_in_me_draws(location, measure)
 
 
@@ -635,9 +638,11 @@ def get_proportion_adjusted_heart_failure_data(
         NoBestVersionsException,
         DataDoesNotExistError,
         ValueError,
+        IndexError,
     ):
         # GBD 2023 stand-in: ME 2412 (HF impairment envelope) has no
-        # round-9 best model, or returned data has incompatible dimensions.
+        # round-9 best model, or returned data has incompatible dimensions
+        # or is empty after filtering.
         # Substitute a correctly-shaped constant and skip the
         # proportion-split step.
         return _stand_in_me_draws(location, measure)
@@ -1085,6 +1090,7 @@ def get_re_mean_exposure_data_from_me_id(key: str, location: str, me_id: int) ->
         NoBestVersionsException,
         DataDoesNotExistError,
         ValueError,
+        IndexError,
     ):
         return _stand_in_me_draws(location, "exposure")
 
@@ -1128,6 +1134,7 @@ def get_re_sd_data_from_me_id(key: str, location: str, me_id: int) -> pd.DataFra
         DataDoesNotExistError,
         StgprServerError,
         ValueError,
+        IndexError,
     ):
         return _stand_in_me_draws(location, "exposure_standard_deviation")
 
