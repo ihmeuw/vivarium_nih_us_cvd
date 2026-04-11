@@ -44,9 +44,14 @@ class RiskCorrelation(Component):
             EntityString(risk.name.replace("risk.", ""))
             for risk in builder.components.get_components_by_type(CorrelatedRisk)
         ]
-        self.propensity_column_names = [f"{risk.name}_propensity" for risk in self.risks]
+        self.propensity_column_names = [f"{risk.name}.propensity" for risk in self.risks]
 
-        self.input_draw = builder.configuration.input_data.input_draw_number
+        # vivarium 4 Artifact applies draw filtering at HDF load; the
+        # `input_draw_number` config key may not be present, so fall back to 0.
+        try:
+            self.input_draw = builder.configuration.input_data.input_draw_number or 0
+        except AttributeError:
+            self.input_draw = 0
         self.random_seed = builder.configuration.randomness.random_seed
         self.correlation_data = pd.read_csv(paths.FILEPATHS.RISK_CORRELATION)
 
@@ -140,9 +145,7 @@ class JointPAF(Component):
         ):
             target = EntityKey(f"cause.{name}.{measure}")
             data = group.drop(columns=["affected_entity", "affected_measure"])
-            pafs[target] = builder.lookup.build_table(
-                data, key_columns=["sex"], parameter_columns=["age", "year"]
-            )
+            pafs[target] = builder.lookup.build_table(data)
         return pafs
 
     def register_paf_modifiers(self, builder: Builder) -> None:

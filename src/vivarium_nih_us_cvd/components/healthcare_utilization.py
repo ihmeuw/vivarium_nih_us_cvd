@@ -73,9 +73,7 @@ class HealthcareUtilization(Component):
 
         # Load data
         utilization_data = builder.data.load(data_keys.POPULATION.HEALTHCARE_UTILIZATION)
-        background_utilization_rate = builder.lookup.build_table(
-            utilization_data, parameter_columns=["age", "year"], key_columns=["sex"]
-        )
+        background_utilization_rate = builder.lookup.build_table(utilization_data)
         self.background_utilization_rate = builder.value.register_rate_producer(
             "utilization_rate", background_utilization_rate, requires_columns=["age", "sex"]
         )

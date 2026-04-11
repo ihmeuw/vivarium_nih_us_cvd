@@ -6,7 +6,7 @@ from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.lookup import LookupTable
 from vivarium.framework.time import get_time_stamp
-from vivarium_public_health.risks.effect import RiskEffect
+from vivarium_public_health.risks.effect import NonLogLinearRiskEffect, RiskEffect
 
 from vivarium_nih_us_cvd.constants import data_keys, data_values, scenarios
 from vivarium_nih_us_cvd.constants.scenarios import InterventionScenario
@@ -142,6 +142,139 @@ MEDIATOR_NAMES = {
 }
 
 
+class RiskEffectWithoutPAF(RiskEffect):
+    """A vph 5 ``RiskEffect`` that skips loading the per-risk PAF table.
+
+    This project supplies population-attributable fractions through a
+    separate `JointPAF` component (or, in early build-up phases, doesn't
+    apply PAFs at all). The artifact therefore does not contain a
+    ``risk_factor.<name>.population_attributable_fraction`` key, and
+    vph 5's stock ``RiskEffect.setup`` blows up trying to load it.
+
+    The override here keeps everything else about ``RiskEffect`` intact:
+    log-linear relative risks are still loaded, the relative-risk
+    pipeline is still registered, and the target rate modifier is still
+    applied. We just no-op the PAF half.
+
+    The class also drops a single-value ``parameter`` column from the
+    relative-risk table when it's present (the GBD 2023 artifact tags
+    log-linear RR rows with ``parameter='per unit'``; vph 5 would
+    otherwise treat ``parameter`` as a categorical key column and
+    fail to bin it).
+    """
+
+    def build_paf_lookup_table(self, builder: Builder) -> None:
+        # vph 5's `setup` will assign the return value of this method to
+        # `self.paf_table`. We never reference that attribute because we
+        # also override `register_paf_modifier` to do nothing.
+        return None
+
+    def register_paf_modifier(self, builder: Builder) -> None:
+        # No PAF modifier — JointPAF handles attribution adjustments
+        # at the level of the joint exposure.
+        pass
+
+    def build_rr_lookup_table(self, builder: Builder) -> LookupTable:
+        # Mirrors vph 5's RiskEffect.build_rr_lookup_table but strips
+        # any single-value 'parameter' column from the loaded RR data
+        # before handing it to the lookup table builder.
+        self._exposure_distribution_type = self.get_distribution_type(builder)
+        rr_data = self.load_relative_risk(builder)
+        rr_value_cols = None
+        if isinstance(rr_data, pd.DataFrame):
+            if "parameter" in rr_data.columns and rr_data["parameter"].nunique() == 1:
+                rr_data = rr_data.drop(columns=["parameter"])
+        if self.is_exposure_categorical:
+            rr_data, rr_value_cols = self.process_categorical_data(builder, rr_data)
+        return self.build_lookup_table(
+            builder, "relative_risk", data_source=rr_data, value_columns=rr_value_cols,
+        )
+
+
+class NonLogLinearRiskEffectWithoutPAF(NonLogLinearRiskEffect):
+    """A vph 5 ``NonLogLinearRiskEffect`` that skips loading the per-risk PAF table.
+
+    Same motivation as ``RiskEffectWithoutPAF``: this project supplies
+    PAFs through a separate ``JointPAF`` component, and the GBD 2023
+    artifact does not contain
+    ``risk_factor.<name>.population_attributable_fraction`` keys for
+    these effects.
+
+    The override also makes ``load_relative_risk`` resilient to a
+    missing ``input_data.input_draw_number`` config key. vivarium 4
+    Artifact applies draw filtering at the HDF level, so we don't set
+    ``input_draw_number`` in our model specs; the parent class only
+    uses it as a seed input for sampling the TMREL.
+    """
+
+    def build_paf_lookup_table(self, builder: Builder) -> None:
+        return None
+
+    def register_paf_modifier(self, builder: Builder) -> None:
+        # No PAF modifier — JointPAF handles attribution adjustments
+        # at the level of the joint exposure.
+        pass
+
+    def load_relative_risk(self, builder: Builder, configuration=None):
+        # Mirrors NonLogLinearRiskEffect.load_relative_risk but tolerates
+        # a missing input_draw_number config (we always treat it as 0).
+        import scipy.interpolate
+        from vivarium_public_health.utilities import EntityString  # noqa: F401
+
+        if configuration is None:
+            configuration = self.configuration
+
+        tmred = builder.data.load(f"{self.risk}.tmred")
+        if tmred["distribution"] == "uniform":
+            try:
+                draw = builder.configuration.input_data.input_draw_number or 0
+            except AttributeError:
+                draw = 0
+            rng = np.random.default_rng(
+                builder.randomness.get_seed(self.name + str(draw))
+            )
+            self.tmrel = rng.uniform(tmred["min"], tmred["max"])
+        else:
+            raise ValueError(
+                f"Unsupported TMRED distribution {tmred['distribution']!r} "
+                f"for risk {self.risk.name}"
+            )
+
+        rr_source = configuration.data_sources.relative_risk
+        original_rrs = self.get_filtered_data(builder, rr_source)
+        self.validate_rr_data(original_rrs)
+
+        demographic_cols = [
+            col
+            for col in original_rrs.columns
+            if col != "parameter" and col != "value"
+        ]
+
+        def get_rr_at_tmrel(rr_data: pd.DataFrame) -> float:
+            interpolated = scipy.interpolate.interp1d(
+                rr_data["parameter"],
+                rr_data["value"],
+                kind="linear",
+                bounds_error=False,
+                fill_value=(
+                    rr_data["value"].min(),
+                    rr_data["value"].max(),
+                ),
+            )
+            return interpolated(self.tmrel).item()
+
+        rrs_at_tmrel = (
+            original_rrs.groupby(demographic_cols)
+            .apply(get_rr_at_tmrel)
+            .rename("rr_at_tmrel")
+        )
+        rr_data = original_rrs.merge(rrs_at_tmrel.reset_index())
+        rr_data["value"] = rr_data["value"] / rr_data["rr_at_tmrel"]
+        rr_data["value"] = np.clip(rr_data["value"], 1.0, np.inf)
+        rr_data = rr_data.drop("rr_at_tmrel", axis=1)
+        return rr_data
+
+
 class MediatedRiskEffect(RiskEffect):
     """Applies mediation to risk effects"""
 
@@ -163,8 +296,6 @@ class MediatedRiskEffect(RiskEffect):
             rr_data, rr_value_cols = self.process_categorical_data(builder, rr_data)
             self.lookup_tables["relative_risk"] = builder.lookup.build_table(
                 rr_data,
-                key_columns=["sex"],
-                parameter_columns=["age", "year"],
                 value_columns=rr_value_cols,
             )
         else:
@@ -172,8 +303,6 @@ class MediatedRiskEffect(RiskEffect):
                 rr_data = rr_data.drop(columns=["parameter"])
             self.lookup_tables["relative_risk"] = builder.lookup.build_table(
                 rr_data,
-                key_columns=["sex"],
-                parameter_columns=["age", "year"],
             )
 
     def setup(self, builder):
@@ -213,9 +342,7 @@ class MediatedRiskEffect(RiskEffect):
     ) -> Callable[[pd.Index, pd.Series], pd.Series]:
         if self.is_target_hf:
             delta_data = builder.data.load(data_keys.MEDIATION.HF_DELTAS)
-            deltas = builder.lookup.build_table(
-                delta_data, parameter_columns=["age"], key_columns=["sex"]
-            )
+            deltas = builder.lookup.build_table(delta_data)
 
             def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
                 unadjusted_rr = self.unadjusted_rr(index)

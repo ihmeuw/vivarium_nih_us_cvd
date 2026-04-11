@@ -18,10 +18,8 @@ from vivarium_public_health.disease import (
 )
 from vivarium_public_health.utilities import TargetString
 
-from vivarium_nih_us_cvd.components.causes.state import (
-    MultiTransitionDiseaseState,
-    MultiTransitionSusceptibleState,
-)
+# MultiTransitionState / CompositeRateTransition are no longer needed:
+# vph 5 natively supports multiple rate transitions from a single state.
 
 
 class CausesConfigurationParser(ComponentConfigurationParser):
@@ -210,7 +208,17 @@ class CausesConfigurationParser(ComponentConfigurationParser):
                     transition_config,
                 )
 
-            cause_models.append(DiseaseModel(cause_name, states=list(states.values())))
+            # vph 5: pass cause_specific_mortality_rate directly to bypass
+            # the restrictions lookup (which requires a draw-aware artifact
+            # key that our custom causes don't have).
+            csmr_key = f"cause.{cause_name}.cause_specific_mortality_rate"
+            cause_models.append(
+                DiseaseModel(
+                    cause_name,
+                    states=list(states.values()),
+                    cause_specific_mortality_rate=csmr_key,
+                )
+            )
 
         return cause_models
 
@@ -242,29 +250,26 @@ class CausesConfigurationParser(ComponentConfigurationParser):
         }
         if state_config.side_effect:
             # todo handle side effects properly
-            state_kwargs["side_effect"] = lambda *x: x
-        if state_config.cleanup_function:
-            # todo handle cleanup functions properly
-            state_kwargs["cleanup_function"] = lambda *x: x
-        if "get_data_functions" in state_config:
-            data_getters_config = state_config.get_data_functions
-            state_kwargs["get_data_functions"] = {
-                name: self.get_data_getter(name, data_getters_config[name])
-                for name in data_getters_config.keys()
-            }
+            state_kwargs["side_effect_function"] = lambda *x: x
 
         if state_config.transient:
             state_type = TransientDiseaseState
-        elif state_config.is_multi_transition and state_name == "susceptible":
-            state_type = MultiTransitionSusceptibleState
-        elif state_config.is_multi_transition:
-            state_type = MultiTransitionDiseaseState
         elif state_name == "susceptible":
+            # vph 5 natively supports multiple rate transitions from a single
+            # state, so MultiTransitionSusceptibleState is no longer needed.
             state_type = SusceptibleState
         elif state_name == "recovered":
             state_type = RecoveredState
         else:
             state_type = DiseaseState
+
+        # vph 5: DiseaseState takes data sources as direct kwargs
+        # (dwell_time, disability_weight, excess_mortality_rate, prevalence)
+        # instead of a get_data_functions dict.
+        if "get_data_functions" in state_config:
+            data_getters_config = state_config.get_data_functions
+            for name in data_getters_config.keys():
+                state_kwargs[name] = self.get_data_getter(name, data_getters_config[name])
 
         state = state_type(state_id, **state_kwargs)
         return state
@@ -292,6 +297,8 @@ class CausesConfigurationParser(ComponentConfigurationParser):
         None
         """
         triggered = Trigger[transition_config.triggered]
+
+        # Build the data getters dict from yaml config.
         if "get_data_functions" in transition_config:
             data_getters_config = transition_config.get_data_functions
             data_getters = {
@@ -302,12 +309,15 @@ class CausesConfigurationParser(ComponentConfigurationParser):
             data_getters = None
 
         if transition_config.data_type == "rate":
+            # vph 5: add_rate_transition takes transition_rate= directly.
+            rate_getter = next(iter(data_getters.values())) if data_getters else None
             source_state.add_rate_transition(
-                sink_state, get_data_functions=data_getters, triggered=triggered
+                sink_state, triggered=triggered, transition_rate=rate_getter
             )
         elif transition_config.data_type == "proportion":
+            prop_getter = next(iter(data_getters.values())) if data_getters else None
             source_state.add_proportion_transition(
-                sink_state, get_data_functions=data_getters, triggered=triggered
+                sink_state, triggered=triggered, proportion=prop_getter
             )
         elif transition_config.data_type == "dwell_time":
             source_state.add_dwell_time_transition(sink_state, triggered=triggered)

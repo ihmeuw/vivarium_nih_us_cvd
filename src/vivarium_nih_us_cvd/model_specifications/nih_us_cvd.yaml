@@ -73,7 +73,8 @@ components:
     vivarium_public_health:
         population:
             - BasePopulation()
-            - Mortality()
+            # Mortality() and Disability() are now auto-included as
+            # BasePopulation sub-components in vph 5.
         results:
             - MortalityObserver()
             - DisabilityObserver()
@@ -90,8 +91,12 @@ components:
 
 configuration:
     input_data:
-        input_draw_number: 0
-        #artifact_path: '../artifacts/alabama.hdf'
+        # input_draw_number removed: vivarium 4's Artifact applies draw
+        # column filters at the HDF level, which strips columns from
+        # non-draw tables (age_bins, demographic_dimensions, etc.).
+        # Draw selection is handled by the artifact build (single-draw
+        # artifacts) or at runtime via artifact_filter_term.
+        artifact_path: '../artifacts/united_states_of_america.hdf'
     interpolation:
         order: 0
         extrapolate: True

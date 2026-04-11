@@ -27,6 +27,9 @@ class SimpleResultsStratifier(ResultsStratifier_):
     def get_age_bins(self, builder: Builder) -> pd.DataFrame:
         """Re-define youngest age bin to 5_to_24"""
         age_bins = super().get_age_bins(builder)
+        # Keep only the standard columns; the artifact may carry an extra
+        # 'index' column after reset_index().
+        age_bins = age_bins[["age_start", "age_end", "age_group_name"]].copy()
         age_bins = age_bins[age_bins["age_start"] >= 25.0].reset_index(drop=True)
         age_bins.loc[len(age_bins.index)] = [5.0, 25.0, "5_to_24"]
 

@@ -36,48 +36,46 @@ class DropValueRisk(Risk):
 
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
-        self.raw_exposure = self.get_raw_exposure_pipeline(builder)
-        self.drop_value = self.get_drop_value_pipeline(builder)
+        self.raw_exposure = builder.value.register_value_producer(
+            self.raw_exposure_pipeline_name,
+            source=self.get_current_exposure,
+            requires_columns=["age", "sex"],
+            requires_values=[self.propensity_name],
+        )
+        self.drop_value = builder.value.register_value_producer(
+            self.drop_value_pipeline_name,
+            source=lambda index: pd.Series(0.0, index=index),
+        )
 
     #################
     # Setup methods #
     #################
 
-    def get_drop_value_pipeline(self, builder: Builder) -> Pipeline:
-        return builder.value.register_value_producer(
-            self.drop_value_pipeline_name,
-            source=lambda index: pd.Series(0.0, index=index),
-        )
-
-    def get_raw_exposure_pipeline(self, builder: Builder) -> Pipeline:
-        return builder.value.register_value_producer(
-            self.raw_exposure_pipeline_name,
-            source=self.get_current_exposure,
-            requires_columns=["age", "sex"],
-            requires_values=[self.propensity_pipeline_name],
-        )
-
-    def get_exposure_pipeline(self, builder: Builder) -> Pipeline:
-        return builder.value.register_value_producer(
-            self.exposure_pipeline_name,
-            source=self.get_current_exposure,
-            requires_columns=["age", "sex"],
-            requires_values=[self.propensity_pipeline_name],
-            preferred_post_processor=self.get_drop_value_post_processor(builder, self.risk),
-        )
-
-    ##################
-    # Helper methods #
-    ##################
-
-    def get_drop_value_post_processor(self, builder: Builder, risk: EntityString):
+    def register_exposure_pipeline(self, builder: Builder) -> None:
+        """Override to apply drop-value post-processing to the exposure pipeline."""
         drop_value_pipeline = builder.value.get_value(self.drop_value_pipeline_name)
 
-        def post_processor(exposure, _):
+        def drop_value_post_processor(exposure, _):
             drop_values = drop_value_pipeline(exposure.index)
             return exposure - drop_values
 
-        return post_processor
+        builder.value.register_attribute_producer(
+            self.exposure_name,
+            source=self.get_current_exposure,
+            requires_columns=["age", "sex"],
+            requires_values=[self.propensity_name],
+            preferred_post_processor=drop_value_post_processor,
+        )
+
+    ##################################
+    # Pipeline sources and modifiers #
+    ##################################
+
+    def get_current_exposure(self, index: pd.Index) -> pd.Series:
+        propensity = self.population_view.get(index, self.propensity_name)
+        return pd.Series(
+            self.exposure_distribution.ppf(propensity), index=index
+        )
 
 
 class CorrelatedRisk(DropValueRisk):
@@ -93,7 +91,7 @@ class CorrelatedRisk(DropValueRisk):
 
     @property
     def columns_required(self) -> Optional[List[str]]:
-        return [self.propensity_column_name]
+        return [self.propensity_name]
 
     @property
     def initialization_requirements(self) -> Dict[str, List[str]]:
@@ -102,6 +100,50 @@ class CorrelatedRisk(DropValueRisk):
             "requires_values": [],
             "requires_streams": [],
         }
+
+    #####################
+    # Lifecycle methods #
+    #####################
+
+    def setup(self, builder: Builder) -> None:
+        # Do most of Risk.setup() but skip propensity initializer registration.
+        # RiskCorrelation creates the propensity columns instead.
+        self._components = builder.components
+        self.distribution_type = self.get_distribution_type(builder)
+        self.exposure_distribution = self.get_exposure_distribution(builder)
+        self.randomness = self.get_randomness_stream(builder)
+
+        # Register drop_value and raw_exposure pipelines
+        self.drop_value = builder.value.register_value_producer(
+            self.drop_value_pipeline_name,
+            source=lambda index: pd.Series(0.0, index=index),
+        )
+        self.raw_exposure = builder.value.register_value_producer(
+            self.raw_exposure_pipeline_name,
+            source=self.get_current_exposure,
+            requires_columns=["age", "sex"],
+            requires_values=[self.propensity_name],
+        )
+
+        # Register the main exposure pipeline (with drop-value post-processing)
+        self.register_exposure_pipeline(builder)
+
+        # Check for non-loglinear risk effects
+        self.includes_non_loglinear_risk_effect = bool(
+            [
+                component
+                for component in builder.components.list_components()
+                if component.startswith(
+                    f"non_log_linear_risk_effect.{self.risk.name}_on_"
+                )
+            ]
+        )
+        if self.includes_non_loglinear_risk_effect:
+            builder.population.register_initializer(
+                initializer=self.initialize_exposure,
+                columns=self.exposure_column_name,
+                required_resources=[self.exposure_name],
+            )
 
     ########################
     # Event-driven methods #
@@ -139,28 +181,35 @@ class AdjustedRisk(CorrelatedRisk):
 
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
-        self.gbd_exposure = self.get_gbd_exposure_pipeline(builder)
+        self.gbd_exposure = builder.value.register_value_producer(
+            self.gbd_exposure_pipeline_name,
+            source=self.get_gbd_exposure,
+            requires_columns=["age", "sex"],
+            requires_values=[self.propensity_name],
+            preferred_post_processor=get_exposure_post_processor(
+                builder, self.risk
+            ),
+        )
 
     #################
     # Setup methods #
     #################
 
-    def get_gbd_exposure_pipeline(self, builder: Builder) -> Pipeline:
-        return builder.value.register_value_producer(
-            self.gbd_exposure_pipeline_name,
-            source=self.get_gbd_exposure,
-            requires_columns=["age", "sex"],
-            requires_values=[self.propensity_pipeline_name],
-            preferred_post_processor=get_exposure_post_processor(builder, self.risk),
-        )
+    def register_exposure_pipeline(self, builder: Builder) -> None:
+        """Override to use medication multiplier + drop value."""
+        drop_value_pipeline = builder.value.get_value(self.drop_value_pipeline_name)
 
-    def get_exposure_pipeline(self, builder: Builder) -> Pipeline:
-        return builder.value.register_value_producer(
-            self.exposure_pipeline_name,
+        def drop_value_post_processor(exposure, _):
+            drop_values = drop_value_pipeline(exposure.index)
+            return exposure - drop_values
+
+        requires_cols = [self.multiplier_col] if self.multiplier_col else []
+        builder.value.register_attribute_producer(
+            self.exposure_name,
             source=self.get_current_exposure,
-            requires_columns=[self.multiplier_col],
+            requires_columns=requires_cols,
             requires_values=[self.gbd_exposure_pipeline_name],
-            preferred_post_processor=self.get_drop_value_post_processor(builder, self.risk),
+            preferred_post_processor=drop_value_post_processor,
         )
 
     ##################################
@@ -169,11 +218,17 @@ class AdjustedRisk(CorrelatedRisk):
 
     def get_gbd_exposure(self, index: pd.Index) -> pd.Series:
         """Gets the raw gbd exposures and applies upper/lower limits"""
-        propensity = self.propensity(index)
-        exposures = pd.Series(self.exposure_distribution.ppf(propensity), index=index)
+        propensity = self.population_view.get(index, self.propensity_name)
+        exposures = pd.Series(
+            self.exposure_distribution.ppf(propensity), index=index
+        )
         if self.risk.name in RISK_EXPOSURE_LIMITS:
-            min_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get("minimum", None)
-            max_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get("maximum", None)
+            min_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get(
+                "minimum", None
+            )
+            max_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get(
+                "maximum", None
+            )
             exposures[exposures < min_exposure] = min_exposure
             exposures[exposures > max_exposure] = max_exposure
         return exposures
@@ -198,10 +253,16 @@ class TruncatedRisk(CorrelatedRisk):
 
     def get_current_exposure(self, index: pd.Index) -> pd.Series:
         # Keep exposure values between defined limits
-        propensity = self.propensity(index)
-        exposures = pd.Series(self.exposure_distribution.ppf(propensity), index=index)
-        min_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get("minimum", None)
-        max_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get("maximum", None)
+        propensity = self.population_view.get(index, self.propensity_name)
+        exposures = pd.Series(
+            self.exposure_distribution.ppf(propensity), index=index
+        )
+        min_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get(
+            "minimum", None
+        )
+        max_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get(
+            "maximum", None
+        )
         exposures[exposures < min_exposure] = min_exposure
         exposures[exposures > max_exposure] = max_exposure
 
@@ -233,20 +294,17 @@ class CategoricalSBPRisk(Component):
 
     def __init__(self):
         super().__init__()
-        self.risk = EntityString("risk_factor.categorical_high_systolic_blood_pressure")
+        self.risk = EntityString(
+            "risk_factor.categorical_high_systolic_blood_pressure"
+        )
         self.exposure_pipeline_name = f"{self.risk.name}.exposure"
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
-        self.continuous_exposure = builder.value.get_value(PIPELINES.SBP_EXPOSURE)
-        self.exposure = self.get_exposure_pipeline(builder)
-
-    #################
-    # Setup methods #
-    #################
-
-    def get_exposure_pipeline(self, builder: Builder) -> Pipeline:
-        return builder.value.register_value_producer(
+        self.continuous_exposure = builder.value.get_value(
+            PIPELINES.SBP_EXPOSURE
+        )
+        self.exposure = builder.value.register_value_producer(
             self.exposure_pipeline_name,
             source=self.get_current_exposure,
             requires_values=[PIPELINES.SBP_EXPOSURE],

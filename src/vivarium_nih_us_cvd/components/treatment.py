@@ -257,7 +257,7 @@ class Treatment(Component):
 
     def _get_medication_coverage_scaling_factors(self, builder: Builder) -> LookupTable:
         sf = builder.data.load(data_keys.MEDICATION_COVERAGE.SCALING_FACTOR)
-        return builder.lookup.build_table(sf, parameter_columns=["age"], key_columns=["sex"])
+        return builder.lookup.build_table(sf)
 
     def _register_target_modifiers(self, builder: Builder) -> None:
         # medication effects

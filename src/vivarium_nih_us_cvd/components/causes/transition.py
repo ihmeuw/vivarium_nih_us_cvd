@@ -48,9 +48,6 @@ class CompositeRateTransition(RateTransition):
         self.get_transition_rate = builder.value.register_value_producer(
             f"{self.input_state.state_id}.composite_exit_rate",
             source=self.compute_transition_rate,
-            requires_values=[
-                pipeline.name for pipeline in self.transition_pipelines.values()
-            ],
         )
 
         # population_view is now auto-configured via columns_required on Component
@@ -129,9 +126,7 @@ class CompositeRateTransition(RateTransition):
             else:
                 raise ValueError("No valid data functions supplied.")
 
-            lookup_table = builder.lookup.build_table(
-                rate_data, key_columns=["sex"], parameter_columns=["age", "year"]
-            )
+            lookup_table = builder.lookup.build_table(rate_data)
             lookup_tables[pipeline_name] = lookup_table
             self._pipeline_state_map[pipeline_name] = output_state_name
         return lookup_tables
@@ -144,13 +139,15 @@ class CompositeRateTransition(RateTransition):
         Registers all transition pipelines and stores them in a dictionary with
         the output state as the key and the pipeline as the value.
         """
-        return {
-            self._pipeline_state_map[pipeline_name]: builder.value.register_rate_producer(
+        # vivarium 4: register_rate_producer returns None; retrieve Pipeline
+        # objects via get_value after registration.
+        for pipeline_name in self._lookup_tables:
+            builder.value.register_rate_producer(
                 pipeline_name,
                 source=self._get_pipeline_source(pipeline_name),
-                requires_columns=["age", "sex", "alive"],
-                requires_values=[f"{pipeline_name}.paf"],
             )
+        return {
+            self._pipeline_state_map[pipeline_name]: builder.value.get_value(pipeline_name)
             for pipeline_name in self._lookup_tables
         }
 

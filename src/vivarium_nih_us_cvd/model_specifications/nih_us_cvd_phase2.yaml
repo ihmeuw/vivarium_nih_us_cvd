@@ -1,0 +1,76 @@
+## Phase 2: Disease models + four continuous risk factors.
+##
+## Builds on Phase 1 by adding the four continuous risk factors that
+## drive cardiovascular outcomes: high SBP, high LDL-C, high BMI,
+## and high FPG. We use vph 5's built-in `Risk` component here -- the
+## project's custom subclasses (AdjustedRisk, TruncatedRisk,
+## CorrelatedRisk) depend on multiplier columns created by the
+## Treatment component, which isn't introduced until Phase 4. The
+## SimpleResultsStratifier is added because vph 5 expects a
+## ResultsStratifier subclass to be available when configuring
+## stratifications even though no observers register stratifications
+## in this phase.
+##
+## What this exercises beyond Phase 1:
+##   - vph 5 `Risk` component setup with the GBD 2023 USA artifact.
+##   - Loading exposure / exposure_distribution_weights /
+##     exposure_standard_deviation tables (the new artifact format
+##     with 250 draws and the `parameter` index level).
+##   - The `risk_distributions.EnsembleDistribution` ensemble
+##     distribution machinery used by all four continuous risks.
+
+plugins:
+    required:
+        component_configuration_parser:
+            controller: "vivarium_nih_us_cvd.plugins.CausesConfigurationParser"
+
+components:
+    external_configuration:
+        vivarium_nih_us_cvd:
+            - "components/causes/causes.yaml"
+
+    vivarium_nih_us_cvd:
+        components:
+            - SimpleResultsStratifier()
+
+    vivarium_public_health:
+        population:
+            - BasePopulation()
+        results:
+            - MortalityObserver()
+        risks:
+            - Risk("risk_factor.high_systolic_blood_pressure")
+            - Risk("risk_factor.high_ldl_cholesterol")
+            - Risk("risk_factor.high_body_mass_index_in_adults")
+            - Risk("risk_factor.high_fasting_plasma_glucose")
+
+configuration:
+    input_data:
+        artifact_path: '../artifacts/united_states_of_america.hdf'
+    interpolation:
+        order: 0
+        extrapolate: True
+    randomness:
+        map_size: 1_000_000
+        key_columns: ['entrance_time', 'age']
+        random_seed: 0
+    time:
+        start:
+            year: 2024 # GBD 2023 artifact covers year bin 2023-2024
+            month: 1
+            day: 1
+        end:
+            year: 2025
+            month: 12
+            day: 31
+        step_size: 28 # Days
+    population:
+        population_size: 1_000
+        initialization_age_min: 5
+        initialization_age_max: 125
+        untracking_age: 125
+    stratification:
+        default:
+            - 'age_group'
+            - 'sex'
+            - 'current_year'
