@@ -75,6 +75,42 @@ def _patched_get_value(self, name):
 _vm.ValuesManager.get_value = _patched_get_value
 
 # ---------------------------------------------------------------------------
+# Monkey-patch ValuesManager.get_attribute to handle value/attribute pipeline
+# ordering conflicts.
+#
+# In vivarium 4, ``register_value_modifier("X", ...)`` auto-creates a *value*
+# pipeline for "X" via ``get_value``.  If ``Risk`` later calls
+# ``register_attribute_producer("X", ...)``, ``get_attribute`` raises because
+# the name already exists as a value pipeline.  This happens when
+# ``InterventionAdherenceEffect`` registers modifiers on medication-adherence
+# pipelines *before* ``Risk("risk_factor.sbp_medication_adherence")`` runs.
+#
+# The fix: when ``get_attribute`` finds the name in ``_value_pipelines``,
+# migrate any registered modifiers from the value pipeline to a new attribute
+# pipeline, delete the value-pipeline entry, and return the attribute pipeline.
+# ---------------------------------------------------------------------------
+from vivarium.framework.values.pipeline import AttributePipeline as _AttributePipeline
+
+_original_get_attribute = _vm.ValuesManager.get_attribute
+
+
+def _patched_get_attribute(self, name):
+    if name in self._value_pipelines:
+        # Migrate: create attribute pipeline, move modifiers over
+        old_pipeline = self._value_pipelines.pop(name)
+        attr_pipeline = self._attribute_pipelines.get(name, _AttributePipeline(name))
+        self._attribute_pipelines[name] = attr_pipeline
+        # Transfer any mutators already registered on the value pipeline.
+        for mutator in old_pipeline.mutators:
+            mutator._pipeline = attr_pipeline
+            attr_pipeline.mutators.append(mutator)
+        return attr_pipeline
+    return _original_get_attribute(self, name)
+
+
+_vm.ValuesManager.get_attribute = _patched_get_attribute
+
+# ---------------------------------------------------------------------------
 # Monkey-patch risk_distributions.EnsembleDistribution to add
 # get_expected_parameters(), which is required by vph 5.0.0 but missing
 # from risk_distributions 2.1.3.
@@ -108,3 +144,54 @@ def _get_expected_parameters(cls, distribution_name: str) -> list:
 
 if not hasattr(_rd.EnsembleDistribution, "get_expected_parameters"):
     _rd.EnsembleDistribution.get_expected_parameters = _get_expected_parameters
+
+# ---------------------------------------------------------------------------
+# Suppress noisy vivarium 4 warnings that fire on every time step.
+#
+# 1. PopulationManager warns "attribute pipeline returned a pd.Series with a
+#    different name 'value'" every time a LookupTable-backed PAF modifier is
+#    evaluated.  This is a vivarium 4 / vph 5 issue: LookupTable returns
+#    Series with name='value' rather than the pipeline name.  The framework
+#    corrects it automatically, so the warning is harmless.
+#
+# 2. LookupTableManager warns "configured, but didn't build lookup table"
+#    once per component on post-setup.  Our custom risk/effect components
+#    handle data loading differently.  Harmless.
+# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Suppress noisy vivarium 4 warnings that fire on every time step.
+#
+# vivarium uses loguru bound loggers.  We install a global filter on the
+# loguru logger that drops known-harmless warning messages.
+# ---------------------------------------------------------------------------
+import loguru as _loguru
+
+_SUPPRESS_PATTERNS = (
+    "returned a pd.Series with a different name",
+    "configured, but didn't build lookup table",
+    "Conflicting information for",
+    "stratifications are registered but not used",
+)
+
+
+def _suppress_known_warnings(record):
+    if record["level"].name == "WARNING":
+        msg = record["message"]
+        for pattern in _SUPPRESS_PATTERNS:
+            if pattern in msg:
+                return False
+    return True
+
+
+# Remove all existing loguru sinks and re-add with our filter.
+# vivarium's LoggingManager checks for sink id 1, so we need to ensure
+# the new sink gets that id.  loguru assigns sequential ids: after
+# removing 0, the next add gets id 1.
+import sys as _sys
+_loguru.logger.remove()  # remove all sinks (including default id=0)
+_loguru.logger.add(
+    _sys.stderr,
+    filter=_suppress_known_warnings,
+    colorize=True,
+    level="WARNING",
+)

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Set
 
 import pandas as pd
 from vivarium import Component
@@ -95,10 +95,6 @@ class ContinuousRiskObserver(Component):
             }
         }
 
-    @property
-    def columns_required(self) -> Optional[List[str]]:
-        return ["alive"]
-
     #####################
     # Lifecycle methods #
     #####################
@@ -146,7 +142,7 @@ class HealthcareVisitObserver(Component):
     ##############
 
     @property
-    def columns_required(self) -> Optional[List[str]]:
+    def columns_required(self) -> List[str]:
         return [data_values.COLUMNS.VISIT_TYPE]
 
     #####################
@@ -193,8 +189,8 @@ class CategoricalColumnObserver(Component):
         }
 
     @property
-    def columns_required(self) -> Optional[List[str]]:
-        return ["alive", self.column]
+    def columns_required(self) -> List[str]:
+        return ["is_alive", self.column]
 
     #####################
     # Lifecycle methods #
@@ -317,10 +313,6 @@ class BinnedRiskObserver(Component):
                 f"binned_{self.risk}": self.CONFIGURATION_DEFAULTS["stratification"]["risk"]
             }
         }
-
-    @property
-    def columns_required(self) -> Optional[List[str]]:
-        return ["alive"]
 
     #####################
     # Lifecycle methods #
