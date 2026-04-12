@@ -20,12 +20,24 @@ class InterventionAdherenceEffect(Component):
     #################
 
     def setup(self, builder: Builder) -> None:
-        self.polypill = builder.value.get_value(data_values.PIPELINES.POLYPILL_EXPOSURE)
+        # Defer the polypill pipeline lookup to ``post_setup``: it is
+        # registered as an *attribute* pipeline by the vph 5
+        # ``Risk("risk_factor.polypill")`` component, and that may run
+        # later than this component's ``setup``. See ``Treatment.setup``
+        # for the full explanation.
+        self._builder = builder
+        builder.event.register_listener("post_setup", self._capture_pipelines)
+
         self.scenario = self._get_scenario(builder)
         self.clock = builder.time.clock()
         self.simulation_start_time = get_time_stamp(builder.configuration.time.start)
         self.randomness = builder.randomness.get_stream(self.name)
         self._register_target_modifiers(builder)
+
+    def _capture_pipelines(self, _event) -> None:
+        self.polypill = self._builder.value.get_value(
+            data_values.PIPELINES.POLYPILL_EXPOSURE
+        )
 
     def _get_scenario(self, builder: Builder) -> InterventionScenario:
         return scenarios.INTERVENTION_SCENARIOS[builder.configuration.intervention.scenario]
@@ -45,7 +57,7 @@ class InterventionAdherenceEffect(Component):
             builder.value.register_value_modifier(
                 "risk_factor.sbp_medication_adherence.exposure_parameters",
                 modifier=self._polypill_sbp_adherence_modifier,
-                requires_values=[data_values.PIPELINES.POLYPILL_EXPOSURE],
+                required_resources=[data_values.PIPELINES.POLYPILL_EXPOSURE],
             )
 
     def _outreach_sbp_adherence_modifier(
@@ -402,8 +414,7 @@ class MediatedRiskEffect(RiskEffect):
         builder.value.register_value_modifier(
             self.target_pipeline_name,
             modifier=self.mediated_target_modifier,
-            requires_values=[f"{self.risk.name}.exposure"],
-            requires_columns=["age", "sex"],
+            required_resources=[f"{self.risk.name}.exposure", "age", "sex"],
         )
 
 

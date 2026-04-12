@@ -39,8 +39,6 @@ class DropValueRisk(Risk):
         self.raw_exposure = builder.value.register_value_producer(
             self.raw_exposure_pipeline_name,
             source=self.get_current_exposure,
-            requires_columns=["age", "sex"],
-            requires_values=[self.propensity_name],
         )
         self.drop_value = builder.value.register_value_producer(
             self.drop_value_pipeline_name,
@@ -55,15 +53,13 @@ class DropValueRisk(Risk):
         """Override to apply drop-value post-processing to the exposure pipeline."""
         drop_value_pipeline = builder.value.get_value(self.drop_value_pipeline_name)
 
-        def drop_value_post_processor(exposure, _):
-            drop_values = drop_value_pipeline(exposure.index)
+        def drop_value_post_processor(index, exposure, _manager):
+            drop_values = drop_value_pipeline(index)
             return exposure - drop_values
 
         builder.value.register_attribute_producer(
             self.exposure_name,
             source=self.get_current_exposure,
-            requires_columns=["age", "sex"],
-            requires_values=[self.propensity_name],
             preferred_post_processor=drop_value_post_processor,
         )
 
@@ -72,10 +68,7 @@ class DropValueRisk(Risk):
     ##################################
 
     def get_current_exposure(self, index: pd.Index) -> pd.Series:
-        propensity = self.population_view.get(index, self.propensity_name)
-        return pd.Series(
-            self.exposure_distribution.ppf(propensity), index=index
-        )
+        return self.exposure_ppf(index)
 
 
 class CorrelatedRisk(DropValueRisk):
@@ -113,6 +106,16 @@ class CorrelatedRisk(DropValueRisk):
         self.exposure_distribution = self.get_exposure_distribution(builder)
         self.randomness = self.get_randomness_stream(builder)
 
+        # The vph 5 RiskExposureDistribution registers an attribute
+        # pipeline ``<risk>.exposure_distribution.ppf`` that, given an
+        # index, returns inverse-CDF exposures from the propensity
+        # column. We use this in our overridden ``get_current_exposure``
+        # below in place of the old ``distribution.ppf(propensity)``
+        # call (which is no longer part of the vph 5 distribution API).
+        self.exposure_ppf = builder.value.get_value(
+            self.exposure_distribution.exposure_ppf_pipeline
+        )
+
         # Register drop_value and raw_exposure pipelines
         self.drop_value = builder.value.register_value_producer(
             self.drop_value_pipeline_name,
@@ -121,8 +124,6 @@ class CorrelatedRisk(DropValueRisk):
         self.raw_exposure = builder.value.register_value_producer(
             self.raw_exposure_pipeline_name,
             source=self.get_current_exposure,
-            requires_columns=["age", "sex"],
-            requires_values=[self.propensity_name],
         )
 
         # Register the main exposure pipeline (with drop-value post-processing)
@@ -184,8 +185,6 @@ class AdjustedRisk(CorrelatedRisk):
         self.gbd_exposure = builder.value.register_value_producer(
             self.gbd_exposure_pipeline_name,
             source=self.get_gbd_exposure,
-            requires_columns=["age", "sex"],
-            requires_values=[self.propensity_name],
             preferred_post_processor=get_exposure_post_processor(
                 builder, self.risk
             ),
@@ -199,16 +198,13 @@ class AdjustedRisk(CorrelatedRisk):
         """Override to use medication multiplier + drop value."""
         drop_value_pipeline = builder.value.get_value(self.drop_value_pipeline_name)
 
-        def drop_value_post_processor(exposure, _):
-            drop_values = drop_value_pipeline(exposure.index)
+        def drop_value_post_processor(index, exposure, _manager):
+            drop_values = drop_value_pipeline(index)
             return exposure - drop_values
 
-        requires_cols = [self.multiplier_col] if self.multiplier_col else []
         builder.value.register_attribute_producer(
             self.exposure_name,
             source=self.get_current_exposure,
-            requires_columns=requires_cols,
-            requires_values=[self.gbd_exposure_pipeline_name],
             preferred_post_processor=drop_value_post_processor,
         )
 
@@ -218,10 +214,7 @@ class AdjustedRisk(CorrelatedRisk):
 
     def get_gbd_exposure(self, index: pd.Index) -> pd.Series:
         """Gets the raw gbd exposures and applies upper/lower limits"""
-        propensity = self.population_view.get(index, self.propensity_name)
-        exposures = pd.Series(
-            self.exposure_distribution.ppf(propensity), index=index
-        )
+        exposures = self.exposure_ppf(index)
         if self.risk.name in RISK_EXPOSURE_LIMITS:
             min_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get(
                 "minimum", None
@@ -238,7 +231,7 @@ class AdjustedRisk(CorrelatedRisk):
         if self.multiplier_col:
             return (
                 self.gbd_exposure(index)
-                * self.population_view.get(index)[self.multiplier_col]
+                * self.population_view.get(index, [self.multiplier_col])[self.multiplier_col]
             )
         else:
             return self.gbd_exposure(index)
@@ -253,10 +246,7 @@ class TruncatedRisk(CorrelatedRisk):
 
     def get_current_exposure(self, index: pd.Index) -> pd.Series:
         # Keep exposure values between defined limits
-        propensity = self.population_view.get(index, self.propensity_name)
-        exposures = pd.Series(
-            self.exposure_distribution.ppf(propensity), index=index
-        )
+        exposures = self.exposure_ppf(index)
         min_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get(
             "minimum", None
         )
@@ -301,13 +291,18 @@ class CategoricalSBPRisk(Component):
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
+        # SBP exposure is registered as an attribute pipeline by
+        # AdjustedRisk; the patched ``ValuesManager.get_value`` (in
+        # ``vivarium_nih_us_cvd.plugins``) routes the lookup to the
+        # attribute pipeline so this still returns a callable that
+        # accepts an index and yields the per-simulant SBP value.
         self.continuous_exposure = builder.value.get_value(
             PIPELINES.SBP_EXPOSURE
         )
         self.exposure = builder.value.register_value_producer(
             self.exposure_pipeline_name,
             source=self.get_current_exposure,
-            requires_values=[PIPELINES.SBP_EXPOSURE],
+            required_resources=[PIPELINES.SBP_EXPOSURE],
         )
 
     ##################################

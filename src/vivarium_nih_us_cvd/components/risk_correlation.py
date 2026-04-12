@@ -55,12 +55,22 @@ class RiskCorrelation(Component):
         self.random_seed = builder.configuration.randomness.random_seed
         self.correlation_data = pd.read_csv(paths.FILEPATHS.RISK_CORRELATION)
 
+        # vivarium 4 requires explicit initializer registration so that
+        # the propensity columns are also registered as attribute pipelines.
+        # Declare ``age`` as a dependency so BasePopulation initializes
+        # first.
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns=self.propensity_column_names,
+            required_resources=["age"],
+        )
+
     ########################
     # Event-driven methods #
     ########################
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
-        pop = self.population_view.subview(["age"]).get(pop_data.index)
+        pop = self.population_view.get(pop_data.index, ["age"])
         propensities = pd.DataFrame(index=pop.index)
 
         correlation = self.update_correlation_data(self.correlation_data)
@@ -87,7 +97,7 @@ class RiskCorrelation(Component):
                 age_specific_pop.index, self.propensity_column_names
             ] = correlated_propensities
 
-        self.population_view.update(propensities)
+        self.population_view.initialize(propensities)
 
     ##################
     # Helper methods #

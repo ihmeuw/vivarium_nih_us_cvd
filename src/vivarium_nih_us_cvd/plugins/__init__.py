@@ -36,6 +36,45 @@ def _patched_load(self, entity_key, **column_filters):
 _am.ArtifactManager.load = _patched_load
 
 # ---------------------------------------------------------------------------
+# Monkey-patch ValuesManager.get_value to support attribute pipelines.
+#
+# In vivarium 4 the values system has two flavors of pipeline: classic
+# value pipelines (registered via ``register_value_producer``) and
+# attribute pipelines (registered via ``register_attribute_producer``).
+# vph 5's ``Risk`` and this project's custom ``DropValueRisk`` /
+# ``AdjustedRisk`` / ``TruncatedRisk`` / ``CorrelatedRisk`` classes all
+# register ``<risk>.exposure`` as an *attribute* pipeline, while plenty
+# of downstream code (``Treatment``, ``HealthcareUtilization``,
+# ``CategoricalSBPRisk``) still calls
+# ``builder.value.get_value("...exposure")`` and expects a callable
+# back. The stock ``get_value`` raises ``DynamicValueError`` once the
+# name has been registered as an attribute.
+#
+# Both pipeline classes are callable with the same signature
+# (``pipeline(index)``), so the simplest fix is to make ``get_value``
+# return the existing ``AttributePipeline`` when one is registered for
+# the requested name. The override only kicks in if the name has been
+# registered as an attribute; ordinary value-pipeline lookups go through
+# the original code path unchanged. (Component-setup ordering still
+# matters: callers that need the attribute version must run after the
+# attribute producer is registered. ``Treatment`` and
+# ``HealthcareUtilization`` defer their pipeline lookups to a
+# ``post_setup`` listener for that reason.)
+# ---------------------------------------------------------------------------
+import vivarium.framework.values.manager as _vm
+
+_original_values_manager_get_value = _vm.ValuesManager.get_value
+
+
+def _patched_get_value(self, name):
+    if name in self._attribute_pipelines:
+        return self._attribute_pipelines[name]
+    return _original_values_manager_get_value(self, name)
+
+
+_vm.ValuesManager.get_value = _patched_get_value
+
+# ---------------------------------------------------------------------------
 # Monkey-patch risk_distributions.EnsembleDistribution to add
 # get_expected_parameters(), which is required by vph 5.0.0 but missing
 # from risk_distributions 2.1.3.

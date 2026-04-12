@@ -1,0 +1,171 @@
+## Phase 5: Disease models + risks + risk effects + healthcare/treatment/
+## interventions + full observer suite.
+##
+## Builds on Phase 4 by wiring in the result-producing observers:
+##
+##   - vph 5 DisabilityObserver and DiseaseObserver("ischemic_stroke") /
+##     DiseaseObserver("ischemic_heart_disease_and_heart_failure")
+##     (MortalityObserver is already present in Phase 4).
+##   - BinnedRiskObserver("risk_factor.high_systolic_blood_pressure") and
+##     BinnedRiskObserver("risk_factor.high_ldl_cholesterol") for
+##     exposure-time stratified by clinical thresholds.
+##
+## What this exercises beyond Phase 4:
+##   - vivarium 4 `register_adding_observation(..., requires_attributes=...)`
+##     API (observations now fetch their sources as attributes instead of
+##     the legacy split into `requires_columns` / `requires_values`).
+##   - `ResultsStratifier.register_stratifications` with
+##     `requires_attributes` instead of `requires_columns`.
+##   - The SimpleResultsStratifier `get_age_bins` patch that drops the
+##     extra `index` column from the GBD 2023 USA artifact.
+##   - Running the full `collect_metrics` / `time_step__prepare` results
+##     machinery against the Phase 4 state table.
+##
+## What is NOT exercised yet:
+##   - MediatedRiskEffect / JointPAF (see Phase 4 header comment).
+##   - HealthcareVisitObserver / CategoricalColumnObserver /
+##     LifestyleObserver — these are still commented out in the
+##     production yaml and are not part of the Phase 5 smoke test.
+
+plugins:
+    required:
+        component_configuration_parser:
+            controller: "vivarium_nih_us_cvd.plugins.CausesConfigurationParser"
+
+components:
+    external_configuration:
+        vivarium_nih_us_cvd:
+            - "components/causes/causes.yaml"
+
+    vivarium_nih_us_cvd:
+        components:
+            - SimpleResultsStratifier()
+
+            # Risk factor exposures.
+            - AdjustedRisk("risk_factor.high_ldl_cholesterol")
+            - BinnedRiskObserver("risk_factor.high_ldl_cholesterol")
+            - AdjustedRisk("risk_factor.high_systolic_blood_pressure")
+            - BinnedRiskObserver("risk_factor.high_systolic_blood_pressure")
+            - TruncatedRisk("risk_factor.high_body_mass_index_in_adults")
+            - TruncatedRisk("risk_factor.high_fasting_plasma_glucose")
+            - CategoricalSBPRisk()
+
+            - RiskCorrelation()
+
+            # Risk effects from Phase 3
+            - RiskEffectWithoutPAF("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_from_ischemic_heart_disease.incidence_rate")
+            - RiskEffectWithoutPAF("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_residual.incidence_rate")
+            - NonLogLinearRiskEffectWithoutPAF("risk_factor.high_systolic_blood_pressure", "cause.acute_ischemic_stroke.incidence_rate")
+
+            # Healthcare utilization + treatment ramps
+            - HealthcareUtilization()  # NOTE: this uses Treatment() as a sub-component
+
+            # Intervention adherence machinery (no-op under baseline scenario)
+            - InterventionAdherenceEffect()
+            - LinearScaleUp("risk_factor.outreach")
+            - LinearScaleUp("risk_factor.polypill")
+            - LinearScaleUp("risk_factor.lifestyle")
+
+    vivarium_public_health:
+        population:
+            - BasePopulation()
+        results:
+            - MortalityObserver()
+            - DisabilityObserver()
+            - DiseaseObserver("ischemic_stroke")
+            - DiseaseObserver("ischemic_heart_disease_and_heart_failure")
+        risks:
+            - Risk("risk_factor.sbp_medication_adherence")
+            - Risk("risk_factor.ldlc_medication_adherence")
+            - Risk("risk_factor.outreach")
+            - Risk("risk_factor.polypill")
+            - Risk("risk_factor.lifestyle")
+
+configuration:
+    input_data:
+        artifact_path: '../artifacts/united_states_of_america.hdf'
+    interpolation:
+        order: 0
+        extrapolate: True
+    randomness:
+        map_size: 1_000_000
+        key_columns: ['entrance_time', 'age']
+        random_seed: 0
+    time:
+        start:
+            year: 2024 # GBD 2023 artifact covers year bin 2023-2024
+            month: 1
+            day: 1
+        end:
+            year: 2025
+            month: 12
+            day: 31
+        step_size: 28 # Days
+    population:
+        population_size: 1_000
+        initialization_age_min: 5
+        initialization_age_max: 125
+        untracking_age: 125
+    stratification:
+        default:
+            - 'age_group'
+            - 'sex'
+            - 'current_year'
+
+    risk_factor.outreach:
+        data_sources:
+            exposure: 0
+    risk_factor.polypill:
+        data_sources:
+            exposure: 0
+    risk_factor.lifestyle:
+        distribution_type: "dichotomous"
+        data_sources:
+            exposure: .0855
+    outreach:
+        exposure: 0
+    polypill:
+        exposure: 0
+    lifestyle:
+        exposure: .0855
+    intervention:
+        scenario: "baseline"
+    outreach_scale_up:
+        date:
+            start:
+                year: 2023
+                month: 1
+                day: 1
+            end:
+                year: 2024
+                month: 1
+                day: 1
+        value:
+            start: 0
+            end: 0
+    polypill_scale_up:
+        date:
+            start:
+                year: 2023
+                month: 1
+                day: 1
+            end:
+                year: 2024
+                month: 1
+                day: 1
+        value:
+            start: 0
+            end: 0
+    lifestyle_scale_up:
+        date:
+            start:
+                year: 2023
+                month: 1
+                day: 1
+            end:
+                year: 2024
+                month: 1
+                day: 1
+        value:
+            start: 0.0855
+            end: 0.0855
