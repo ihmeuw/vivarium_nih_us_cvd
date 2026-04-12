@@ -154,7 +154,13 @@ class JointPAF(Component):
             ["affected_entity", "affected_measure"]
         ):
             target = EntityKey(f"cause.{name}.{measure}")
-            data = group.drop(columns=["affected_entity", "affected_measure"])
+            data = group.drop(
+                columns=["affected_entity", "affected_measure"],
+                errors="ignore",
+            )
+            # Drop 'index' column if artifact stored it
+            if "index" in data.columns:
+                data = data.drop(columns=["index"])
             pafs[target] = builder.lookup.build_table(data)
         return pafs
 

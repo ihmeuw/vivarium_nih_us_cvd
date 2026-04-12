@@ -129,22 +129,44 @@ class CorrelatedRisk(DropValueRisk):
         # Register the main exposure pipeline (with drop-value post-processing)
         self.register_exposure_pipeline(builder)
 
-        # Check for non-loglinear risk effects
-        self.includes_non_loglinear_risk_effect = bool(
-            [
-                component
-                for component in builder.components.list_components()
-                if component.startswith(
-                    f"non_log_linear_risk_effect.{self.risk.name}_on_"
-                )
-            ]
-        )
+        # Check for non-loglinear risk effects. The standard vph 5 Risk
+        # checks for components named "non_log_linear_risk_effect.{risk}_on_*"
+        # but our NonLogLinearPAFCalculationRiskEffect and
+        # NonLogLinearMediatedRiskEffect use different name prefixes.
+        # Check by isinstance instead to catch all variants.
+        from vivarium_public_health.risks.effect import NonLogLinearRiskEffect as _NLLRE
+        self.includes_non_loglinear_risk_effect = False
+        for c in builder.components.list_components():
+            if f".{self.risk.name}" not in c:
+                continue
+            try:
+                if isinstance(builder.components.get_component(c), _NLLRE):
+                    self.includes_non_loglinear_risk_effect = True
+                    break
+            except Exception:
+                continue
         if self.includes_non_loglinear_risk_effect:
             builder.population.register_initializer(
                 initializer=self.initialize_exposure,
                 columns=self.exposure_column_name,
-                required_resources=[self.exposure_name],
+                required_resources=[self.exposure_name, self.propensity_name],
             )
+
+    def get_exposure(self, index: pd.Index) -> pd.Series:
+        """Cache the exposure value for non-loglinear risk effects.
+
+        Override the parent to skip post-processors during population
+        initialization, since Treatment modifiers may reference columns
+        (e.g. ``lifestyle``) that haven't been initialized yet.
+        The non-loglinear RR lookup only needs the *final* exposure;
+        ``on_time_step_prepare`` updates the cache each step with the
+        fully-post-processed value from the normal pipeline.
+        """
+        exposure = self.population_view.get(
+            index, self.exposure_name, skip_post_processor=True
+        )
+        exposure.name = self.exposure_column_name
+        return exposure
 
     ########################
     # Event-driven methods #
@@ -299,7 +321,12 @@ class CategoricalSBPRisk(Component):
         self.continuous_exposure = builder.value.get_value(
             PIPELINES.SBP_EXPOSURE
         )
-        self.exposure = builder.value.register_value_producer(
+        # Register as attribute pipeline so that vph 5's RiskEffect /
+        # MediatedRiskEffect can declare it as a required_resource and
+        # read it via population_view.get().  The monkey-patch in
+        # plugins/__init__.py ensures existing get_value() callers
+        # still find it.
+        self.exposure = builder.value.register_attribute_producer(
             self.exposure_pipeline_name,
             source=self.get_current_exposure,
             required_resources=[PIPELINES.SBP_EXPOSURE],

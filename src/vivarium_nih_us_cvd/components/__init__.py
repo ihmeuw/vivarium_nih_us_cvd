@@ -2,6 +2,8 @@ from .causes import Causes, IschemicHeartDiseaseAndHeartFailure, IschemicStroke
 from .effects import (
     InterventionAdherenceEffect,
     MediatedRiskEffect,
+    NonLogLinearMediatedRiskEffect,
+    NonLogLinearPAFCalculationRiskEffect,
     NonLogLinearRiskEffectWithoutPAF,
     PAFCalculationRiskEffect,
     RiskEffectWithoutPAF,

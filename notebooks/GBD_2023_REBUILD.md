@@ -12,17 +12,17 @@ the **artifact build**.
 
 ## What changed at the data layer
 
-| layer | before | after |
-| --- | --- | --- |
-| GBD round | round_id 7 (GBD 2020) | round_id 9 (GBD 2023) |
-| `vivarium` | 3.x | 4.x |
-| `vivarium_public_health` | 4.x | 5.x |
-| `vivarium_inputs` | 4.1.x | 7.x |
-| `gbd_mapping` | 4.x | 5.x |
-| `interface.get_measure(...)` | `(entity, measure, location)` | `(entity, measure, location, years=None, data_type="draws")` |
+| layer                                     | before                | after                 |
+| ----------------------------------------- | --------------------- | --------------------- |
+| GBD round                                 | round_id 7 (GBD 2020) | round_id 9 (GBD 2023) |
+| `vivarium`                                | 3.x                   | 4.x                   |
+| `vivarium_public_health`                  | 4.x                   | 5.x                   |
+| `vivarium_inputs`                         | 4.1.x                 | 7.x                   |
+| `gbd_mapping`                             | 4.x                   | 5.x                   |
+| `interface.get_measure(...)`              | `(entity, measure, location)` | `(entity, measure, location, years=None, data_type="draws")` |
 | relative-risk format for continuous risks | `parameter='per unit'` (one row per cell, log-linear interpolation in the sim) | numeric `parameter` column with one row **per exposure threshold** (piecewise-linear interpolation in the sim) |
-| risk effect class | `RiskEffect` | `NonLogLinearRiskEffect` |
-| heart-failure RR (categorical SBP, BMI) | unchanged | unchanged — still hand-built from project distributions |
+| risk effect class                         | `RiskEffect`          | `NonLogLinearRiskEffect` |
+| heart-failure RR (categorical SBP, BMI)   | unchanged             | unchanged — still hand-built from project distributions |
 
 The single biggest behavioural change is the RR format for the four continuous
 risks (`high_systolic_blood_pressure`, `high_ldl_cholesterol`,
@@ -397,7 +397,7 @@ side-by-side. Expect:
 
 1. Is GBD 2023 actually released for all four continuous risks (SBP, LDL-C, BMI,
    FPG) in the database we'll be querying, or is some of it still on hold? If
-   any of the four are missing, we have to either fall back to GBD 2020 for that
+   any of the four are missing, we have to either fall back to GBD 2021 for that
    risk or wait.
 2. Is the `mediation_factors` table from GBD 2023 going to be drop-in
    compatible with the existing `load_mediation_factors` loader, or has the
@@ -421,7 +421,7 @@ side-by-side. Expect:
    IHME clinical team who own the inpatient envelope to ask about the
    outpatient counterpart, (c) accept the stub long-term and replace with
    an age-varying literature table.
-5. Are the GBD 2020-era MEIDs hard-coded in `constants/data_values.py`
+5. Are the GBD 2019-era MEIDs hard-coded in `constants/data_values.py`
    (`ACUTE_MI_ME_ID=24694`, `POST_MI_ME_ID=15755`, `HEART_FAILURE_ME_ID=2412`,
    `BMI_MEAN_ME_ID=23873`, `BMI_SD_ME_ID=27050`, `LDL_MEAN_ME_ID=26955`,
    `LDL_SD_ME_ID=27057`, `SBP_MEAN_ME_ID=23871`, `SBP_SD_ME_ID=27049`)
@@ -452,30 +452,30 @@ or `StgprServerError` under release_id 16. The MEIDs are inherited
 from GBD 2020 and appear in the metadata table but have no round-9
 best model in the `epi` or `stgpr` source.
 
-| Constant | ME ID | Used for | Exception seen |
-|---|---|---|---|
-| `ACUTE_MI_ME_ID` | 24694 | MI incidence, prevalence, EMR | `EmptyDataFrameException` |
-| `POST_MI_ME_ID` | 15755 | Post-MI EMR | `NoBestVersionsException` |
-| `HEART_FAILURE_ME_ID` | 2412 | HF envelope prevalence, incidence, EMR, CSMR | `EmptyDataFrameException` |
-| `LDL_MEAN_ME_ID` | 26955 | LDL-C mean exposure | `NoBestVersionsException` (ST-GPR) |
-| `LDL_SD_ME_ID` | 27057 | LDL-C SD | expected same |
-| `SBP_MEAN_ME_ID` | 23871 | SBP mean exposure | expected same |
-| `SBP_SD_ME_ID` | 27049 | SBP SD | expected same |
-| `BMI_MEAN_ME_ID` | 23873 | BMI mean exposure | expected same |
-| `BMI_SD_ME_ID` | 27050 | BMI SD | expected same |
+| Constant              | ME ID | Used for                                     | Exception seen                     |
+|-----------------------|-------|----------------------------------------------|------------------------------------|
+| `ACUTE_MI_ME_ID`      | 24694 | MI incidence, prevalence, EMR                | `EmptyDataFrameException`          |
+| `POST_MI_ME_ID`       | 15755 | Post-MI EMR                                  | `NoBestVersionsException`          |
+| `HEART_FAILURE_ME_ID` | 2412  | HF envelope prevalence, incidence, EMR, CSMR | `EmptyDataFrameException`          |
+| `LDL_MEAN_ME_ID`      | 26955 | LDL-C mean exposure                          | `NoBestVersionsException` (ST-GPR) |
+| `LDL_SD_ME_ID`        | 27057 | LDL-C SD                                     | expected same                      |
+| `SBP_MEAN_ME_ID`      | 23871 | SBP mean exposure                            | expected same                      |
+| `SBP_SD_ME_ID`        | 27049 | SBP SD                                       | expected same                      |
+| `BMI_MEAN_ME_ID`      | 23873 | BMI mean exposure                            | expected same                      |
+| `BMI_SD_ME_ID`        | 27050 | BMI SD                                       | expected same                      |
 
 ### Sequela / cause-level draws (via `interface.get_measure`)
 
 Raw-data validation (`vivarium_inputs.validation.raw.check_data_exist`)
 rejects IHD sequela draws as all-zero under release_id 16.
 
-| Entity | Measure | Loader |
-|---|---|---|
-| IHD sequelae: `acute_myocardial_infarction_*` (×2) | prevalence | `_load_and_sum_prevalence_from_sequelae` |
-| IHD sequelae: `asymptomatic_ischemic_heart_disease_following_myocardial_infarction` | prevalence | `_load_and_sum_prevalence_from_sequelae` |
-| IHD sequelae: `*_heart_failure_due_to_ischemic_heart_disease` (×4) | prevalence | `_load_and_sum_prevalence_from_sequelae` |
-| IHD sequelae: `*_angina_due_to_ischemic_heart_disease` (×4) | prevalence, disability_weight | `_get_measure_wrapped` |
-| HF-residual sequelae (multiple parent causes) | prevalence, disability_weight | `_get_measure_wrapped` |
+| Entity                                                                              | Measure    | Loader                                    |
+|-------------------------------------------------------------------------------------|------------|-------------------------------------------|
+| IHD sequelae: `acute_myocardial_infarction_*` (×2)                                  | prevalence | `_load_and_sum_prevalence_from_sequelae`  |
+| IHD sequelae: `asymptomatic_ischemic_heart_disease_following_myocardial_infarction` | prevalence | `_load_and_sum_prevalence_from_sequelae`  |
+| IHD sequelae: `*_heart_failure_due_to_ischemic_heart_disease` (×4)                  | prevalence | `_load_and_sum_prevalence_from_sequelae`  |
+| IHD sequelae: `*_angina_due_to_ischemic_heart_disease` (×4)                         | prevalence, disability_weight | `_get_measure_wrapped` |
+| HF-residual sequelae (multiple parent causes)                                       | prevalence, disability_weight | `_get_measure_wrapped` |
 
 ### Risk-factor exposure draws (via `extract.extract_data` / ST-GPR)
 
@@ -498,15 +498,15 @@ calls chain to the same ST-GPR / epi draw services and fail with
 
 ### Placeholder values used
 
-| Measure key | Constant value |
-|---|---|
-| `prevalence` | 0.001 |
-| `incidence_rate` | 0.0001 |
-| `excess_mortality_rate` | 0.01 |
-| `exposure` | 1.0 |
-| `exposure_standard_deviation` | 1.0 |
-| `disability_weight` | 0.1 |
-| *(any other)* | 0.001 |
+| Measure key                   | Constant value |
+|-------------------------------|----------------|
+| `prevalence`                  | 0.001          |
+| `incidence_rate`              | 0.0001         |
+| `excess_mortality_rate`       | 0.01           |
+| `exposure`                    | 1.0            |
+| `exposure_standard_deviation` | 1.0            |
+| `disability_weight`           | 0.1            |
+| *(any other)*                 | 0.001          |
 
 ### Recommended next steps
 

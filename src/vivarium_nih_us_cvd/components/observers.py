@@ -446,9 +446,7 @@ class JointPAFObserver(Component):
             name=f"joint_paf_on_{self.target}",
             pop_filter='is_alive == True',
             aggregator=self.calculate_paf,
-            requires_attributes=["is_alive"] + [
-                f"unadjusted_rr_{x}_on_{self.target.name}" for x in self.risks_and_mediators
-            ],
+            requires_attributes=["is_alive"],
             additional_stratifications=config.include,
             excluded_stratifications=config.exclude,
             when="time_step__prepare",

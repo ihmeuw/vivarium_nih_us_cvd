@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -110,6 +110,10 @@ class InterventionAdherenceEffect(Component):
 
 MEDIATOR_NAMES = {
     "high_body_mass_index_in_adults": {
+        # IS/MI targets: mediated by SBP, LDL-C, FPG.
+        # NOTE: GBD 2023 artifact was missing BMI RR data for IS/MI;
+        # stub data (RR=1.0) added 2026-04-12 pending investigation.
+        # See memory/project_bmi_is_mi_investigation.md.
         "acute_ischemic_stroke": [
             "high_systolic_blood_pressure",
             "high_ldl_cholesterol",
@@ -130,6 +134,7 @@ MEDIATOR_NAMES = {
             "high_ldl_cholesterol",
             "high_fasting_plasma_glucose",
         ],
+        # HF targets: mediated by categorical SBP
         "heart_failure_from_ischemic_heart_disease": [
             "categorical_high_systolic_blood_pressure",
         ],
@@ -152,6 +157,61 @@ MEDIATOR_NAMES = {
         ],
     },
 }
+
+
+def _build_mediated_target_modifier(effect, builder: Builder) -> Callable:
+    """Build the mediated target modifier function for a risk effect.
+
+    Shared implementation used by both ``MediatedRiskEffect`` (log-linear)
+    and ``NonLogLinearMediatedRiskEffect``.  The ``effect`` argument is the
+    component instance (must have ``is_target_hf``, ``unadjusted_rr``,
+    ``mediators``, ``unadjusted_mediator_rr``, ``risk``, and ``target``
+    attributes set before this is called).
+    """
+    if effect.is_target_hf:
+        delta_data = builder.data.load(data_keys.MEDIATION.HF_DELTAS)
+        deltas = builder.lookup.build_table(delta_data)
+
+        def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
+            unadjusted_rr = effect.unadjusted_rr(index)
+            scaling_factor = pd.Series(1.0, index=index)
+            for mediator in effect.mediators:
+                unadjusted_mediator_rr = effect.unadjusted_mediator_rr[mediator](index)
+                not_tmrel_idx = index[
+                    (unadjusted_mediator_rr != 1.0) & (unadjusted_rr != 1.0)
+                ]
+                scaling_factor.loc[not_tmrel_idx] *= unadjusted_mediator_rr.loc[
+                    not_tmrel_idx
+                ] ** deltas(not_tmrel_idx)
+            return target * unadjusted_rr / scaling_factor
+
+    else:
+        mediation_factors = builder.data.load(data_keys.MEDIATION.MEDIATION_FACTORS)
+        mediation_factors = mediation_factors.loc[
+            (mediation_factors["risk_name"] == effect.risk.name)
+            & (mediation_factors["affected_entity"] == effect.target.name)
+        ]
+
+        def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
+            unadjusted_rr = effect.unadjusted_rr(index)
+            scaling_factor = pd.Series(1.0, index=index)
+            for mediator in effect.mediators:
+                unadjusted_mediator_rr = effect.unadjusted_mediator_rr[mediator](index)
+                not_tmrel_idx = index[
+                    (unadjusted_mediator_rr != 1.0) & (unadjusted_rr != 1.0)
+                ]
+                mf = mediation_factors.loc[
+                    mediation_factors["mediator_name"] == mediator, "value"
+                ].values[0]
+                delta_mediator = np.log(
+                    mf * (unadjusted_rr.loc[not_tmrel_idx] - 1) + 1
+                ) / np.log(unadjusted_mediator_rr.loc[not_tmrel_idx])
+                scaling_factor.loc[not_tmrel_idx] *= (
+                    unadjusted_mediator_rr.loc[not_tmrel_idx] ** delta_mediator
+                )
+            return target * unadjusted_rr / scaling_factor
+
+    return adjust_target
 
 
 class RiskEffectWithoutPAF(RiskEffect):
@@ -288,38 +348,56 @@ class NonLogLinearRiskEffectWithoutPAF(NonLogLinearRiskEffect):
 
 
 class MediatedRiskEffect(RiskEffect):
-    """Applies mediation to risk effects"""
+    """Applies mediation to risk effects.
 
-    def build_all_lookup_tables(self, builder: Builder) -> None:
-        """Override to skip PAF loading - this model uses joint PAFs instead."""
+    Instead of the default RiskEffect target modifier (which multiplies
+    the target rate by the raw RR), this component applies a *mediated*
+    modifier that accounts for the portion of the risk's effect that
+    operates through mediating risk factors.
+
+    PAFs are handled by a separate JointPAF component, so this class
+    skips PAF loading entirely.
+    """
+
+    def build_rr_lookup_table(self, builder: Builder) -> LookupTable:
+        """Build the relative-risk lookup table.
+
+        Overrides the parent to handle CategoricalSBPRisk (which is not
+        a standard Risk component and causes ``get_distribution_type`` to
+        fail) and to strip single-value ``parameter`` columns from
+        log-linear RR data.
+        """
         try:
             self._exposure_distribution_type = self.get_distribution_type(builder)
-        except ValueError:
+        except (ValueError, KeyError):
             # CategoricalSBPRisk is a custom Component, not a standard Risk,
             # so get_distribution_type can't find it. Infer from the risk name.
             if "categorical" in self.risk.name:
                 self._exposure_distribution_type = "ordered_polytomous"
             else:
                 self._exposure_distribution_type = "normal"
-        rr_data = self.get_filtered_data(
-            builder, self.configuration.data_sources.relative_risk
-        )
+
+        rr_data = self.load_relative_risk(builder)
+        rr_value_cols = None
+
         if self.is_exposure_categorical:
             rr_data, rr_value_cols = self.process_categorical_data(builder, rr_data)
-            self.lookup_tables["relative_risk"] = builder.lookup.build_table(
-                rr_data,
-                value_columns=rr_value_cols,
-            )
-        else:
-            if isinstance(rr_data, pd.DataFrame) and "parameter" in rr_data.columns:
+        elif isinstance(rr_data, pd.DataFrame) and "parameter" in rr_data.columns:
+            if rr_data["parameter"].nunique() == 1:
                 rr_data = rr_data.drop(columns=["parameter"])
-            self.lookup_tables["relative_risk"] = builder.lookup.build_table(
-                rr_data,
-            )
+
+        return self.build_lookup_table(
+            builder, "relative_risk", data_source=rr_data, value_columns=rr_value_cols,
+        )
+
+    def build_paf_lookup_table(self, builder: Builder) -> None:
+        """Skip PAF loading — JointPAF handles attribution."""
+        return None
 
     def setup(self, builder):
         super().setup(builder)
-        # Register unadjusted RR pipelines by passing target=1s to the super's target_modifier
+        # Register unadjusted RR pipeline: calls adjust_target(idx, 1.0)
+        # which returns the raw RR for each simulant.
         self.is_target_hf = self.target.name.startswith("heart_failure")
         self.unadjusted_rr = builder.value.register_value_producer(
             f"unadjusted_rr_{self.risk.name}_on_{self.target.name}",
@@ -341,93 +419,97 @@ class MediatedRiskEffect(RiskEffect):
     #################
 
     def register_target_modifier(self, builder: Builder) -> None:
+        # Suppress the default RiskEffect target modifier; the mediated
+        # version is registered in setup() instead.
         pass
 
     def register_paf_modifier(self, builder: Builder) -> None:
-        pass
-
-    def get_population_attributable_fraction_source(self, builder: Builder) -> LookupTable:
+        # No per-risk PAF modifier — JointPAF handles attribution.
         pass
 
     def get_mediated_target_modifier(
         self, builder: Builder
     ) -> Callable[[pd.Index, pd.Series], pd.Series]:
-        if self.is_target_hf:
-            delta_data = builder.data.load(data_keys.MEDIATION.HF_DELTAS)
-            deltas = builder.lookup.build_table(delta_data)
-
-            def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
-                unadjusted_rr = self.unadjusted_rr(index)
-                scaling_factor = pd.Series(1.0, index=index)
-                for mediator in self.mediators:
-                    unadjusted_mediator_rr = self.unadjusted_mediator_rr[mediator](index)
-                    # NOTE: We only adjust the target RR if the mediator RR is not 1 (TMREL).
-                    #   Though not strictly required, it will save computation time.
-                    #
-                    #   We also only adjust the target RR if the risk RR is not 1 (TMREL)
-                    #   in order to be consistent with mediation for IHD and stroke.
-                    not_tmrel_idx = index[
-                        (unadjusted_mediator_rr != 1.0) & (unadjusted_rr != 1.0)
-                    ]
-                    scaling_factor.loc[not_tmrel_idx] *= unadjusted_mediator_rr.loc[
-                        not_tmrel_idx
-                    ] ** deltas(not_tmrel_idx)
-                return target * unadjusted_rr / scaling_factor
-
-        else:
-            mediation_factors = builder.data.load(data_keys.MEDIATION.MEDIATION_FACTORS)
-            mediation_factors = mediation_factors.loc[
-                (mediation_factors["risk_name"] == self.risk.name)
-                & (mediation_factors["affected_entity"] == self.target.name)
-            ]
-
-            def adjust_target(index: pd.Index, target: pd.Series) -> pd.Series:
-                unadjusted_rr = self.unadjusted_rr(index)
-                scaling_factor = pd.Series(1.0, index=index)
-                for mediator in self.mediators:
-                    unadjusted_mediator_rr = self.unadjusted_mediator_rr[mediator](index)
-                    # NOTE: We only adjust the target RR if the mediator RR is not 1 (TMREL)
-                    #   to prevent divide-by-0 errors (since log(1) = 0); it also makes sense
-                    #   since RR**x = 1 when RR = 1.
-                    #
-                    #   We also only adjust the target RR if the risk RR is not 1 (TMREL).
-                    #   This is not necessarily required since that would result in delta = 0
-                    #   and a scaling factor would resolve to 1 always, but it will
-                    #   save some computation time.
-                    not_tmrel_idx = index[
-                        (unadjusted_mediator_rr != 1.0) & (unadjusted_rr != 1.0)
-                    ]
-                    mf = mediation_factors.loc[
-                        mediation_factors["mediator_name"] == mediator, "value"
-                    ].values[0]
-                    delta_mediator = np.log(
-                        mf * (unadjusted_rr.loc[not_tmrel_idx] - 1) + 1
-                    ) / np.log(unadjusted_mediator_rr.loc[not_tmrel_idx])
-                    scaling_factor.loc[not_tmrel_idx] *= (
-                        unadjusted_mediator_rr.loc[not_tmrel_idx] ** delta_mediator
-                    )
-                return target * unadjusted_rr / scaling_factor
-
-        return adjust_target
+        return _build_mediated_target_modifier(self, builder)
 
     def register_mediated_target_modifier(self, builder: Builder) -> None:
-        builder.value.register_value_modifier(
-            self.target_pipeline_name,
+        builder.value.register_attribute_modifier(
+            self.target_name,
             modifier=self.mediated_target_modifier,
-            required_resources=[f"{self.risk.name}.exposure", "age", "sex"],
+            required_resources=[self.relative_risk_name],
         )
 
 
-class PAFCalculationRiskEffect(MediatedRiskEffect):
-    """Risk effect component for calculating PAFs"""
+class NonLogLinearMediatedRiskEffect(NonLogLinearRiskEffectWithoutPAF):
+    """Applies mediation to non-log-linear risk effects (SBP, LDL-C, FPG).
 
-    def get_population_attributable_fraction_source(
-        self, builder: Builder
-    ) -> Optional[LookupTable]:
-        return None
+    Combines ``NonLogLinearRiskEffectWithoutPAF``'s exposure-parametrized
+    RR interpolation with the same mediation logic used by
+    ``MediatedRiskEffect``.  The key differences from ``MediatedRiskEffect``
+    are inherited from the non-log-linear base class:
+
+    * RR data has a numeric ``parameter`` column representing exposure
+      levels (not ``'per unit'``).
+    * The lookup table stores left/right exposure–RR intervals and the
+      relative-risk source linearly interpolates within each interval.
+    * RR values are TMREL-normalized during ``load_relative_risk``.
+    """
+
+    def setup(self, builder):
+        super().setup(builder)
+        self.is_target_hf = self.target.name.startswith("heart_failure")
+        self.unadjusted_rr = builder.value.register_value_producer(
+            f"unadjusted_rr_{self.risk.name}_on_{self.target.name}",
+            source=lambda idx: self.adjust_target(idx, pd.Series(1.0, index=idx)),
+        )
+        self.mediators = MEDIATOR_NAMES.get(self.risk.name, {}).get(self.target.name, [])
+        self.unadjusted_mediator_rr = {
+            mediator: builder.value.get_value(
+                f"unadjusted_rr_{mediator}_on_{self.target.name}"
+            )
+            for mediator in self.mediators
+        }
+        self.mediated_target_modifier = self.get_mediated_target_modifier(builder)
+        self.register_mediated_target_modifier(builder)
 
     def register_target_modifier(self, builder: Builder) -> None:
         pass
 
-    def register_paf_modifier(self, builder: Builder) -> None:
-        pass
+    def get_mediated_target_modifier(
+        self, builder: Builder
+    ) -> Callable[[pd.Index, pd.Series], pd.Series]:
+        # Delegate to the same implementation used by MediatedRiskEffect.
+        return _build_mediated_target_modifier(self, builder)
+
+    def register_mediated_target_modifier(self, builder: Builder) -> None:
+        builder.value.register_attribute_modifier(
+            self.target_name,
+            modifier=self.mediated_target_modifier,
+            required_resources=[self.relative_risk_name],
+        )
+
+
+class PAFCalculationRiskEffect(MediatedRiskEffect):
+    """Log-linear risk effect for PAF calculation simulations.
+
+    Same as ``MediatedRiskEffect`` but with a distinct component name
+    prefix so ``JointPAFObserver`` can find it via
+    ``builder.components.get_component(...)``.
+    """
+
+    @staticmethod
+    def get_name(risk, target):
+        return f"paf_calculation_risk_effect.{risk}.{target}"
+
+
+class NonLogLinearPAFCalculationRiskEffect(NonLogLinearMediatedRiskEffect):
+    """Non-log-linear risk effect for PAF calculation simulations.
+
+    Same as ``NonLogLinearMediatedRiskEffect`` but with the
+    ``paf_calculation_risk_effect`` name prefix so
+    ``JointPAFObserver`` can find it.
+    """
+
+    @staticmethod
+    def get_name(risk, target):
+        return f"paf_calculation_risk_effect.{risk}.{target}"
