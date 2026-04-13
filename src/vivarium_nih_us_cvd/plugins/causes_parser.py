@@ -1,9 +1,10 @@
 from importlib import import_module
+from importlib.resources import files
 from typing import Any, Callable, Dict, List, Union
 
 import pandas as pd
-from pkg_resources import resource_filename
-from vivarium import Component, ConfigTree
+from layered_config_tree import LayeredConfigTree
+from vivarium import Component
 from vivarium.framework.components import ComponentConfigurationParser
 from vivarium.framework.engine import Builder
 from vivarium.framework.state_machine import Trigger
@@ -17,10 +18,8 @@ from vivarium_public_health.disease import (
 )
 from vivarium_public_health.utilities import TargetString
 
-from vivarium_nih_us_cvd.components.causes.state import (
-    MultiTransitionDiseaseState,
-    MultiTransitionSusceptibleState,
-)
+# MultiTransitionState / CompositeRateTransition are no longer needed:
+# vph 5 natively supports multiple rate transitions from a single state.
 
 
 class CausesConfigurationParser(ComponentConfigurationParser):
@@ -30,7 +29,7 @@ class CausesConfigurationParser(ComponentConfigurationParser):
     `causes` key and create `DiseaseModel` components.
     """
 
-    def parse_component_config(self, component_config: ConfigTree) -> List[Component]:
+    def parse_component_config(self, component_config: LayeredConfigTree) -> List[Component]:
         """
         Parses the component configuration and returns a list of components.
 
@@ -61,7 +60,7 @@ class CausesConfigurationParser(ComponentConfigurationParser):
         Parameters
         ----------
         component_config
-            A ConfigTree defining the components to initialize.
+            A LayeredConfigTree defining the components to initialize.
 
         Returns
         -------
@@ -77,9 +76,9 @@ class CausesConfigurationParser(ComponentConfigurationParser):
             for package, config_files in component_config["external_configuration"].items():
                 for config_file in config_files.get_value(None):
                     source = f"{package}::{config_file}"
-                    config_file = resource_filename(package, config_file)
+                    config_file = str(files(package).joinpath(config_file))
 
-                    external_config = ConfigTree(config_file)
+                    external_config = LayeredConfigTree(config_file)
                     component_config.update(
                         external_config, layer="model_override", source=source
                     )
@@ -103,7 +102,7 @@ class CausesConfigurationParser(ComponentConfigurationParser):
     ##################################
 
     @staticmethod
-    def mark_multi_transition_states(component_config: ConfigTree) -> None:
+    def mark_multi_transition_states(component_config: LayeredConfigTree) -> None:
         """
         Marks states that have multiple exiting transitions using the
         `is_multi_transition` key.
@@ -111,7 +110,7 @@ class CausesConfigurationParser(ComponentConfigurationParser):
         Parameters
         ----------
         component_config
-            A ConfigTree defining the components to initialize
+            A LayeredConfigTree defining the components to initialize
 
         Returns
         -------
@@ -135,7 +134,7 @@ class CausesConfigurationParser(ComponentConfigurationParser):
                 )
 
     @staticmethod
-    def add_default_config_layer(component_config: ConfigTree) -> None:
+    def add_default_config_layer(component_config: LayeredConfigTree) -> None:
         """
         Adds a default layer to the provided configuration that specifies
         default values for the cause model configuration.
@@ -143,7 +142,7 @@ class CausesConfigurationParser(ComponentConfigurationParser):
         Parameters
         ----------
         component_config
-            A ConfigTree that specifies the components to initialize
+            A LayeredConfigTree that specifies the components to initialize
 
         Returns
         -------
@@ -179,7 +178,7 @@ class CausesConfigurationParser(ComponentConfigurationParser):
     # Cause model creation methods #
     ################################
 
-    def get_cause_model_components(self, causes_config: ConfigTree) -> List[Component]:
+    def get_cause_model_components(self, causes_config: LayeredConfigTree) -> List[Component]:
         """
         Parses the cause model configuration and returns a list of
         `DiseaseModel` components.
@@ -187,7 +186,7 @@ class CausesConfigurationParser(ComponentConfigurationParser):
         Parameters
         ----------
         causes_config
-            A ConfigTree defining the cause model components to initialize
+            A LayeredConfigTree defining the cause model components to initialize
 
         Returns
         -------
@@ -209,12 +208,22 @@ class CausesConfigurationParser(ComponentConfigurationParser):
                     transition_config,
                 )
 
-            cause_models.append(DiseaseModel(cause_name, states=list(states.values())))
+            # vph 5: pass cause_specific_mortality_rate directly to bypass
+            # the restrictions lookup (which requires a draw-aware artifact
+            # key that our custom causes don't have).
+            csmr_key = f"cause.{cause_name}.cause_specific_mortality_rate"
+            cause_models.append(
+                DiseaseModel(
+                    cause_name,
+                    states=list(states.values()),
+                    cause_specific_mortality_rate=csmr_key,
+                )
+            )
 
         return cause_models
 
     def get_state(
-        self, state_name: str, state_config: ConfigTree, cause_name: str
+        self, state_name: str, state_config: LayeredConfigTree, cause_name: str
     ) -> BaseDiseaseState:
         """
         Parses a state configuration and returns an initialized `BaseDiseaseState`
@@ -225,7 +234,7 @@ class CausesConfigurationParser(ComponentConfigurationParser):
         state_name
             The name of the state to initialize
         state_config
-            A ConfigTree defining the state to initialize
+            A LayeredConfigTree defining the state to initialize
         cause_name
             The name of the cause to which the state belongs
 
@@ -241,29 +250,26 @@ class CausesConfigurationParser(ComponentConfigurationParser):
         }
         if state_config.side_effect:
             # todo handle side effects properly
-            state_kwargs["side_effect"] = lambda *x: x
-        if state_config.cleanup_function:
-            # todo handle cleanup functions properly
-            state_kwargs["cleanup_function"] = lambda *x: x
-        if "get_data_functions" in state_config:
-            data_getters_config = state_config.get_data_functions
-            state_kwargs["get_data_functions"] = {
-                name: self.get_data_getter(name, data_getters_config[name])
-                for name in data_getters_config.keys()
-            }
+            state_kwargs["side_effect_function"] = lambda *x: x
 
         if state_config.transient:
             state_type = TransientDiseaseState
-        elif state_config.is_multi_transition and state_name == "susceptible":
-            state_type = MultiTransitionSusceptibleState
-        elif state_config.is_multi_transition:
-            state_type = MultiTransitionDiseaseState
         elif state_name == "susceptible":
+            # vph 5 natively supports multiple rate transitions from a single
+            # state, so MultiTransitionSusceptibleState is no longer needed.
             state_type = SusceptibleState
         elif state_name == "recovered":
             state_type = RecoveredState
         else:
             state_type = DiseaseState
+
+        # vph 5: DiseaseState takes data sources as direct kwargs
+        # (dwell_time, disability_weight, excess_mortality_rate, prevalence)
+        # instead of a get_data_functions dict.
+        if "get_data_functions" in state_config:
+            data_getters_config = state_config.get_data_functions
+            for name in data_getters_config.keys():
+                state_kwargs[name] = self.get_data_getter(name, data_getters_config[name])
 
         state = state_type(state_id, **state_kwargs)
         return state
@@ -272,7 +278,7 @@ class CausesConfigurationParser(ComponentConfigurationParser):
         self,
         source_state: BaseDiseaseState,
         sink_state: BaseDiseaseState,
-        transition_config: ConfigTree,
+        transition_config: LayeredConfigTree,
     ) -> None:
         """
         Adds a transition between two states.
@@ -284,13 +290,15 @@ class CausesConfigurationParser(ComponentConfigurationParser):
         sink_state
             The state the transition ends at
         transition_config
-            A `ConfigTree` defining the transition to add
+            A `LayeredConfigTree` defining the transition to add
 
         Returns
         -------
         None
         """
         triggered = Trigger[transition_config.triggered]
+
+        # Build the data getters dict from yaml config.
         if "get_data_functions" in transition_config:
             data_getters_config = transition_config.get_data_functions
             data_getters = {
@@ -301,12 +309,15 @@ class CausesConfigurationParser(ComponentConfigurationParser):
             data_getters = None
 
         if transition_config.data_type == "rate":
+            # vph 5: add_rate_transition takes transition_rate= directly.
+            rate_getter = next(iter(data_getters.values())) if data_getters else None
             source_state.add_rate_transition(
-                sink_state, get_data_functions=data_getters, triggered=triggered
+                sink_state, triggered=triggered, transition_rate=rate_getter
             )
         elif transition_config.data_type == "proportion":
+            prop_getter = next(iter(data_getters.values())) if data_getters else None
             source_state.add_proportion_transition(
-                sink_state, get_data_functions=data_getters, triggered=triggered
+                sink_state, triggered=triggered, proportion=prop_getter
             )
         elif transition_config.data_type == "dwell_time":
             source_state.add_dwell_time_transition(sink_state, triggered=triggered)

@@ -1,46 +1,65 @@
+## PAF Calculation Model Specification
+##
+## Runs a single time step with a large population to compute joint
+## mediated population-attributable fractions for each target rate.
+## The JointPAFObserver computes PAF = (E[RR] - 1) / E[RR] within
+## each age/sex stratum.
+##
+## Output is saved as a results CSV that can be post-processed into
+## the artifact key ``risk_factor.joint_mediated_risks.population_attributable_fraction``.
+
+plugins:
+    required:
+        component_configuration_parser:
+            controller: "vivarium_nih_us_cvd.plugins.CausesConfigurationParser"
+
 components:
+    external_configuration:
+        vivarium_nih_us_cvd:
+            - "components/causes/causes.yaml"
+
     vivarium_nih_us_cvd:
         components:
-            - EvenlyDistributedPopulation()
             - SimpleResultsStratifier()
 
-            # causes
-            - Causes()
-
-            # risks
+            # Risk factor exposures (all TruncatedRisk for PAF calc —
+            # no medication adjustment, we want GBD untreated exposure).
             - TruncatedRisk("risk_factor.high_systolic_blood_pressure")
-            - CategoricalSBPRisk()
             - TruncatedRisk("risk_factor.high_body_mass_index_in_adults")
             - TruncatedRisk("risk_factor.high_ldl_cholesterol")
-            - TruncatedRisk('risk_factor.high_fasting_plasma_glucose')
+            - TruncatedRisk("risk_factor.high_fasting_plasma_glucose")
+            - CategoricalSBPRisk()
 
             - RiskCorrelation()
 
-            # risk effects
+            # Log-linear PAF effects (BMI on IS/MI + HF, categorical SBP on HF)
+            # STUB: BMI→IS/MI uses RR=1.0 pending real data
             - PAFCalculationRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.acute_ischemic_stroke.incidence_rate")
             - PAFCalculationRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
-            - PAFCalculationRiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_ischemic_stroke.incidence_rate")
-            - PAFCalculationRiskEffect("risk_factor.high_ldl_cholesterol", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
-            - PAFCalculationRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_ischemic_stroke.incidence_rate")
-            - PAFCalculationRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
-            - PAFCalculationRiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.acute_ischemic_stroke.incidence_rate")
-            - PAFCalculationRiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
-            
             - PAFCalculationRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.acute_myocardial_infarction.incidence_rate")
             - PAFCalculationRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
-            - PAFCalculationRiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
-            - PAFCalculationRiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
-            - PAFCalculationRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_myocardial_infarction.incidence_rate")
-            - PAFCalculationRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
-            - PAFCalculationRiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.acute_myocardial_infarction.incidence_rate")
-            - PAFCalculationRiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
-
             - PAFCalculationRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_from_ischemic_heart_disease.incidence_rate")
             - PAFCalculationRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_residual.incidence_rate")
             - PAFCalculationRiskEffect("risk_factor.categorical_high_systolic_blood_pressure", "cause.heart_failure_from_ischemic_heart_disease.incidence_rate")
             - PAFCalculationRiskEffect("risk_factor.categorical_high_systolic_blood_pressure", "cause.heart_failure_residual.incidence_rate")
 
-            # joint PAF observers
+            # Non-log-linear PAF effects (SBP, LDL-C, FPG)
+            - NonLogLinearPAFCalculationRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_ischemic_stroke.incidence_rate")
+            - NonLogLinearPAFCalculationRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
+            - NonLogLinearPAFCalculationRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_myocardial_infarction.incidence_rate")
+            - NonLogLinearPAFCalculationRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+
+            - NonLogLinearPAFCalculationRiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_ischemic_stroke.incidence_rate")
+            - NonLogLinearPAFCalculationRiskEffect("risk_factor.high_ldl_cholesterol", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
+            - NonLogLinearPAFCalculationRiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
+            - NonLogLinearPAFCalculationRiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+
+            - NonLogLinearPAFCalculationRiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.acute_ischemic_stroke.incidence_rate")
+            - NonLogLinearPAFCalculationRiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
+            - NonLogLinearPAFCalculationRiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.acute_myocardial_infarction.incidence_rate")
+            - NonLogLinearPAFCalculationRiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
+
+            # Joint PAF observers (one per target rate)
             - JointPAFObserver("cause.acute_ischemic_stroke.incidence_rate")
             - JointPAFObserver("cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
             - JointPAFObserver("cause.acute_myocardial_infarction.incidence_rate")
@@ -48,7 +67,13 @@ components:
             - JointPAFObserver("cause.heart_failure_from_ischemic_heart_disease.incidence_rate")
             - JointPAFObserver("cause.heart_failure_residual.incidence_rate")
 
+    vivarium_public_health:
+        population:
+            - BasePopulation()
+
 configuration:
+    input_data:
+        artifact_path: '../artifacts/united_states_of_america.hdf'
     interpolation:
         order: 0
         extrapolate: True
@@ -58,22 +83,18 @@ configuration:
         random_seed: 0
     time:
         start:
-            year: 2021 # Includes two years for burn-in
-            month: 1
-            day: 1
-        observation_start: # TODO: Implement for all observers (currently only custom observers)
-            year: 2021
+            year: 2024
             month: 1
             day: 1
         end:
-            year: 2021
+            year: 2024
             month: 1
-            day: 2
-        step_size: 28 # Days
+            day: 29
+        step_size: 28 # Days — only one step needed
     population:
         population_size: 100_000
-        age_start: 5
-        age_end: 100
-        exit_age: 100
+        initialization_age_min: 5
+        initialization_age_max: 100
+        untracking_age: 100
     stratification:
         default: ['sex', 'age_group']

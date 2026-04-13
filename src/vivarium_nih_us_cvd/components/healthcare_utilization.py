@@ -23,6 +23,7 @@ class HealthcareUtilization(Component):
             data_values.COLUMNS.VISIT_TYPE,
             data_values.COLUMNS.SCHEDULED_VISIT_DATE,
             data_values.COLUMNS.LAST_FPG_TEST_DATE,
+            data_values.COLUMNS.LIFESTYLE,
         ]
 
     @property
@@ -34,19 +35,15 @@ class HealthcareUtilization(Component):
             models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME,
             data_values.COLUMNS.SBP_MEDICATION,
             data_values.COLUMNS.LDLC_MEDICATION,
-            data_values.COLUMNS.LIFESTYLE,
         ]
 
     @property
-    def initialization_requirements(self) -> Dict[str, List[str]]:
-        return {
-            "requires_columns": self.columns_required,
-            "requires_values": [
-                data_values.PIPELINES.SBP_EXPOSURE,
-                data_values.PIPELINES.LDLC_EXPOSURE,
-            ],
-            "requires_streams": [self.name],
-        }
+    def initialization_requirements(self) -> List[str]:
+        return self.columns_required + [
+            data_values.PIPELINES.SBP_EXPOSURE,
+            data_values.PIPELINES.LDLC_EXPOSURE,
+            self.name,
+        ]
 
     @property
     def time_step_cleanup_priority(self) -> int:
@@ -66,19 +63,50 @@ class HealthcareUtilization(Component):
         self.step_size = builder.time.step_size()
         self.randomness = builder.randomness.get_stream(self.name)
 
-        self.lifestyle = builder.value.get_value(data_values.PIPELINES.LIFESTYLE_EXPOSURE)
-        self.bmi_raw = builder.value.get_value(data_values.PIPELINES.BMI_RAW_EXPOSURE)
-        self.bmi = builder.value.get_value(data_values.PIPELINES.BMI_EXPOSURE)
-        self.fpg = builder.value.get_value(data_values.PIPELINES.FPG_EXPOSURE)
+        # Defer pipeline lookups to ``post_setup``: see the matching
+        # comment in ``Treatment.setup``. Some of these names are
+        # registered as *attribute* pipelines by other components and
+        # the lookups have to wait until those components have run.
+        self._builder = builder
+        builder.event.register_listener("post_setup", self._capture_pipelines)
+
+        # vivarium 4 requires explicit initializer registration; the
+        # required_resources tell the resource manager that this
+        # initializer must run after age/sex/disease state/treatment
+        # column initializers.
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns=self.columns_created,
+            required_resources=[
+                "age",
+                "sex",
+                models.ISCHEMIC_STROKE_MODEL_NAME,
+                models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME,
+                data_values.COLUMNS.SBP_MEDICATION,
+                data_values.COLUMNS.LDLC_MEDICATION,
+            ],
+        )
 
         # Load data
         utilization_data = builder.data.load(data_keys.POPULATION.HEALTHCARE_UTILIZATION)
         background_utilization_rate = builder.lookup.build_table(
-            utilization_data, parameter_columns=["age", "year"], key_columns=["sex"]
+            utilization_data,
+            name="background_utilization_rate",
+            value_columns="value",
         )
-        self.background_utilization_rate = builder.value.register_rate_producer(
-            "utilization_rate", background_utilization_rate, requires_columns=["age", "sex"]
+        builder.value.register_rate_producer(
+            "utilization_rate",
+            background_utilization_rate,
+            required_resources=["age", "sex"],
         )
+        self.background_utilization_rate = builder.value.get_value("utilization_rate")
+
+    def _capture_pipelines(self, _event) -> None:
+        builder = self._builder
+        self.lifestyle = builder.value.get_value(data_values.PIPELINES.LIFESTYLE_EXPOSURE)
+        self.bmi_raw = builder.value.get_value(data_values.PIPELINES.BMI_RAW_EXPOSURE)
+        self.bmi = builder.value.get_value(data_values.PIPELINES.BMI_EXPOSURE)
+        self.fpg = builder.value.get_value(data_values.PIPELINES.FPG_EXPOSURE)
 
     ########################
     # Event-driven methods #
@@ -97,7 +125,8 @@ class HealthcareUtilization(Component):
         visit 3-6 months out, uniformly distributed.
         """
         event_time = self.clock() + self.step_size()
-        pop = self.population_view.subview(
+        pop = self.population_view.get(
+            pop_data.index,
             [
                 "age",
                 "sex",
@@ -105,12 +134,13 @@ class HealthcareUtilization(Component):
                 models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME,
                 data_values.COLUMNS.SBP_MEDICATION,
                 data_values.COLUMNS.LDLC_MEDICATION,
-            ]
-        ).get(pop_data.index)
+            ],
+        )
 
         # Initialize new columns
         pop[data_values.COLUMNS.VISIT_TYPE] = data_values.VISIT_TYPE.NONE
         pop[data_values.COLUMNS.SCHEDULED_VISIT_DATE] = pd.NaT
+        pop[data_values.COLUMNS.LIFESTYLE] = pd.NaT
 
         # Update simulants initialized in an emergency state
         mask_acute_is = (
@@ -186,12 +216,13 @@ class HealthcareUtilization(Component):
         )
         pop[data_values.COLUMNS.LAST_FPG_TEST_DATE] = fpg_test_date_column
 
-        self.population_view.update(
+        self.population_view.initialize(
             pop[
                 [
                     data_values.COLUMNS.VISIT_TYPE,
                     data_values.COLUMNS.SCHEDULED_VISIT_DATE,
                     data_values.COLUMNS.LAST_FPG_TEST_DATE,
+                    data_values.COLUMNS.LIFESTYLE,
                 ]
             ]
         )
@@ -203,7 +234,10 @@ class HealthcareUtilization(Component):
         followup and do not schedule a new one or another one.
         """
         event_time = event.time
-        pop = self.population_view.get(event.index, query='alive == "alive"')
+        _all_cols = list(self.columns_created) + [
+            c for c in self.columns_required if c not in self.columns_created
+        ]
+        pop = self.population_view.get(event.index, _all_cols, query="is_alive == True")
         pop[data_values.COLUMNS.VISIT_TYPE] = data_values.VISIT_TYPE.NONE
 
         # Emergency visits
@@ -281,15 +315,15 @@ class HealthcareUtilization(Component):
             to_schedule_followup, data_values.COLUMNS.SCHEDULED_VISIT_DATE
         ] = self.schedule_followup(index=to_schedule_followup, event_time=event_time)
 
+        _visit_cols = [
+            data_values.COLUMNS.LAST_FPG_TEST_DATE,
+            data_values.COLUMNS.LIFESTYLE,
+            data_values.COLUMNS.VISIT_TYPE,
+            data_values.COLUMNS.SCHEDULED_VISIT_DATE,
+        ]
         self.population_view.update(
-            pop[
-                [
-                    data_values.COLUMNS.LAST_FPG_TEST_DATE,
-                    data_values.COLUMNS.LIFESTYLE,
-                    data_values.COLUMNS.VISIT_TYPE,
-                    data_values.COLUMNS.SCHEDULED_VISIT_DATE,
-                ]
-            ]
+            _visit_cols,
+            lambda _: pop[_visit_cols],
         )
 
     ##################

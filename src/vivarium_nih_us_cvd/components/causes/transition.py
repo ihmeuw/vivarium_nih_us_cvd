@@ -22,7 +22,7 @@ class CompositeRateTransition(RateTransition):
         output_state: BaseDiseaseState,
         triggered: Trigger = Trigger.NOT_TRIGGERED,
     ):
-        super().__init__(input_state, output_state, triggered=triggered)
+        super().__init__(input_state, output_state, triggered=triggered, transition_rate=0.0)
 
         # A dictionary with output state name as the key and the
         # get_data_functions for the transition to that state as its value
@@ -48,12 +48,10 @@ class CompositeRateTransition(RateTransition):
         self.get_transition_rate = builder.value.register_value_producer(
             f"{self.input_state.state_id}.composite_exit_rate",
             source=self.compute_transition_rate,
-            requires_values=[
-                pipeline.name for pipeline in self.transition_pipelines.values()
-            ],
         )
 
-        self.population_view = builder.population.get_view(["alive"])
+        # population_view is now auto-configured via columns_required on Component
+        self.rate_conversion_type = "linear"
 
     ##################################
     # Pipeline sources and modifiers #
@@ -128,9 +126,7 @@ class CompositeRateTransition(RateTransition):
             else:
                 raise ValueError("No valid data functions supplied.")
 
-            lookup_table = builder.lookup.build_table(
-                rate_data, key_columns=["sex"], parameter_columns=["age", "year"]
-            )
+            lookup_table = builder.lookup.build_table(rate_data)
             lookup_tables[pipeline_name] = lookup_table
             self._pipeline_state_map[pipeline_name] = output_state_name
         return lookup_tables
@@ -143,13 +139,15 @@ class CompositeRateTransition(RateTransition):
         Registers all transition pipelines and stores them in a dictionary with
         the output state as the key and the pipeline as the value.
         """
-        return {
-            self._pipeline_state_map[pipeline_name]: builder.value.register_rate_producer(
+        # vivarium 4: register_rate_producer returns None; retrieve Pipeline
+        # objects via get_value after registration.
+        for pipeline_name in self._lookup_tables:
+            builder.value.register_rate_producer(
                 pipeline_name,
                 source=self._get_pipeline_source(pipeline_name),
-                requires_columns=["age", "sex", "alive"],
-                requires_values=[f"{pipeline_name}.paf"],
             )
+        return {
+            self._pipeline_state_map[pipeline_name]: builder.value.get_value(pipeline_name)
             for pipeline_name in self._lookup_tables
         }
 
@@ -162,7 +160,9 @@ class CompositeRateTransition(RateTransition):
         def compute_transition_rate(index: pd.Index) -> pd.Series:
             """Gets the transition rate for each simulant in the given index"""
             transition_rate = pd.Series(0.0, index=index)
-            living = self.population_view.get(index, query='alive == "alive"').index
+            living = self.population_view.get(
+                index, ["is_alive"], query="is_alive == True"
+            ).index
             base_rates = self._lookup_tables[pipeline_name](living)
             joint_paf = self.transition_pafs[pipeline_name](living)
             transition_rate.loc[living] = base_rates * (1 - joint_paf)

@@ -31,8 +31,8 @@ class RiskCorrelation(Component):
         return ["age"]
 
     @property
-    def initialization_requirements(self) -> Dict[str, List[str]]:
-        return {"requires_columns": ["age"]}
+    def initialization_requirements(self) -> List[str]:
+        return ["age"]
 
     #####################
     # Lifecycle methods #
@@ -44,18 +44,33 @@ class RiskCorrelation(Component):
             EntityString(risk.name.replace("risk.", ""))
             for risk in builder.components.get_components_by_type(CorrelatedRisk)
         ]
-        self.propensity_column_names = [f"{risk.name}_propensity" for risk in self.risks]
+        self.propensity_column_names = [f"{risk.name}.propensity" for risk in self.risks]
 
-        self.input_draw = builder.configuration.input_data.input_draw_number
+        # vivarium 4 Artifact applies draw filtering at HDF load; the
+        # `input_draw_number` config key may not be present, so fall back to 0.
+        try:
+            self.input_draw = builder.configuration.input_data.input_draw_number or 0
+        except AttributeError:
+            self.input_draw = 0
         self.random_seed = builder.configuration.randomness.random_seed
         self.correlation_data = pd.read_csv(paths.FILEPATHS.RISK_CORRELATION)
+
+        # vivarium 4 requires explicit initializer registration so that
+        # the propensity columns are also registered as attribute pipelines.
+        # Declare ``age`` as a dependency so BasePopulation initializes
+        # first.
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns=self.propensity_column_names,
+            required_resources=["age"],
+        )
 
     ########################
     # Event-driven methods #
     ########################
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
-        pop = self.population_view.subview(["age"]).get(pop_data.index)
+        pop = self.population_view.get(pop_data.index, ["age"])
         propensities = pd.DataFrame(index=pop.index)
 
         correlation = self.update_correlation_data(self.correlation_data)
@@ -82,7 +97,7 @@ class RiskCorrelation(Component):
                 age_specific_pop.index, self.propensity_column_names
             ] = correlated_propensities
 
-        self.population_view.update(propensities)
+        self.population_view.initialize(propensities)
 
     ##################
     # Helper methods #
@@ -139,17 +154,21 @@ class JointPAF(Component):
             ["affected_entity", "affected_measure"]
         ):
             target = EntityKey(f"cause.{name}.{measure}")
-            data = group.drop(columns=["affected_entity", "affected_measure"])
-            pafs[target] = builder.lookup.build_table(
-                data, key_columns=["sex"], parameter_columns=["age", "year"]
+            data = group.drop(
+                columns=["affected_entity", "affected_measure"],
+                errors="ignore",
             )
+            # Drop 'index' column if artifact stored it
+            if "index" in data.columns:
+                data = data.drop(columns=["index"])
+            pafs[target] = builder.lookup.build_table(data)
         return pafs
 
     def register_paf_modifiers(self, builder: Builder) -> None:
         for target, pafs in self.population_attributable_fractions.items():
             target_paf_pipeline_name = f"{target.name}.{target.measure}.paf"
-            builder.value.register_value_modifier(
+            builder.value.register_attribute_modifier(
                 target_paf_pipeline_name,
                 modifier=pafs,
-                requires_columns=["age", "sex"],
+                required_resources=["age", "sex"],
             )

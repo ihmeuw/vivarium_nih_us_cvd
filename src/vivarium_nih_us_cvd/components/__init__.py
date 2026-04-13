@@ -2,7 +2,11 @@ from .causes import Causes, IschemicHeartDiseaseAndHeartFailure, IschemicStroke
 from .effects import (
     InterventionAdherenceEffect,
     MediatedRiskEffect,
+    NonLogLinearMediatedRiskEffect,
+    NonLogLinearPAFCalculationRiskEffect,
+    NonLogLinearRiskEffectWithoutPAF,
     PAFCalculationRiskEffect,
+    RiskEffectWithoutPAF,
 )
 from .healthcare_utilization import HealthcareUtilization
 from .interventions import LinearScaleUp

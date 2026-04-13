@@ -11,12 +11,13 @@ PROJECT_NAME = "vivarium_nih_us_cvd"
 CLUSTER_PROJECT = "proj_simscience_prod"
 
 CLUSTER_QUEUE = "all.q"
-MAKE_ARTIFACT_MEM = 15  # GB
+MAKE_ARTIFACT_MEM = 250  # GB (GBD 2023 curve-format RR draws are much larger)
 MAKE_ARTIFACT_CPU = 1
 MAKE_ARTIFACT_RUNTIME = "00:30:00"
 MAKE_ARTIFACT_SLEEP = 10
 
 LOCATIONS = [
+    "United States of America",
     "Alabama",
     "Alaska",
     "Arizona",
@@ -83,10 +84,10 @@ PROPORTION_DATA_INDEX_COLUMNS = [
     "age_group_id",
 ]
 
-DRAW_COUNT = 1000
+DRAW_COUNT = 250  # GBD 2023 ships 250 draws (was 1000 in GBD 2020)
 ARTIFACT_COLUMNS = pd.Index([f"draw_{i}" for i in range(DRAW_COUNT)])
 
-GBD_2020_ROUND_ID = 7
+GBD_2023_ROUND_ID = 9
 
 
 class __Scenarios(NamedTuple):

@@ -1,3 +1,26 @@
+## Phase 6: Phase 5 + the three "easy" CVD-local observers
+## (HealthcareVisitObserver, CategoricalColumnObserver, LifestyleObserver).
+##
+## Step 1 of the post-Phase-5 migration plan. These observers consume
+## state-table columns that already exist in the Phase 4/5 stack
+## (visit_type, sbp_medication, ldlc_medication, outreach, polypill,
+## lifestyle), so wiring them in is a yaml-and-verify exercise with
+## no new data or API work.
+##
+## What this exercises beyond Phase 5:
+##   - HealthcareVisitObserver registers one adding-observation per
+##     visit_type category (none/emergency/scheduled/missed/background).
+##   - CategoricalColumnObserver registers one adding-observation per
+##     category of sbp_medication, ldlc_medication, outreach, polypill.
+##   - LifestyleObserver observes cat1 (enrolled) vs cat2 (not enrolled)
+##     person-time using the special null/non-null split on the
+##     `lifestyle` column.
+##
+## What is still NOT exercised:
+##   - MediatedRiskEffect / NonLogLinearMediatedRiskEffect
+##   - JointPAFObserver / paf_calculation_risk_effect
+##   (these are Step 2 / Phase 7.)
+
 plugins:
     required:
         component_configuration_parser:
@@ -12,7 +35,7 @@ components:
         components:
             - SimpleResultsStratifier()
 
-            # Risk factor exposures
+            # Risk factor exposures.
             - AdjustedRisk("risk_factor.high_ldl_cholesterol")
             - BinnedRiskObserver("risk_factor.high_ldl_cholesterol")
             - AdjustedRisk("risk_factor.high_systolic_blood_pressure")
@@ -23,41 +46,10 @@ components:
 
             - RiskCorrelation()
 
-            # Log-linear risk effects: BMI on IS/MI targets
-            # NOTE: RR=1.0 stubs pending real data — see memory/project_bmi_is_mi_investigation.md
-            - MediatedRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.acute_ischemic_stroke.incidence_rate")
-            - MediatedRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
-            - MediatedRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.acute_myocardial_infarction.incidence_rate")
-            - MediatedRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
-
-            # Log-linear risk effects: BMI on heart failure (mediated by categorical SBP)
-            - MediatedRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_from_ischemic_heart_disease.incidence_rate")
-            - MediatedRiskEffect("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_residual.incidence_rate")
-
-            # Log-linear risk effects: Categorical SBP on heart failure
-            - MediatedRiskEffect("risk_factor.categorical_high_systolic_blood_pressure", "cause.heart_failure_from_ischemic_heart_disease.incidence_rate")
-            - MediatedRiskEffect("risk_factor.categorical_high_systolic_blood_pressure", "cause.heart_failure_residual.incidence_rate")
-
-            # Non-log-linear risk effects: SBP on IS/MI targets
-            - NonLogLinearMediatedRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_ischemic_stroke.incidence_rate")
-            - NonLogLinearMediatedRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
-            - NonLogLinearMediatedRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.acute_myocardial_infarction.incidence_rate")
-            - NonLogLinearMediatedRiskEffect("risk_factor.high_systolic_blood_pressure", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
-
-            # Non-log-linear risk effects: LDL-C on IS/MI targets
-            - NonLogLinearMediatedRiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_ischemic_stroke.incidence_rate")
-            - NonLogLinearMediatedRiskEffect("risk_factor.high_ldl_cholesterol", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
-            - NonLogLinearMediatedRiskEffect("risk_factor.high_ldl_cholesterol", "cause.acute_myocardial_infarction.incidence_rate")
-            - NonLogLinearMediatedRiskEffect("risk_factor.high_ldl_cholesterol", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
-
-            # Non-log-linear risk effects: FPG on IS/MI targets (mediated by LDL-C)
-            - NonLogLinearMediatedRiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.acute_ischemic_stroke.incidence_rate")
-            - NonLogLinearMediatedRiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.chronic_ischemic_stroke_to_acute_ischemic_stroke.transition_rate")
-            - NonLogLinearMediatedRiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.acute_myocardial_infarction.incidence_rate")
-            - NonLogLinearMediatedRiskEffect("risk_factor.high_fasting_plasma_glucose", "cause.post_myocardial_infarction_to_acute_myocardial_infarction.transition_rate")
-
-            # Joint PAF: loads cached PAFs from artifact
-            - JointPAF()
+            # Risk effects from Phase 3
+            - RiskEffectWithoutPAF("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_from_ischemic_heart_disease.incidence_rate")
+            - RiskEffectWithoutPAF("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_residual.incidence_rate")
+            - NonLogLinearRiskEffectWithoutPAF("risk_factor.high_systolic_blood_pressure", "cause.acute_ischemic_stroke.incidence_rate")
 
             # Healthcare utilization + treatment ramps
             - HealthcareUtilization()  # NOTE: this uses Treatment() as a sub-component
@@ -68,7 +60,7 @@ components:
             - LinearScaleUp("risk_factor.polypill")
             - LinearScaleUp("risk_factor.lifestyle")
 
-            # Observers
+            # Phase 6: the three "easy" observers.
             - HealthcareVisitObserver()
             - CategoricalColumnObserver("sbp_medication")
             - CategoricalColumnObserver("ldlc_medication")
@@ -103,16 +95,16 @@ configuration:
         random_seed: 0
     time:
         start:
-            year: 2024
+            year: 2024 # GBD 2023 artifact covers year bin 2023-2024
             month: 1
             day: 1
         end:
-            year: 2040
+            year: 2025
             month: 12
             day: 31
         step_size: 28 # Days
     population:
-        population_size: 10_000
+        population_size: 1_000
         initialization_age_min: 5
         initialization_age_max: 125
         untracking_age: 125

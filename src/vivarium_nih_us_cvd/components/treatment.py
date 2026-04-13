@@ -44,7 +44,6 @@ class Treatment(Component):
             data_values.COLUMNS.LDLC_MULTIPLIER,
             data_values.COLUMNS.OUTREACH,
             data_values.COLUMNS.POLYPILL,
-            data_values.COLUMNS.LIFESTYLE,
             data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_CONSTANT_COMPONENT,
             data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_CONSTANT_COMPONENT,
         ]
@@ -58,32 +57,28 @@ class Treatment(Component):
             models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME,
             data_values.COLUMNS.VISIT_TYPE,
             data_values.COLUMNS.LAST_FPG_TEST_DATE,
-            "tracked",
+            data_values.COLUMNS.LIFESTYLE,
         ]
 
     @property
-    def initialization_requirements(self) -> Dict[str, List[str]]:
-        return {
-            "requires_columns": [
-                "age",
-                "sex",
-                models.ISCHEMIC_STROKE_MODEL_NAME,
-                models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME,
-                "high_systolic_blood_pressure_propensity",
-            ],
-            "requires_values": [
-                data_values.PIPELINES.SBP_GBD_EXPOSURE,
-                data_values.PIPELINES.LDLC_GBD_EXPOSURE,
-                data_values.PIPELINES.SBP_MEDICATION_ADHERENCE_EXPOSURE,
-                data_values.PIPELINES.LDLC_MEDICATION_ADHERENCE_EXPOSURE,
-                data_values.PIPELINES.OUTREACH_EXPOSURE,
-                data_values.PIPELINES.POLYPILL_EXPOSURE,
-                data_values.PIPELINES.LIFESTYLE_EXPOSURE,
-                data_values.PIPELINES.BMI_EXPOSURE,
-                data_values.PIPELINES.FPG_EXPOSURE,
-            ],
-            "requires_streams": [self.name],
-        }
+    def initialization_requirements(self) -> List[str]:
+        return [
+            "age",
+            "sex",
+            models.ISCHEMIC_STROKE_MODEL_NAME,
+            models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME,
+            "high_systolic_blood_pressure.propensity",
+            data_values.PIPELINES.SBP_GBD_EXPOSURE,
+            data_values.PIPELINES.LDLC_GBD_EXPOSURE,
+            data_values.PIPELINES.SBP_MEDICATION_ADHERENCE_EXPOSURE,
+            data_values.PIPELINES.LDLC_MEDICATION_ADHERENCE_EXPOSURE,
+            data_values.PIPELINES.OUTREACH_EXPOSURE,
+            data_values.PIPELINES.POLYPILL_EXPOSURE,
+            data_values.PIPELINES.LIFESTYLE_EXPOSURE,
+            data_values.PIPELINES.BMI_EXPOSURE,
+            data_values.PIPELINES.FPG_EXPOSURE,
+            self.name,
+        ]
 
     @property
     def time_step_cleanup_priority(self) -> int:
@@ -99,6 +94,46 @@ class Treatment(Component):
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
 
+        # Defer pipeline lookups to ``post_setup`` so we don't accidentally
+        # create stub value-pipelines for names that other components are
+        # going to register as *attribute* pipelines (e.g.
+        # ``sbp_medication_adherence.exposure`` from the vph 5 ``Risk``
+        # for medication adherence). The patched ``get_value`` in
+        # ``vivarium_nih_us_cvd.plugins`` only routes to the attribute
+        # pipeline if it has *already* been registered, so the lookups
+        # have to happen after every component's ``setup`` has run.
+        builder.event.register_listener("post_setup", self._capture_pipelines)
+
+        # vivarium 4 requires explicit initializer registration; this also
+        # auto-registers each created column as an attribute pipeline so
+        # that other components can declare them as required_resources.
+        # Declare deps so BasePopulation/disease models initialize first.
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns=self.columns_created,
+            required_resources=[
+                "age",
+                "sex",
+                models.ISCHEMIC_STROKE_MODEL_NAME,
+                models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME,
+            ],
+        )
+
+        self.sbp_treatment_map = self._get_sbp_treatment_map()
+        self.ldlc_treatment_map = self._get_ldlc_treatment_map()
+        self.sbp_medication_effects = self._get_sbp_medication_effects()
+        self.sbp_bin_edges = self._get_sbp_bin_edges()
+        self.sbp_target_modifier = self._get_sbp_target_modifier(builder)
+        self.ldlc_medication_effects = self._get_ldlc_medication_effects(builder)
+        self.ldlc_target_modifier = self._get_ldlc_target_modifier(builder)
+        self.medication_coverage_scaling_factors = (
+            self._get_medication_coverage_scaling_factors(builder)
+        )
+        self._builder = builder  # needed for the post_setup capture
+        self._register_target_modifiers(builder)
+
+    def _capture_pipelines(self, _event) -> None:
+        builder = self._builder
         self.gbd_sbp = builder.value.get_value(data_values.PIPELINES.SBP_GBD_EXPOSURE)
         self.sbp = builder.value.get_value(data_values.PIPELINES.SBP_EXPOSURE)
         self.gbd_ldlc = builder.value.get_value(data_values.PIPELINES.LDLC_GBD_EXPOSURE)
@@ -115,18 +150,6 @@ class Treatment(Component):
         self.bmi = builder.value.get_value(data_values.PIPELINES.BMI_EXPOSURE)
         self.bmi_raw = builder.value.get_value(data_values.PIPELINES.BMI_RAW_EXPOSURE)
         self.fpg = builder.value.get_value(data_values.PIPELINES.FPG_EXPOSURE)
-
-        self.sbp_treatment_map = self._get_sbp_treatment_map()
-        self.ldlc_treatment_map = self._get_ldlc_treatment_map()
-        self.sbp_medication_effects = self._get_sbp_medication_effects()
-        self.sbp_bin_edges = self._get_sbp_bin_edges()
-        self.sbp_target_modifier = self._get_sbp_target_modifier(builder)
-        self.ldlc_medication_effects = self._get_ldlc_medication_effects(builder)
-        self.ldlc_target_modifier = self._get_ldlc_target_modifier(builder)
-        self.medication_coverage_scaling_factors = (
-            self._get_medication_coverage_scaling_factors(builder)
-        )
-        self._register_target_modifiers(builder)
 
     #################
     # Setup methods #
@@ -167,7 +190,13 @@ class Treatment(Component):
             """Determine the (additive) sbp exposure decrease as
             treatment_efficacy * adherence_score
             """
-            pop_view = self.population_view.get(index)
+            pop_view = self.population_view.get(
+                index,
+                [
+                    data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
+                    data_values.COLUMNS.SBP_MEDICATION,
+                ],
+            )
             mask_adherence = (
                 pop_view[data_values.COLUMNS.SBP_MEDICATION_ADHERENCE]
                 == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
@@ -178,10 +207,10 @@ class Treatment(Component):
             df_efficacy["sbp_start_exclusive"] = df_efficacy["bin"].apply(lambda x: x.left)
             df_efficacy["sbp_end_inclusive"] = df_efficacy["bin"].apply(lambda x: x.right)
 
-            # Assign untracked people to no medication before concating to efficacy so asserts pass
-            pop_view.loc[
-                ~pop_view["tracked"], data_values.COLUMNS.SBP_MEDICATION
-            ] = data_values.SBP_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION
+            # In vivarium 4 the ``tracked`` column no longer exists; untracked
+            # handling is managed centrally via tracked queries. Simulants are
+            # initialized to NO_TREATMENT so the downstream assert should still
+            # hold.
 
             df_efficacy = pd.concat(
                 [df_efficacy, pop_view[data_values.COLUMNS.SBP_MEDICATION]], axis=1
@@ -220,11 +249,50 @@ class Treatment(Component):
         return adjust_target
 
     def _get_ldlc_medication_effects(self, builder: Builder) -> Dict[str, float]:
-        """Format the ldlc medication effects data"""
+        """Format the ldlc medication effects data.
+
+        The GBD 2023 USA artifact stores the LDL-C medication effect as
+        a single age/sex/year wide-form table -- effectively a placeholder
+        with one constant value per demographic bin -- rather than the
+        per-medication-level long-form table the older Alabama / GBD 2020
+        artifact carried. Until per-level effect estimates are added back
+        to the artifact, fall back to the project's hardcoded
+        ``LDLC_MEDICATION_EFFICACY`` ramp values (in percent), which the
+        treatment logic was originally designed around. The legacy long-form
+        layout is still handled if encountered.
+        """
         effects = builder.data.load("risk_factor.high_ldl_cholesterol.medication_effect")
-        # convert % to decimal
-        effects["value"] = effects["value"] / 100
-        return dict(zip(effects[data_values.COLUMNS.LDLC_MEDICATION], effects["value"]))
+        if data_values.COLUMNS.LDLC_MEDICATION in effects.columns:
+            # Legacy long-form layout (Alabama / GBD 2020 artifact).
+            effects["value"] = effects["value"] / 100
+            return dict(zip(effects[data_values.COLUMNS.LDLC_MEDICATION], effects["value"]))
+        # New wide-form layout: ignore the placeholder data and use the
+        # per-level efficacy constants the simulation was designed around.
+        # Distributions in LDLC_MEDICATION_EFFICACY express the mean
+        # efficacy in percent for each medication level.
+        return {
+            data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION: 0.0,
+            data_values.LDLC_MEDICATION_LEVEL.LOW.DESCRIPTION: data_values.LDLC_MEDICATION_EFFICACY.LOW.SEEDED_DISTRIBUTION[
+                1
+            ].mean()
+            / 100,
+            data_values.LDLC_MEDICATION_LEVEL.MED.DESCRIPTION: data_values.LDLC_MEDICATION_EFFICACY.MED.SEEDED_DISTRIBUTION[
+                1
+            ].mean()
+            / 100,
+            data_values.LDLC_MEDICATION_LEVEL.LOW_MED_EZE.DESCRIPTION: data_values.LDLC_MEDICATION_EFFICACY.LOW_MED_EZE.SEEDED_DISTRIBUTION[
+                1
+            ].mean()
+            / 100,
+            data_values.LDLC_MEDICATION_LEVEL.HIGH.DESCRIPTION: data_values.LDLC_MEDICATION_EFFICACY.HIGH.SEEDED_DISTRIBUTION[
+                1
+            ].mean()
+            / 100,
+            data_values.LDLC_MEDICATION_LEVEL.HIGH_EZE.DESCRIPTION: data_values.LDLC_MEDICATION_EFFICACY.HIGH_EZE.SEEDED_DISTRIBUTION[
+                1
+            ].mean()
+            / 100,
+        }
 
     def _get_ldlc_target_modifier(
         self, builder: Builder
@@ -235,7 +303,13 @@ class Treatment(Component):
             """Determine the (multiplicitive) ldl-c exposure decrease as
             treatment_efficacy * adherence_score
             """
-            pop_view = self.population_view.get(index)
+            pop_view = self.population_view.get(
+                index,
+                [
+                    data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
+                    data_values.COLUMNS.LDLC_MEDICATION,
+                ],
+            )
             mask_adherence = (
                 pop_view[data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE]
                 == data_values.MEDICATION_ADHERENCE_TYPE.ADHERENT
@@ -257,23 +331,31 @@ class Treatment(Component):
 
     def _get_medication_coverage_scaling_factors(self, builder: Builder) -> LookupTable:
         sf = builder.data.load(data_keys.MEDICATION_COVERAGE.SCALING_FACTOR)
-        return builder.lookup.build_table(sf, parameter_columns=["age"], key_columns=["sex"])
+        # vivarium 4's artifact load leaves an extra 'index' column
+        # behind from reset_index() that breaks LookupTable column inference.
+        if "index" in sf.columns:
+            sf = sf.drop(columns=["index"])
+        return builder.lookup.build_table(
+            sf,
+            name="medication_coverage_scaling_factors",
+            value_columns=["sbp_rr", "ldl_rr", "both_rr"],
+        )
 
     def _register_target_modifiers(self, builder: Builder) -> None:
         # medication effects
-        builder.value.register_value_modifier(
+        builder.value.register_attribute_modifier(
             data_values.PIPELINES.SBP_EXPOSURE,
             modifier=self.sbp_target_modifier,
-            requires_columns=[
+            required_resources=[
                 data_values.COLUMNS.SBP_MEDICATION,
                 data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
             ],
         )
 
-        builder.value.register_value_modifier(
+        builder.value.register_attribute_modifier(
             data_values.PIPELINES.LDLC_EXPOSURE,
             modifier=self.ldlc_target_modifier,
-            requires_columns=[
+            required_resources=[
                 data_values.COLUMNS.LDLC_MEDICATION,
                 data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
             ],
@@ -283,7 +365,7 @@ class Treatment(Component):
         builder.value.register_value_modifier(
             data_values.PIPELINES.BMI_DROP_VALUE,
             modifier=self._apply_lifestyle_to_bmi,
-            requires_columns=[
+            required_resources=[
                 data_values.COLUMNS.LIFESTYLE,
             ],
         )
@@ -291,7 +373,7 @@ class Treatment(Component):
         builder.value.register_value_modifier(
             data_values.PIPELINES.FPG_DROP_VALUE,
             modifier=self._apply_lifestyle_to_fpg,
-            requires_columns=[
+            required_resources=[
                 data_values.COLUMNS.LIFESTYLE,
             ],
         )
@@ -299,7 +381,7 @@ class Treatment(Component):
         builder.value.register_value_modifier(
             data_values.PIPELINES.SBP_DROP_VALUE,
             modifier=self._apply_lifestyle_to_sbp,
-            requires_columns=[
+            required_resources=[
                 data_values.COLUMNS.LIFESTYLE,
             ],
         )
@@ -310,7 +392,7 @@ class Treatment(Component):
 
     def _apply_lifestyle(self, index: pd.Index, target: pd.Series, risk: str):
         # allow for updating drop value of dead people - makes interacting with target easier
-        pop = self.population_view.get(index)
+        pop = self.population_view.get(index, [data_values.COLUMNS.LIFESTYLE])
         enrollment_dates = pop[data_values.COLUMNS.LIFESTYLE]
         updated_drop_values = self.get_updated_drop_values(
             target.copy(), enrollment_dates, risk=risk
@@ -337,14 +419,15 @@ class Treatment(Component):
         ramps. A burn-in period allows for the observed simulation to start with
         a more realistic treatment spread.
         """
-        pop = self.population_view.subview(
+        pop = self.population_view.get(
+            pop_data.index,
             [
                 "age",
                 "sex",
                 models.ISCHEMIC_STROKE_MODEL_NAME,
                 models.ISCHEMIC_HEART_DISEASE_AND_HEART_FAILURE_MODEL_NAME,
-            ]
-        ).get(pop_data.index)
+            ],
+        )
 
         # Define therapeutic inertia constant components
         pop[
@@ -404,7 +487,6 @@ class Treatment(Component):
         # is no need to update adherence levels at this point.
         pop[data_values.COLUMNS.OUTREACH] = self.outreach(pop.index)
         pop[data_values.COLUMNS.POLYPILL] = self.polypill(pop.index)
-        pop[data_values.COLUMNS.LIFESTYLE] = pd.NaT
 
         # Generate column for last FPG test date
         bmi = self.bmi_raw(pop.index)
@@ -507,7 +589,7 @@ class Treatment(Component):
 
         # We update the medication adherence columns and the outreach column here
         # because self.enroll_in_outreach does not update these during initialization
-        self.population_view.update(
+        self.population_view.initialize(
             pop[
                 [
                     data_values.COLUMNS.SBP_MEDICATION,
@@ -523,7 +605,6 @@ class Treatment(Component):
                     data_values.COLUMNS.LDLC_MULTIPLIER,
                     data_values.COLUMNS.OUTREACH,
                     data_values.COLUMNS.POLYPILL,
-                    data_values.COLUMNS.LIFESTYLE,
                     data_values.COLUMNS.SBP_THERAPEUTIC_INERTIA_CONSTANT_COMPONENT,
                     data_values.COLUMNS.LDLC_THERAPEUTIC_INERTIA_CONSTANT_COMPONENT,
                 ]
@@ -532,7 +613,14 @@ class Treatment(Component):
 
     def on_time_step_cleanup(self, event: Event) -> None:
         """Update treatments"""
-        pop = self.population_view.get(event.index, query='alive == "alive" & tracked==True')
+        _all_cols = list(self.columns_created) + [
+            c for c in self.columns_required if c not in self.columns_created
+        ]
+        pop = self.population_view.get(
+            event.index,
+            _all_cols,
+            query="is_alive == True",
+        )
 
         # Discontinue medications
         ## NOTE: These two methods modify the pop dataframe
@@ -584,17 +672,17 @@ class Treatment(Component):
                 pop_visitors=pop.loc[visitors], maybe_enroll=maybe_enroll_sbp
             )
 
+        _medication_cols = [
+            data_values.COLUMNS.SBP_MEDICATION,
+            data_values.COLUMNS.SBP_MEDICATION_START_DATE,
+            data_values.COLUMNS.DISCONTINUED_SBP_MEDICATION,
+            data_values.COLUMNS.LDLC_MEDICATION,
+            data_values.COLUMNS.LDLC_MEDICATION_START_DATE,
+            data_values.COLUMNS.DISCONTINUED_LDLC_MEDICATION,
+        ]
         self.population_view.update(
-            pop[
-                [
-                    data_values.COLUMNS.SBP_MEDICATION,
-                    data_values.COLUMNS.SBP_MEDICATION_START_DATE,
-                    data_values.COLUMNS.DISCONTINUED_SBP_MEDICATION,
-                    data_values.COLUMNS.LDLC_MEDICATION,
-                    data_values.COLUMNS.LDLC_MEDICATION_START_DATE,
-                    data_values.COLUMNS.DISCONTINUED_LDLC_MEDICATION,
-                ]
-            ]
+            _medication_cols,
+            lambda _: pop[_medication_cols],
         )
 
     ##################
@@ -650,7 +738,9 @@ class Treatment(Component):
         # don't update drop values for non-adherent simulants
         target = (
             target
-            * self.population_view.get(target.index)[data_values.COLUMNS.LIFESTYLE_ADHERENCE]
+            * self.population_view.get(
+                target.index, [data_values.COLUMNS.LIFESTYLE_ADHERENCE]
+            )[data_values.COLUMNS.LIFESTYLE_ADHERENCE]
         )
 
         return target
@@ -667,7 +757,7 @@ class Treatment(Component):
         medicated_states = self.randomness.choice(
             p_medication.index,
             choices=p_medication.columns,
-            p=np.array(p_medication),
+            p=np.array(p_medication, dtype=float),
             additional_key="initial_medication_coverage",
         )
         medicated_sbp = medicated_states[medicated_states.isin(["sbp", "both"])].index
@@ -751,10 +841,7 @@ class Treatment(Component):
 
         # Uniformly distribute medication start dates between 0-3 years in the past
         medicated_idx = pop[pop[medication_col] != no_treatment_description].index
-        pop.loc[
-            medicated_idx,
-            start_date_col,
-        ] = sim_start - self.randomness.get_draw(
+        pop.loc[medicated_idx, start_date_col,] = sim_start - self.randomness.get_draw(
             index=medicated_idx,
             additional_key=f"initialize_{start_date_col}",
         ) * pd.Timedelta(
@@ -1113,7 +1200,7 @@ class Treatment(Component):
         ] = self.randomness.choice(
             newly_prescribed,
             choices=df_newly_prescribed.columns,
-            p=np.array(df_newly_prescribed),
+            p=np.array(df_newly_prescribed, dtype=float),
             additional_key="high_ldlc_first_prescriptions",
         )
 
@@ -1172,14 +1259,14 @@ class Treatment(Component):
                 to_enroll, data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE
             ] = self.ldlc_medication_adherence(to_enroll)
 
+            _outreach_cols = [
+                data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
+                data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
+                data_values.COLUMNS.OUTREACH,
+            ]
             self.population_view.update(
-                pop_visitors[
-                    [
-                        data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
-                        data_values.COLUMNS.LDLC_MEDICATION_ADHERENCE,
-                        data_values.COLUMNS.OUTREACH,
-                    ]
-                ]
+                _outreach_cols,
+                lambda _: pop_visitors[_outreach_cols],
             )
 
         return pop_visitors
@@ -1222,13 +1309,13 @@ class Treatment(Component):
                 data_values.COLUMNS.SBP_MEDICATION,
             ] = data_values.SBP_MEDICATION_LEVEL.THREE_DRUGS_HALF_DOSE.DESCRIPTION
 
+        _polypill_cols = [
+            data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
+            data_values.COLUMNS.POLYPILL,
+        ]
         self.population_view.update(
-            pop_visitors[
-                [
-                    data_values.COLUMNS.SBP_MEDICATION_ADHERENCE,
-                    data_values.COLUMNS.POLYPILL,
-                ]
-            ]
+            _polypill_cols,
+            lambda _: pop_visitors[_polypill_cols],
         )
 
         return pop_visitors
