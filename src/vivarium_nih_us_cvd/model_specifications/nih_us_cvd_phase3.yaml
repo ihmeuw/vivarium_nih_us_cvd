@@ -1,0 +1,101 @@
+## Phase 3: Disease models + risk factors + risk effects.
+##
+## Builds on Phase 2 by attaching two flavors of risk effect to the
+## disease transition rates:
+##
+## 1. Log-linear `RiskEffectWithoutPAF` for high BMI on heart failure
+##    incidence. The GBD 2023 USA artifact stores BMI relative risks
+##    as log-linear "per unit" values affecting two heart-failure causes:
+##      - heart_failure_from_ischemic_heart_disease.incidence_rate
+##      - heart_failure_residual.incidence_rate
+##
+## 2. Non-log-linear `NonLogLinearRiskEffectWithoutPAF` for high SBP
+##    on acute ischemic stroke incidence. The artifact stores SBP
+##    relative risks as 200,000-row long form with 1000 distinct
+##    `parameter` values (the per-unit-SBP exposure level) and a
+##    monotonically rising RR. vph 5's `NonLogLinearRiskEffect` reads
+##    that table directly, builds piecewise-linear interpolation
+##    intervals on it, and looks up each simulant's RR from their
+##    cached SBP exposure column.
+##
+## What this exercises beyond Phase 2:
+##   - vph 5 `RiskEffect.setup` with the GBD 2023 log-linear RR table
+##     format (250-draw long form, with a single-value
+##     `parameter='per unit'` index level that has to be stripped
+##     before lookup table binning).
+##   - vph 5 `NonLogLinearRiskEffect.setup` with the GBD 2023
+##     non-log-linear RR table format (numeric `parameter` index
+##     level, RR varying by exposure level), including TMRED-anchored
+##     RR normalization.
+##   - The `RiskEffectWithoutPAF` and `NonLogLinearRiskEffectWithoutPAF`
+##     subclasses that no-op the PAF half of the standard `RiskEffect`
+##     (this project supplies PAFs through a separate `JointPAF`
+##     component, and the artifact does not have per-risk PAF tables
+##     for these effects).
+##   - Registration of `<risk>_on_<target>.relative_risk` value
+##     pipelines that get applied to the disease transition rate.
+##
+## What is NOT exercised yet:
+##   - LDL-C and FPG non-log-linear effects (same machinery, just
+##     more components — easy add later).
+##   - Joint PAF computation.
+##   - Mediation between risks.
+
+plugins:
+    required:
+        component_configuration_parser:
+            controller: "vivarium_nih_us_cvd.plugins.CausesConfigurationParser"
+
+components:
+    external_configuration:
+        vivarium_nih_us_cvd:
+            - "components/causes/causes.yaml"
+
+    vivarium_nih_us_cvd:
+        components:
+            - SimpleResultsStratifier()
+            - RiskEffectWithoutPAF("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_from_ischemic_heart_disease.incidence_rate")
+            - RiskEffectWithoutPAF("risk_factor.high_body_mass_index_in_adults", "cause.heart_failure_residual.incidence_rate")
+            - NonLogLinearRiskEffectWithoutPAF("risk_factor.high_systolic_blood_pressure", "cause.acute_ischemic_stroke.incidence_rate")
+
+    vivarium_public_health:
+        population:
+            - BasePopulation()
+        results:
+            - MortalityObserver()
+        risks:
+            - Risk("risk_factor.high_systolic_blood_pressure")
+            - Risk("risk_factor.high_ldl_cholesterol")
+            - Risk("risk_factor.high_body_mass_index_in_adults")
+            - Risk("risk_factor.high_fasting_plasma_glucose")
+
+configuration:
+    input_data:
+        artifact_path: '../artifacts/united_states_of_america.hdf'
+    interpolation:
+        order: 0
+        extrapolate: True
+    randomness:
+        map_size: 1_000_000
+        key_columns: ['entrance_time', 'age']
+        random_seed: 0
+    time:
+        start:
+            year: 2024 # GBD 2023 artifact covers year bin 2023-2024
+            month: 1
+            day: 1
+        end:
+            year: 2025
+            month: 12
+            day: 31
+        step_size: 28 # Days
+    population:
+        population_size: 1_000
+        initialization_age_min: 5
+        initialization_age_max: 125
+        untracking_age: 125
+    stratification:
+        default:
+            - 'age_group'
+            - 'sex'
+            - 'current_year'
