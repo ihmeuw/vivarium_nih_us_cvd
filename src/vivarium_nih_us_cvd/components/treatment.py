@@ -265,25 +265,33 @@ class Treatment(Component):
         if data_values.COLUMNS.LDLC_MEDICATION in effects.columns:
             # Legacy long-form layout (Alabama / GBD 2020 artifact).
             effects["value"] = effects["value"] / 100
-            return dict(
-                zip(effects[data_values.COLUMNS.LDLC_MEDICATION], effects["value"])
-            )
+            return dict(zip(effects[data_values.COLUMNS.LDLC_MEDICATION], effects["value"]))
         # New wide-form layout: ignore the placeholder data and use the
         # per-level efficacy constants the simulation was designed around.
         # Distributions in LDLC_MEDICATION_EFFICACY express the mean
         # efficacy in percent for each medication level.
         return {
             data_values.LDLC_MEDICATION_LEVEL.NO_TREATMENT.DESCRIPTION: 0.0,
-            data_values.LDLC_MEDICATION_LEVEL.LOW.DESCRIPTION:
-                data_values.LDLC_MEDICATION_EFFICACY.LOW.SEEDED_DISTRIBUTION[1].mean() / 100,
-            data_values.LDLC_MEDICATION_LEVEL.MED.DESCRIPTION:
-                data_values.LDLC_MEDICATION_EFFICACY.MED.SEEDED_DISTRIBUTION[1].mean() / 100,
-            data_values.LDLC_MEDICATION_LEVEL.LOW_MED_EZE.DESCRIPTION:
-                data_values.LDLC_MEDICATION_EFFICACY.LOW_MED_EZE.SEEDED_DISTRIBUTION[1].mean() / 100,
-            data_values.LDLC_MEDICATION_LEVEL.HIGH.DESCRIPTION:
-                data_values.LDLC_MEDICATION_EFFICACY.HIGH.SEEDED_DISTRIBUTION[1].mean() / 100,
-            data_values.LDLC_MEDICATION_LEVEL.HIGH_EZE.DESCRIPTION:
-                data_values.LDLC_MEDICATION_EFFICACY.HIGH_EZE.SEEDED_DISTRIBUTION[1].mean() / 100,
+            data_values.LDLC_MEDICATION_LEVEL.LOW.DESCRIPTION: data_values.LDLC_MEDICATION_EFFICACY.LOW.SEEDED_DISTRIBUTION[
+                1
+            ].mean()
+            / 100,
+            data_values.LDLC_MEDICATION_LEVEL.MED.DESCRIPTION: data_values.LDLC_MEDICATION_EFFICACY.MED.SEEDED_DISTRIBUTION[
+                1
+            ].mean()
+            / 100,
+            data_values.LDLC_MEDICATION_LEVEL.LOW_MED_EZE.DESCRIPTION: data_values.LDLC_MEDICATION_EFFICACY.LOW_MED_EZE.SEEDED_DISTRIBUTION[
+                1
+            ].mean()
+            / 100,
+            data_values.LDLC_MEDICATION_LEVEL.HIGH.DESCRIPTION: data_values.LDLC_MEDICATION_EFFICACY.HIGH.SEEDED_DISTRIBUTION[
+                1
+            ].mean()
+            / 100,
+            data_values.LDLC_MEDICATION_LEVEL.HIGH_EZE.DESCRIPTION: data_values.LDLC_MEDICATION_EFFICACY.HIGH_EZE.SEEDED_DISTRIBUTION[
+                1
+            ].mean()
+            / 100,
         }
 
     def _get_ldlc_target_modifier(
@@ -611,7 +619,7 @@ class Treatment(Component):
         pop = self.population_view.get(
             event.index,
             _all_cols,
-            query='is_alive == True',
+            query="is_alive == True",
         )
 
         # Discontinue medications

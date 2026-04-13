@@ -1,5 +1,3 @@
-from vivarium_nih_us_cvd.plugins.causes_parser import CausesConfigurationParser
-
 # ---------------------------------------------------------------------------
 # Monkey-patch ArtifactManager.load to drop extra draw columns.
 #
@@ -18,6 +16,8 @@ from vivarium_nih_us_cvd.plugins.causes_parser import CausesConfigurationParser
 # drop every remaining draw_* column.
 # ---------------------------------------------------------------------------
 import vivarium.framework.artifact.manager as _am
+
+from vivarium_nih_us_cvd.plugins.causes_parser import CausesConfigurationParser
 
 _original_artifact_manager_load = _am.ArtifactManager.load
 
@@ -188,6 +188,7 @@ def _suppress_known_warnings(record):
 # the new sink gets that id.  loguru assigns sequential ids: after
 # removing 0, the next add gets id 1.
 import sys as _sys
+
 _loguru.logger.remove()  # remove all sinks (including default id=0)
 _loguru.logger.add(
     _sys.stderr,

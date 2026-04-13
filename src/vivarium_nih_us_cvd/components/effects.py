@@ -35,9 +35,7 @@ class InterventionAdherenceEffect(Component):
         self._register_target_modifiers(builder)
 
     def _capture_pipelines(self, _event) -> None:
-        self.polypill = self._builder.value.get_value(
-            data_values.PIPELINES.POLYPILL_EXPOSURE
-        )
+        self.polypill = self._builder.value.get_value(data_values.PIPELINES.POLYPILL_EXPOSURE)
 
     def _get_scenario(self, builder: Builder) -> InterventionScenario:
         return scenarios.INTERVENTION_SCENARIOS[builder.configuration.intervention.scenario]
@@ -259,7 +257,10 @@ class RiskEffectWithoutPAF(RiskEffect):
         if self.is_exposure_categorical:
             rr_data, rr_value_cols = self.process_categorical_data(builder, rr_data)
         return self.build_lookup_table(
-            builder, "relative_risk", data_source=rr_data, value_columns=rr_value_cols,
+            builder,
+            "relative_risk",
+            data_source=rr_data,
+            value_columns=rr_value_cols,
         )
 
 
@@ -302,9 +303,7 @@ class NonLogLinearRiskEffectWithoutPAF(NonLogLinearRiskEffect):
                 draw = builder.configuration.input_data.input_draw_number or 0
             except AttributeError:
                 draw = 0
-            rng = np.random.default_rng(
-                builder.randomness.get_seed(self.name + str(draw))
-            )
+            rng = np.random.default_rng(builder.randomness.get_seed(self.name + str(draw)))
             self.tmrel = rng.uniform(tmred["min"], tmred["max"])
         else:
             raise ValueError(
@@ -317,9 +316,7 @@ class NonLogLinearRiskEffectWithoutPAF(NonLogLinearRiskEffect):
         self.validate_rr_data(original_rrs)
 
         demographic_cols = [
-            col
-            for col in original_rrs.columns
-            if col != "parameter" and col != "value"
+            col for col in original_rrs.columns if col != "parameter" and col != "value"
         ]
 
         def get_rr_at_tmrel(rr_data: pd.DataFrame) -> float:
@@ -387,7 +384,10 @@ class MediatedRiskEffect(RiskEffect):
                 rr_data = rr_data.drop(columns=["parameter"])
 
         return self.build_lookup_table(
-            builder, "relative_risk", data_source=rr_data, value_columns=rr_value_cols,
+            builder,
+            "relative_risk",
+            data_source=rr_data,
+            value_columns=rr_value_cols,
         )
 
     def build_paf_lookup_table(self, builder: Builder) -> None:

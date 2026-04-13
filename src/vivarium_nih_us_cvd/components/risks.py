@@ -135,6 +135,7 @@ class CorrelatedRisk(DropValueRisk):
         # NonLogLinearMediatedRiskEffect use different name prefixes.
         # Check by isinstance instead to catch all variants.
         from vivarium_public_health.risks.effect import NonLogLinearRiskEffect as _NLLRE
+
         self.includes_non_loglinear_risk_effect = False
         for c in builder.components.list_components():
             if f".{self.risk.name}" not in c:
@@ -207,9 +208,7 @@ class AdjustedRisk(CorrelatedRisk):
         self.gbd_exposure = builder.value.register_value_producer(
             self.gbd_exposure_pipeline_name,
             source=self.get_gbd_exposure,
-            preferred_post_processor=get_exposure_post_processor(
-                builder, self.risk
-            ),
+            preferred_post_processor=get_exposure_post_processor(builder, self.risk),
         )
 
     #################
@@ -238,12 +237,8 @@ class AdjustedRisk(CorrelatedRisk):
         """Gets the raw gbd exposures and applies upper/lower limits"""
         exposures = self.exposure_ppf(index)
         if self.risk.name in RISK_EXPOSURE_LIMITS:
-            min_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get(
-                "minimum", None
-            )
-            max_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get(
-                "maximum", None
-            )
+            min_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get("minimum", None)
+            max_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get("maximum", None)
             exposures[exposures < min_exposure] = min_exposure
             exposures[exposures > max_exposure] = max_exposure
         return exposures
@@ -269,12 +264,8 @@ class TruncatedRisk(CorrelatedRisk):
     def get_current_exposure(self, index: pd.Index) -> pd.Series:
         # Keep exposure values between defined limits
         exposures = self.exposure_ppf(index)
-        min_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get(
-            "minimum", None
-        )
-        max_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get(
-            "maximum", None
-        )
+        min_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get("minimum", None)
+        max_exposure = RISK_EXPOSURE_LIMITS[self.risk.name].get("maximum", None)
         exposures[exposures < min_exposure] = min_exposure
         exposures[exposures > max_exposure] = max_exposure
 
@@ -306,9 +297,7 @@ class CategoricalSBPRisk(Component):
 
     def __init__(self):
         super().__init__()
-        self.risk = EntityString(
-            "risk_factor.categorical_high_systolic_blood_pressure"
-        )
+        self.risk = EntityString("risk_factor.categorical_high_systolic_blood_pressure")
         self.exposure_pipeline_name = f"{self.risk.name}.exposure"
 
     # noinspection PyAttributeOutsideInit
@@ -318,9 +307,7 @@ class CategoricalSBPRisk(Component):
         # ``vivarium_nih_us_cvd.plugins``) routes the lookup to the
         # attribute pipeline so this still returns a callable that
         # accepts an index and yields the per-simulant SBP value.
-        self.continuous_exposure = builder.value.get_value(
-            PIPELINES.SBP_EXPOSURE
-        )
+        self.continuous_exposure = builder.value.get_value(PIPELINES.SBP_EXPOSURE)
         # Register as attribute pipeline so that vph 5's RiskEffect /
         # MediatedRiskEffect can declare it as a required_resource and
         # read it via population_view.get().  The monkey-patch in

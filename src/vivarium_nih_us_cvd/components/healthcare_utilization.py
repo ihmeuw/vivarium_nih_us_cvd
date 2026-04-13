@@ -237,9 +237,7 @@ class HealthcareUtilization(Component):
         _all_cols = list(self.columns_created) + [
             c for c in self.columns_required if c not in self.columns_created
         ]
-        pop = self.population_view.get(
-            event.index, _all_cols, query='is_alive == True'
-        )
+        pop = self.population_view.get(event.index, _all_cols, query="is_alive == True")
         pop[data_values.COLUMNS.VISIT_TYPE] = data_values.VISIT_TYPE.NONE
 
         # Emergency visits

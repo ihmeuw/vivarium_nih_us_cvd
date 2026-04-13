@@ -109,7 +109,7 @@ class ContinuousRiskObserver(Component):
 
         builder.results.register_adding_observation(
             name=f"total_exposure_time_risk_{self.risk.name}",
-            pop_filter='is_alive == True',
+            pop_filter="is_alive == True",
             aggregator=self.aggregate_state_person_time,
             requires_attributes=["is_alive", f"{self.risk.name}.exposure"],
             additional_stratifications=self.config.include,
@@ -259,7 +259,7 @@ class LifestyleObserver(CategoricalColumnObserver):
     def register_observations(self, builder: Builder) -> None:
         builder.results.register_adding_observation(
             name=f"lifestyle_cat1_person_time",
-            pop_filter='is_alive == True',
+            pop_filter="is_alive == True",
             aggregator=self.calculate_exposed_lifestyle_person_time,
             requires_attributes=["is_alive", self.column],
             additional_stratifications=self.config.include,
@@ -268,7 +268,7 @@ class LifestyleObserver(CategoricalColumnObserver):
         )
         builder.results.register_adding_observation(
             name=f"lifestyle_cat2_person_time",
-            pop_filter='is_alive == True',
+            pop_filter="is_alive == True",
             aggregator=self.calculate_unexposed_lifestyle_person_time,
             requires_attributes=["is_alive", self.column],
             additional_stratifications=self.config.include,
@@ -337,8 +337,7 @@ class BinnedRiskObserver(Component):
         builder.results.register_adding_observation(
             name=f"total_exposure_time_risk_{self.risk.name}_below_{thresholds[0]}",
             pop_filter=(
-                'is_alive == True and '
-                f"`{self.risk.name}.exposure`<{thresholds[0]}"
+                "is_alive == True and " f"`{self.risk.name}.exposure`<{thresholds[0]}"
             ),
             aggregator=self.aggregate_state_person_time,
             requires_attributes=["is_alive", f"{self.risk.name}.exposure"],
@@ -354,7 +353,7 @@ class BinnedRiskObserver(Component):
                     f"_between_{thresholds[left_threshold_idx]}_and_{thresholds[left_threshold_idx+1]}"
                 ),
                 pop_filter=(
-                    'is_alive == True and '
+                    "is_alive == True and "
                     f"`{self.risk.name}.exposure`>={thresholds[left_threshold_idx]} and "
                     f"`{self.risk.name}.exposure`<{thresholds[left_threshold_idx+1]}"
                 ),
@@ -368,7 +367,7 @@ class BinnedRiskObserver(Component):
         builder.results.register_adding_observation(
             name=f"total_exposure_time_risk_{self.risk.name}_above_{thresholds[len(thresholds)-1]}",
             pop_filter=(
-                'is_alive == True and '
+                "is_alive == True and "
                 f"`{self.risk.name}.exposure`>={thresholds[len(thresholds)-1]}"
             ),
             aggregator=self.aggregate_state_person_time,
@@ -436,7 +435,7 @@ class JointPAFObserver(Component):
         config = builder.configuration.stratification[f"joint_paf_on_{self.target.name}"]
         builder.results.register_adding_observation(
             name=f"joint_paf_on_{self.target}",
-            pop_filter='is_alive == True',
+            pop_filter="is_alive == True",
             aggregator=self.calculate_paf,
             requires_attributes=["is_alive"],
             additional_stratifications=config.include,
